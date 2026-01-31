@@ -23,17 +23,9 @@ import {
   User,
 } from 'lucide-react';
 import { getLeads, updateLeadStatus, type Lead, type LeadStatus } from '@/lib/data/sales';
+import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-
-const SALES_NAV = [
-  { label: 'Pipeline', href: '/sales' },
-  { label: 'Leads', href: '/sales/leads' },
-  { label: 'Opportunities', href: '/sales/opportunities' },
-  { label: 'Quotations', href: '/sales/quotations' },
-  { label: 'Orders', href: '/sales/orders' },
-  { label: 'Customers', href: '/sales/customers' },
-];
 
 const PIPELINE_STAGES: { id: LeadStatus; label: string; color: string }[] = [
   { id: 'new', label: 'New', color: 'bg-info' },
@@ -157,7 +149,7 @@ export default function SalesPipeline() {
   };
 
   return (
-    <AppLayout title="Sales" moduleNav={SALES_NAV}>
+    <AppLayout title="CRM" moduleNav={SALES_NAV}>
       <div className="p-4 h-full flex flex-col">
         {/* Toolbar */}
         <div className="flex items-center justify-between mb-4 shrink-0">

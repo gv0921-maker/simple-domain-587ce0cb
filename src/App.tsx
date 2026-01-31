@@ -27,8 +27,13 @@ import InventoryConfiguration from "@/pages/inventory/InventoryConfiguration";
 import InventoryReporting from "@/pages/inventory/InventoryReporting";
 
 // Sales pages
+import SalesOverview from "@/pages/sales/SalesOverview";
 import SalesPipeline from "@/pages/sales/SalesPipeline";
+import LeadDetail from "@/pages/sales/LeadDetail";
 import OpportunitiesList from "@/pages/sales/OpportunitiesList";
+import CustomersList from "@/pages/sales/CustomersList";
+import QuotationsList from "@/pages/sales/QuotationsList";
+import SalesOrdersList from "@/pages/sales/SalesOrdersList";
 
 // Settings pages
 import GeneralSettings from "@/pages/settings/GeneralSettings";
@@ -165,6 +170,14 @@ const App = () => (
               path="/sales"
               element={
                 <ProtectedRoute>
+                  <SalesOverview />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sales/pipeline"
+              element={
+                <ProtectedRoute>
                   <SalesPipeline />
                 </ProtectedRoute>
               }
@@ -181,7 +194,7 @@ const App = () => (
               path="/sales/leads/:id"
               element={
                 <ProtectedRoute>
-                  <SalesPipeline />
+                  <LeadDetail />
                 </ProtectedRoute>
               }
             />
@@ -205,7 +218,15 @@ const App = () => (
               path="/sales/quotations"
               element={
                 <ProtectedRoute>
-                  <SalesPipeline />
+                  <QuotationsList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sales/quotations/:id"
+              element={
+                <ProtectedRoute>
+                  <QuotationsList />
                 </ProtectedRoute>
               }
             />
@@ -213,7 +234,15 @@ const App = () => (
               path="/sales/orders"
               element={
                 <ProtectedRoute>
-                  <SalesPipeline />
+                  <SalesOrdersList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sales/orders/:id"
+              element={
+                <ProtectedRoute>
+                  <SalesOrdersList />
                 </ProtectedRoute>
               }
             />
@@ -221,7 +250,7 @@ const App = () => (
               path="/sales/customers"
               element={
                 <ProtectedRoute>
-                  <SalesPipeline />
+                  <CustomersList />
                 </ProtectedRoute>
               }
             />

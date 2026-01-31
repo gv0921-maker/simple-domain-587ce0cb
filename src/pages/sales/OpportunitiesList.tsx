@@ -16,17 +16,9 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { getOpportunities, type Opportunity, type OpportunityStage } from '@/lib/data/sales';
+import { SALES_NAV } from '@/lib/navigation/sales';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
-
-const SALES_NAV = [
-  { label: 'Pipeline', href: '/sales' },
-  { label: 'Leads', href: '/sales/leads' },
-  { label: 'Opportunities', href: '/sales/opportunities' },
-  { label: 'Quotations', href: '/sales/quotations' },
-  { label: 'Orders', href: '/sales/orders' },
-  { label: 'Customers', href: '/sales/customers' },
-];
 
 const STAGES: { id: OpportunityStage; label: string; weight: number }[] = [
   { id: 'qualification', label: 'Qualification', weight: 10 },
@@ -66,7 +58,7 @@ export default function OpportunitiesList() {
   }, [opportunities]);
 
   return (
-    <AppLayout title="Sales" moduleNav={SALES_NAV}>
+    <AppLayout title="CRM" moduleNav={SALES_NAV}>
       <div className="p-4">
         {/* Summary cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
