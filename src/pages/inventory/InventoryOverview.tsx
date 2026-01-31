@@ -1,18 +1,14 @@
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { SimpleBarChart } from '@/components/dashboard/SimpleBarChart';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, ChevronLeft, ChevronRight, Settings, MoreVertical } from 'lucide-react';
-
-const INVENTORY_NAV = [
-  { label: 'Overview', href: '/inventory' },
-  { label: 'Operations', href: '/inventory/operations' },
-  { label: 'Products', href: '/inventory/products' },
-  { label: 'Reporting', href: '/inventory/reporting' },
-  { label: 'Configuration', href: '/inventory/configuration' },
-];
+import { Search, ChevronLeft, ChevronRight, Settings, MoreVertical, Warehouse, Package, ArrowLeftRight, BarChart3 } from 'lucide-react';
+import { getProducts, getTransfers, getWarehouses } from '@/lib/data/inventory';
+import { INVENTORY_NAV } from '@/lib/navigation';
+import { useMemo } from 'react';
 
 const DASHBOARD_CARDS = [
   {
@@ -85,6 +81,23 @@ const DASHBOARD_CARDS = [
 ];
 
 export default function InventoryOverview() {
+  const navigate = useNavigate();
+  
+  const stats = useMemo(() => {
+    const products = getProducts();
+    const transfers = getTransfers();
+    const warehouses = getWarehouses();
+    
+    return {
+      totalProducts: products.length,
+      lowStock: products.filter(p => p.stockOnHand <= p.reorderLevel && p.stockOnHand > 0).length,
+      outOfStock: products.filter(p => p.stockOnHand === 0).length,
+      pendingTransfers: transfers.filter(t => t.status === 'waiting').length,
+      warehouseCount: warehouses.length,
+      totalValue: products.reduce((sum, p) => sum + p.stockOnHand * p.costPrice, 0),
+    };
+  }, []);
+
   return (
     <AppLayout title="Inventory" moduleNav={INVENTORY_NAV}>
       <div className="p-4">
@@ -114,15 +127,79 @@ export default function InventoryOverview() {
           </div>
         </div>
 
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div 
+            className="bg-card rounded-lg border border-border p-4 cursor-pointer hover:shadow-md transition-shadow animate-slide-up"
+            onClick={() => navigate('/inventory/products')}
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Package className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.totalProducts}</p>
+                <p className="text-sm text-muted-foreground">Total Products</p>
+              </div>
+            </div>
+          </div>
+          <div 
+            className="bg-card rounded-lg border border-border p-4 cursor-pointer hover:shadow-md transition-shadow animate-slide-up"
+            style={{ animationDelay: '50ms' }}
+            onClick={() => navigate('/inventory/warehouses')}
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-info/10 flex items-center justify-center">
+                <Warehouse className="h-5 w-5 text-info" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.warehouseCount}</p>
+                <p className="text-sm text-muted-foreground">Warehouses</p>
+              </div>
+            </div>
+          </div>
+          <div 
+            className="bg-card rounded-lg border border-border p-4 cursor-pointer hover:shadow-md transition-shadow animate-slide-up"
+            style={{ animationDelay: '100ms' }}
+            onClick={() => navigate('/inventory/operations')}
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
+                <ArrowLeftRight className="h-5 w-5 text-warning" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.pendingTransfers}</p>
+                <p className="text-sm text-muted-foreground">Pending Transfers</p>
+              </div>
+            </div>
+          </div>
+          <div 
+            className="bg-card rounded-lg border border-border p-4 cursor-pointer hover:shadow-md transition-shadow animate-slide-up"
+            style={{ animationDelay: '150ms' }}
+            onClick={() => navigate('/inventory/reporting')}
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
+                <BarChart3 className="h-5 w-5 text-success" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">₹{(stats.totalValue / 1000).toFixed(0)}K</p>
+                <p className="text-sm text-muted-foreground">Stock Value</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Dashboard Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {DASHBOARD_CARDS.map((card, index) => (
             <div
               key={card.title}
-              className="animate-slide-up"
-              style={{ animationDelay: `${index * 75}ms` }}
+              className="animate-slide-up cursor-pointer"
+              style={{ animationDelay: `${(index + 4) * 75}ms` }}
+              onClick={() => navigate('/inventory/operations')}
             >
-              <div className="bg-card rounded-lg border border-border p-4 h-full flex flex-col relative">
+              <div className="bg-card rounded-lg border border-border p-4 h-full flex flex-col relative hover:shadow-md transition-shadow">
                 {/* Colored left border */}
                 <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg bg-destructive" />
                 
@@ -131,7 +208,7 @@ export default function InventoryOverview() {
                   <h3 className="text-sm font-semibold text-primary uppercase tracking-wide pl-2">
                     {card.title}
                   </h3>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 -mt-1">
+                  <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 -mt-1" onClick={(e) => e.stopPropagation()}>
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </div>
@@ -175,8 +252,8 @@ export default function InventoryOverview() {
           ))}
 
           {/* GLF Factory card (empty/placeholder) */}
-          <div className="animate-slide-up" style={{ animationDelay: '450ms' }}>
-            <div className="bg-card rounded-lg border border-border p-4 h-full relative">
+          <div className="animate-slide-up" style={{ animationDelay: '750ms' }}>
+            <div className="bg-card rounded-lg border border-border p-4 h-full relative cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/inventory/warehouses')}>
               <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg bg-primary" />
               <h3 className="text-sm font-semibold text-primary uppercase tracking-wide pl-2">
                 GLF FACTORY

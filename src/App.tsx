@@ -17,6 +17,12 @@ import HomePage from "@/pages/HomePage";
 import InventoryOverview from "@/pages/inventory/InventoryOverview";
 import TransferDetail from "@/pages/inventory/TransferDetail";
 import ProductsList from "@/pages/inventory/ProductsList";
+import ProductDetail from "@/pages/inventory/ProductDetail";
+import OperationsList from "@/pages/inventory/OperationsList";
+import WarehousesList from "@/pages/inventory/WarehousesList";
+import StockMoves from "@/pages/inventory/StockMoves";
+import InventoryConfiguration from "@/pages/inventory/InventoryConfiguration";
+import InventoryReporting from "@/pages/inventory/InventoryReporting";
 
 // Sales pages
 import SalesPipeline from "@/pages/sales/SalesPipeline";
@@ -67,7 +73,7 @@ const App = () => (
               path="/inventory/operations"
               element={
                 <ProtectedRoute>
-                  <InventoryOverview />
+                  <OperationsList />
                 </ProtectedRoute>
               }
             />
@@ -83,7 +89,7 @@ const App = () => (
               path="/inventory/products/:id"
               element={
                 <ProtectedRoute>
-                  <ProductsList />
+                  <ProductDetail />
                 </ProtectedRoute>
               }
             />
@@ -96,10 +102,26 @@ const App = () => (
               }
             />
             <Route
+              path="/inventory/warehouses"
+              element={
+                <ProtectedRoute>
+                  <WarehousesList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory/stock-moves"
+              element={
+                <ProtectedRoute>
+                  <StockMoves />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/inventory/reporting"
               element={
                 <ProtectedRoute>
-                  <InventoryOverview />
+                  <InventoryReporting />
                 </ProtectedRoute>
               }
             />
@@ -107,7 +129,7 @@ const App = () => (
               path="/inventory/configuration"
               element={
                 <ProtectedRoute>
-                  <InventoryOverview />
+                  <InventoryConfiguration />
                 </ProtectedRoute>
               }
             />

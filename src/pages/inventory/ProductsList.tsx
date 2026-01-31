@@ -32,15 +32,8 @@ import {
   Package,
 } from 'lucide-react';
 import { getProducts, deleteProduct, type Product } from '@/lib/data/inventory';
+import { INVENTORY_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
-
-const INVENTORY_NAV = [
-  { label: 'Overview', href: '/inventory' },
-  { label: 'Operations', href: '/inventory/operations' },
-  { label: 'Products', href: '/inventory/products' },
-  { label: 'Reporting', href: '/inventory/reporting' },
-  { label: 'Configuration', href: '/inventory/configuration' },
-];
 
 export default function ProductsList() {
   const navigate = useNavigate();
