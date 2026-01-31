@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
@@ -12,7 +12,22 @@ import LoginPage from "@/pages/auth/LoginPage";
 
 // Main pages
 import HomePage from "@/pages/HomePage";
+
+// Inventory pages
 import InventoryOverview from "@/pages/inventory/InventoryOverview";
+import TransferDetail from "@/pages/inventory/TransferDetail";
+import ProductsList from "@/pages/inventory/ProductsList";
+
+// Sales pages
+import SalesPipeline from "@/pages/sales/SalesPipeline";
+import OpportunitiesList from "@/pages/sales/OpportunitiesList";
+
+// Settings pages
+import GeneralSettings from "@/pages/settings/GeneralSettings";
+import UsersManagement from "@/pages/settings/UsersManagement";
+import RolesManagement from "@/pages/settings/RolesManagement";
+import AuditLogs from "@/pages/settings/AuditLogs";
+
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,11 +53,169 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+
+            {/* Inventory module */}
             <Route
               path="/inventory"
               element={
                 <ProtectedRoute>
                   <InventoryOverview />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory/operations"
+              element={
+                <ProtectedRoute>
+                  <InventoryOverview />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory/products"
+              element={
+                <ProtectedRoute>
+                  <ProductsList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory/products/:id"
+              element={
+                <ProtectedRoute>
+                  <ProductsList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory/transfers/:id"
+              element={
+                <ProtectedRoute>
+                  <TransferDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory/reporting"
+              element={
+                <ProtectedRoute>
+                  <InventoryOverview />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory/configuration"
+              element={
+                <ProtectedRoute>
+                  <InventoryOverview />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Sales module */}
+            <Route
+              path="/sales"
+              element={
+                <ProtectedRoute>
+                  <SalesPipeline />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sales/leads"
+              element={
+                <ProtectedRoute>
+                  <SalesPipeline />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sales/leads/:id"
+              element={
+                <ProtectedRoute>
+                  <SalesPipeline />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sales/opportunities"
+              element={
+                <ProtectedRoute>
+                  <OpportunitiesList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sales/opportunities/:id"
+              element={
+                <ProtectedRoute>
+                  <OpportunitiesList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sales/quotations"
+              element={
+                <ProtectedRoute>
+                  <SalesPipeline />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sales/orders"
+              element={
+                <ProtectedRoute>
+                  <SalesPipeline />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sales/customers"
+              element={
+                <ProtectedRoute>
+                  <SalesPipeline />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Settings module */}
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <GeneralSettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings/users"
+              element={
+                <ProtectedRoute>
+                  <UsersManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings/roles"
+              element={
+                <ProtectedRoute>
+                  <RolesManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings/audit"
+              element={
+                <ProtectedRoute>
+                  <AuditLogs />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings/backups"
+              element={
+                <ProtectedRoute>
+                  <GeneralSettings />
                 </ProtectedRoute>
               }
             />
@@ -65,7 +238,23 @@ const App = () => (
               }
             />
             <Route
-              path="/sales"
+              path="/shop-floor"
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/barcode"
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/plm"
               element={
                 <ProtectedRoute>
                   <HomePage />
@@ -81,7 +270,71 @@ const App = () => (
               }
             />
             <Route
-              path="/settings"
+              path="/apps"
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/discuss"
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/invoicing"
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/accounting"
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/maintenance"
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/calendar"
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/helpdesk"
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/email-marketing"
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/website"
               element={
                 <ProtectedRoute>
                   <HomePage />
