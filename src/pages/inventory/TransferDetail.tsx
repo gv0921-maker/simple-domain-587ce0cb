@@ -20,18 +20,11 @@ import {
   ListFilter,
 } from 'lucide-react';
 import { getTransfer, updateTransferStatus, type InventoryTransfer, type TransferStatus } from '@/lib/data/inventory';
+import { INVENTORY_NAV } from '@/lib/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-
-const INVENTORY_NAV = [
-  { label: 'Overview', href: '/inventory' },
-  { label: 'Operations', href: '/inventory/operations' },
-  { label: 'Products', href: '/inventory/products' },
-  { label: 'Reporting', href: '/inventory/reporting' },
-  { label: 'Configuration', href: '/inventory/configuration' },
-];
 
 function getWorkflowSteps(status: TransferStatus): WorkflowStep[] {
   const statuses: TransferStatus[] = ['draft', 'waiting', 'ready', 'done'];
