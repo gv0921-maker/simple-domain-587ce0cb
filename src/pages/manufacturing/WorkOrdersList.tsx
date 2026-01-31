@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
@@ -205,26 +205,26 @@ export default function WorkOrdersList() {
                       {wo.scheduledStart} - {wo.scheduledEnd}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                         {wo.status === 'draft' && (
-                          <Button size="icon" variant="ghost" onClick={() => handleStatusChange(wo.id, 'confirmed')}>
+                          <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); handleStatusChange(wo.id, 'confirmed'); }}>
                             <CheckCircle className="h-4 w-4" />
                           </Button>
                         )}
                         {wo.status === 'confirmed' && (
-                          <Button size="icon" variant="ghost" onClick={() => handleStatusChange(wo.id, 'in_progress')}>
+                          <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); handleStatusChange(wo.id, 'in_progress'); }}>
                             <Play className="h-4 w-4" />
                           </Button>
                         )}
                         {wo.status === 'in_progress' && (
-                          <Button size="icon" variant="ghost" onClick={() => handleStatusChange(wo.id, 'done')}>
+                          <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); handleStatusChange(wo.id, 'done'); }}>
                             <CheckCircle className="h-4 w-4 text-success" />
                           </Button>
                         )}
-                        <Button size="icon" variant="ghost" onClick={() => handleOpenDialog(wo)}>
+                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpenDialog(wo); }}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button size="icon" variant="ghost" onClick={() => handleDelete(wo.id)}>
+                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); handleDelete(wo.id); }}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
@@ -241,6 +241,9 @@ export default function WorkOrdersList() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingWO ? 'Edit Work Order' : 'New Work Order'}</DialogTitle>
+            <DialogDescription>
+              {editingWO ? 'Update work order details and schedule' : 'Create a new production work order'}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
