@@ -1,0 +1,1122 @@
+// CRM Data Management - Contacts, Companies, Leads, Opportunities, Activities, Pipelines
+
+import { getItem, setItem } from '../storage';
+
+// ================== Types ==================
+
+export type ContactType = 'individual' | 'company';
+export type ContactStatus = 'active' | 'archived';
+export type LeadSource = 'website' | 'referral' | 'social_media' | 'trade_show' | 'cold_call' | 'email_campaign' | 'import' | 'manual' | 'other';
+export type LeadPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'unqualified' | 'converted' | 'lost';
+export type OpportunityStage = 'qualification' | 'needs_analysis' | 'proposal' | 'negotiation' | 'closed_won' | 'closed_lost';
+export type ActivityType = 'call' | 'email' | 'meeting' | 'task' | 'note' | 'follow_up';
+export type NoteVisibility = 'private' | 'team' | 'public';
+
+export interface Address {
+  street?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+  type: 'billing' | 'shipping' | 'both';
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  website?: string;
+  industry?: string;
+  employeeCount?: string;
+  annualRevenue?: number;
+  phone?: string;
+  email?: string;
+  addresses: Address[];
+  parentCompanyId?: string;
+  tags: string[];
+  notes?: string;
+  assignedTo?: string;
+  status: ContactStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Contact {
+  id: string;
+  type: ContactType;
+  firstName: string;
+  lastName: string;
+  email: string;
+  emails?: { email: string; type: string }[];
+  phone?: string;
+  phones?: { phone: string; type: string }[];
+  companyId?: string;
+  companyName?: string;
+  jobTitle?: string;
+  department?: string;
+  addresses: Address[];
+  tags: string[];
+  notes?: string;
+  assignedTo?: string;
+  status: ContactStatus;
+  score: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Lead {
+  id: string;
+  title: string;
+  contactId?: string;
+  contactName: string;
+  email: string;
+  phone?: string;
+  companyId?: string;
+  companyName?: string;
+  source: LeadSource;
+  sourceDetail?: string;
+  status: LeadStatus;
+  priority: LeadPriority;
+  score: number;
+  expectedRevenue: number;
+  probability: number;
+  assignedTo?: string;
+  teamId?: string;
+  tags: string[];
+  notes?: string;
+  qualifiedAt?: string;
+  convertedAt?: string;
+  convertedToOpportunityId?: string;
+  lostReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PipelineStage {
+  id: string;
+  pipelineId: string;
+  name: string;
+  order: number;
+  probability: number;
+  color: string;
+  description?: string;
+  automationHooks?: string[];
+}
+
+export interface Pipeline {
+  id: string;
+  name: string;
+  description?: string;
+  isDefault: boolean;
+  stages: PipelineStage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OpportunityProduct {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  total: number;
+}
+
+export interface Opportunity {
+  id: string;
+  name: string;
+  contactId?: string;
+  contactName: string;
+  companyId?: string;
+  companyName?: string;
+  pipelineId: string;
+  stageId: string;
+  stage: OpportunityStage;
+  expectedRevenue: number;
+  probability: number;
+  expectedCloseDate: string;
+  assignedTo?: string;
+  teamId?: string;
+  products: OpportunityProduct[];
+  tags: string[];
+  notes?: string;
+  lostReason?: string;
+  wonAt?: string;
+  lostAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Activity {
+  id: string;
+  type: ActivityType;
+  subject: string;
+  description?: string;
+  relatedTo: 'contact' | 'company' | 'lead' | 'opportunity';
+  relatedId: string;
+  userId: string;
+  userName: string;
+  dueDate?: string;
+  completed: boolean;
+  completedAt?: string;
+  priority?: LeadPriority;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Note {
+  id: string;
+  content: string;
+  relatedTo: 'contact' | 'company' | 'lead' | 'opportunity';
+  relatedId: string;
+  userId: string;
+  userName: string;
+  visibility: NoteVisibility;
+  mentions?: string[];
+  attachments?: { name: string; url: string; type: string }[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CRMTag {
+  id: string;
+  name: string;
+  color: string;
+  category?: string;
+}
+
+// ================== Default Data ==================
+
+const DEFAULT_PIPELINES: Pipeline[] = [
+  {
+    id: 'default',
+    name: 'Default Sales Pipeline',
+    description: 'Standard sales pipeline for all opportunities',
+    isDefault: true,
+    stages: [
+      { id: 'qual', pipelineId: 'default', name: 'Qualification', order: 1, probability: 10, color: 'hsl(var(--info))' },
+      { id: 'needs', pipelineId: 'default', name: 'Needs Analysis', order: 2, probability: 25, color: 'hsl(var(--accent))' },
+      { id: 'proposal', pipelineId: 'default', name: 'Proposal', order: 3, probability: 50, color: 'hsl(var(--warning))' },
+      { id: 'nego', pipelineId: 'default', name: 'Negotiation', order: 4, probability: 75, color: 'hsl(var(--chart-orange))' },
+      { id: 'closed_won', pipelineId: 'default', name: 'Closed Won', order: 5, probability: 100, color: 'hsl(var(--success))' },
+      { id: 'closed_lost', pipelineId: 'default', name: 'Closed Lost', order: 6, probability: 0, color: 'hsl(var(--destructive))' },
+    ],
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z',
+  },
+];
+
+const DEFAULT_COMPANIES: Company[] = [
+  {
+    id: 'c1',
+    name: 'Acme Corporation',
+    website: 'https://acme.example.com',
+    industry: 'Technology',
+    employeeCount: '50-100',
+    annualRevenue: 5000000,
+    phone: '+1 555-0100',
+    email: 'info@acme.example.com',
+    addresses: [{ street: '123 Main St', city: 'New York', state: 'NY', postalCode: '10001', country: 'USA', type: 'both' }],
+    tags: ['Enterprise', 'Priority'],
+    status: 'active',
+    createdAt: '2025-01-05T10:00:00Z',
+    updatedAt: '2025-01-20T14:00:00Z',
+  },
+  {
+    id: 'c2',
+    name: 'TechStart Inc',
+    website: 'https://techstart.example.io',
+    industry: 'Software',
+    employeeCount: '10-50',
+    phone: '+1 555-0200',
+    email: 'hello@techstart.example.io',
+    addresses: [],
+    tags: ['Startup', 'Growth'],
+    status: 'active',
+    createdAt: '2025-01-10T09:00:00Z',
+    updatedAt: '2025-01-22T11:00:00Z',
+  },
+  {
+    id: 'c3',
+    name: 'Global Retail Group',
+    website: 'https://globalretail.example.com',
+    industry: 'Retail',
+    employeeCount: '500+',
+    annualRevenue: 50000000,
+    phone: '+1 555-0300',
+    addresses: [{ street: '500 Commerce Blvd', city: 'Chicago', state: 'IL', postalCode: '60601', country: 'USA', type: 'billing' }],
+    tags: ['Enterprise', 'VIP'],
+    status: 'active',
+    createdAt: '2025-01-02T08:00:00Z',
+    updatedAt: '2025-01-25T16:00:00Z',
+  },
+];
+
+const DEFAULT_CONTACTS: Contact[] = [
+  {
+    id: '1',
+    type: 'individual',
+    firstName: 'John',
+    lastName: 'Smith',
+    email: 'john.smith@acme.example.com',
+    phone: '+1 555-0123',
+    companyId: 'c1',
+    companyName: 'Acme Corporation',
+    jobTitle: 'Procurement Manager',
+    department: 'Operations',
+    addresses: [],
+    tags: ['VIP', 'Furniture'],
+    status: 'active',
+    score: 85,
+    createdAt: '2025-01-10T10:00:00Z',
+    updatedAt: '2025-01-20T14:00:00Z',
+  },
+  {
+    id: '2',
+    type: 'individual',
+    firstName: 'Sarah',
+    lastName: 'Johnson',
+    email: 'sarah.j@techstart.example.io',
+    phone: '+1 555-0456',
+    companyId: 'c2',
+    companyName: 'TechStart Inc',
+    jobTitle: 'Office Manager',
+    addresses: [],
+    tags: ['New Customer'],
+    status: 'active',
+    score: 60,
+    createdAt: '2025-01-15T09:00:00Z',
+    updatedAt: '2025-01-22T11:00:00Z',
+  },
+  {
+    id: '3',
+    type: 'individual',
+    firstName: 'Michael',
+    lastName: 'Chen',
+    email: 'mchen@globalretail.example.com',
+    phone: '+1 555-0789',
+    companyId: 'c3',
+    companyName: 'Global Retail Group',
+    jobTitle: 'VP Operations',
+    department: 'Executive',
+    addresses: [],
+    tags: ['Enterprise', 'Priority'],
+    status: 'active',
+    score: 95,
+    createdAt: '2025-01-05T08:00:00Z',
+    updatedAt: '2025-01-25T16:00:00Z',
+  },
+  {
+    id: '4',
+    type: 'individual',
+    firstName: 'Emily',
+    lastName: 'Davis',
+    email: 'emily@newstartup.example.com',
+    phone: '+1 555-1111',
+    companyName: 'New Startup LLC',
+    addresses: [],
+    tags: ['Hot Lead'],
+    status: 'active',
+    score: 70,
+    createdAt: '2025-01-18T10:00:00Z',
+    updatedAt: '2025-01-22T14:00:00Z',
+  },
+];
+
+const DEFAULT_LEADS: Lead[] = [
+  {
+    id: 'l1',
+    title: 'Office Furniture Quote',
+    contactId: '4',
+    contactName: 'Emily Davis',
+    email: 'emily@newstartup.example.com',
+    phone: '+1 555-1111',
+    companyName: 'New Startup LLC',
+    source: 'website',
+    status: 'qualified',
+    priority: 'high',
+    score: 75,
+    expectedRevenue: 25000,
+    probability: 60,
+    assignedTo: 'Sales Manager',
+    tags: ['Hot Lead'],
+    createdAt: '2025-01-18T10:00:00Z',
+    updatedAt: '2025-01-22T14:00:00Z',
+  },
+  {
+    id: 'l2',
+    title: 'Retail Store Setup',
+    contactName: 'Robert Wilson',
+    email: 'rwilson@retailchain.example.com',
+    companyName: 'Retail Chain Corp',
+    source: 'referral',
+    status: 'qualified',
+    priority: 'high',
+    score: 85,
+    expectedRevenue: 150000,
+    probability: 75,
+    tags: ['Enterprise'],
+    createdAt: '2025-01-12T09:00:00Z',
+    updatedAt: '2025-01-24T11:00:00Z',
+  },
+  {
+    id: 'l3',
+    title: 'Home Office Collection',
+    contactName: 'Lisa Brown',
+    email: 'lisa.b@freelance.example.me',
+    source: 'social_media',
+    status: 'new',
+    priority: 'low',
+    score: 30,
+    expectedRevenue: 5000,
+    probability: 30,
+    tags: [],
+    createdAt: '2025-01-25T14:00:00Z',
+    updatedAt: '2025-01-25T14:00:00Z',
+  },
+  {
+    id: 'l4',
+    title: 'Corporate Relocation Furniture',
+    contactName: 'James Anderson',
+    email: 'janderson@bigcorp.example.com',
+    phone: '+1 555-2222',
+    companyName: 'BigCorp Industries',
+    source: 'trade_show',
+    status: 'contacted',
+    priority: 'medium',
+    score: 55,
+    expectedRevenue: 75000,
+    probability: 45,
+    assignedTo: 'Sales Rep',
+    tags: ['Trade Show 2025'],
+    createdAt: '2025-01-20T11:00:00Z',
+    updatedAt: '2025-01-26T09:00:00Z',
+  },
+];
+
+const DEFAULT_OPPORTUNITIES: Opportunity[] = [
+  {
+    id: 'o1',
+    name: 'Acme Corp - Q1 Furniture Order',
+    contactId: '1',
+    contactName: 'John Smith',
+    companyId: 'c1',
+    companyName: 'Acme Corporation',
+    pipelineId: 'default',
+    stageId: 'proposal',
+    stage: 'proposal',
+    expectedRevenue: 45000,
+    probability: 50,
+    expectedCloseDate: '2025-02-28',
+    assignedTo: 'Sales Manager',
+    products: [
+      { id: 'p1', productId: '2', productName: 'Wooden Chair - Oak', quantity: 20, unitPrice: 4999, discount: 10, total: 89982 },
+      { id: 'p2', productId: '3', productName: 'Office Desk - Modern', quantity: 10, unitPrice: 15999, discount: 15, total: 135991.5 },
+    ],
+    tags: ['Priority', 'Q1'],
+    createdAt: '2025-01-08T10:00:00Z',
+    updatedAt: '2025-01-26T14:00:00Z',
+  },
+  {
+    id: 'o2',
+    name: 'TechStart Office Redesign',
+    contactId: '2',
+    contactName: 'Sarah Johnson',
+    companyId: 'c2',
+    companyName: 'TechStart Inc',
+    pipelineId: 'default',
+    stageId: 'needs',
+    stage: 'needs_analysis',
+    expectedRevenue: 28000,
+    probability: 25,
+    expectedCloseDate: '2025-03-15',
+    products: [],
+    tags: ['Startup'],
+    createdAt: '2025-01-16T09:00:00Z',
+    updatedAt: '2025-01-23T11:00:00Z',
+  },
+  {
+    id: 'o3',
+    name: 'Global Retail - Store Fixtures',
+    contactId: '3',
+    contactName: 'Michael Chen',
+    companyId: 'c3',
+    companyName: 'Global Retail Group',
+    pipelineId: 'default',
+    stageId: 'nego',
+    stage: 'negotiation',
+    expectedRevenue: 125000,
+    probability: 75,
+    expectedCloseDate: '2025-02-15',
+    assignedTo: 'Sales Manager',
+    products: [],
+    tags: ['Enterprise', 'Priority'],
+    createdAt: '2025-01-10T08:00:00Z',
+    updatedAt: '2025-01-27T10:00:00Z',
+  },
+];
+
+const DEFAULT_ACTIVITIES: Activity[] = [
+  {
+    id: 'a1',
+    type: 'call',
+    subject: 'Initial discovery call',
+    description: 'Discussed requirements for office furniture',
+    relatedTo: 'lead',
+    relatedId: 'l1',
+    userId: '1',
+    userName: 'Sales Manager',
+    completed: true,
+    completedAt: '2025-01-20T10:30:00Z',
+    createdAt: '2025-01-20T10:00:00Z',
+    updatedAt: '2025-01-20T10:30:00Z',
+  },
+  {
+    id: 'a2',
+    type: 'email',
+    subject: 'Sent proposal document',
+    relatedTo: 'opportunity',
+    relatedId: 'o1',
+    userId: '1',
+    userName: 'Sales Manager',
+    completed: true,
+    completedAt: '2025-01-22T14:00:00Z',
+    createdAt: '2025-01-22T14:00:00Z',
+    updatedAt: '2025-01-22T14:00:00Z',
+  },
+  {
+    id: 'a3',
+    type: 'meeting',
+    subject: 'Product demo with stakeholders',
+    description: 'Demo scheduled with procurement team',
+    relatedTo: 'opportunity',
+    relatedId: 'o3',
+    userId: '1',
+    userName: 'Sales Manager',
+    dueDate: '2025-02-01T10:00:00Z',
+    completed: false,
+    priority: 'high',
+    createdAt: '2025-01-25T09:00:00Z',
+    updatedAt: '2025-01-25T09:00:00Z',
+  },
+  {
+    id: 'a4',
+    type: 'follow_up',
+    subject: 'Follow up on proposal feedback',
+    relatedTo: 'opportunity',
+    relatedId: 'o1',
+    userId: '1',
+    userName: 'Sales Manager',
+    dueDate: '2025-01-30T09:00:00Z',
+    completed: false,
+    priority: 'medium',
+    createdAt: '2025-01-26T11:00:00Z',
+    updatedAt: '2025-01-26T11:00:00Z',
+  },
+];
+
+const DEFAULT_NOTES: Note[] = [
+  {
+    id: 'n1',
+    content: 'Customer expressed interest in bulk discount for orders over $50k. Follow up required.',
+    relatedTo: 'opportunity',
+    relatedId: 'o1',
+    userId: '1',
+    userName: 'Sales Manager',
+    visibility: 'team',
+    createdAt: '2025-01-22T15:00:00Z',
+    updatedAt: '2025-01-22T15:00:00Z',
+  },
+  {
+    id: 'n2',
+    content: 'Budget approval pending from CFO. Expected decision by end of month.',
+    relatedTo: 'opportunity',
+    relatedId: 'o3',
+    userId: '1',
+    userName: 'Sales Manager',
+    visibility: 'public',
+    createdAt: '2025-01-25T16:00:00Z',
+    updatedAt: '2025-01-25T16:00:00Z',
+  },
+];
+
+const DEFAULT_TAGS: CRMTag[] = [
+  { id: 't1', name: 'VIP', color: 'hsl(var(--chart-coral))' },
+  { id: 't2', name: 'Enterprise', color: 'hsl(var(--chart-blue))' },
+  { id: 't3', name: 'Priority', color: 'hsl(var(--warning))' },
+  { id: 't4', name: 'Hot Lead', color: 'hsl(var(--destructive))' },
+  { id: 't5', name: 'Startup', color: 'hsl(var(--success))' },
+  { id: 't6', name: 'New Customer', color: 'hsl(var(--info))' },
+];
+
+// ================== CRUD Operations ==================
+
+// Companies
+export function getCompanies(): Company[] {
+  return getItem<Company[]>('crm_companies', DEFAULT_COMPANIES);
+}
+
+export function getCompany(id: string): Company | undefined {
+  return getCompanies().find(c => c.id === id);
+}
+
+export function saveCompany(company: Partial<Company> & { id?: string }): Company {
+  const companies = getCompanies();
+  const now = new Date().toISOString();
+  
+  if (company.id) {
+    const index = companies.findIndex(c => c.id === company.id);
+    if (index >= 0) {
+      companies[index] = { ...companies[index], ...company, updatedAt: now };
+      setItem('crm_companies', companies);
+      return companies[index];
+    }
+  }
+  
+  const newCompany: Company = {
+    id: crypto.randomUUID(),
+    name: company.name || '',
+    addresses: [],
+    tags: [],
+    status: 'active',
+    createdAt: now,
+    updatedAt: now,
+    ...company,
+  };
+  companies.push(newCompany);
+  setItem('crm_companies', companies);
+  return newCompany;
+}
+
+export function deleteCompany(id: string): void {
+  const companies = getCompanies().filter(c => c.id !== id);
+  setItem('crm_companies', companies);
+}
+
+// Contacts
+export function getContacts(): Contact[] {
+  return getItem<Contact[]>('crm_contacts', DEFAULT_CONTACTS);
+}
+
+export function getContact(id: string): Contact | undefined {
+  return getContacts().find(c => c.id === id);
+}
+
+export function saveContact(contact: Partial<Contact> & { id?: string }): Contact {
+  const contacts = getContacts();
+  const now = new Date().toISOString();
+  
+  if (contact.id) {
+    const index = contacts.findIndex(c => c.id === contact.id);
+    if (index >= 0) {
+      contacts[index] = { ...contacts[index], ...contact, updatedAt: now };
+      setItem('crm_contacts', contacts);
+      return contacts[index];
+    }
+  }
+  
+  const newContact: Contact = {
+    id: crypto.randomUUID(),
+    type: 'individual',
+    firstName: contact.firstName || '',
+    lastName: contact.lastName || '',
+    email: contact.email || '',
+    addresses: [],
+    tags: [],
+    status: 'active',
+    score: 0,
+    createdAt: now,
+    updatedAt: now,
+    ...contact,
+  };
+  contacts.push(newContact);
+  setItem('crm_contacts', contacts);
+  return newContact;
+}
+
+export function deleteContact(id: string): void {
+  const contacts = getContacts().filter(c => c.id !== id);
+  setItem('crm_contacts', contacts);
+}
+
+// Check for duplicate contacts
+export function findDuplicateContacts(email: string, phone?: string): Contact[] {
+  const contacts = getContacts();
+  return contacts.filter(c => 
+    c.email.toLowerCase() === email.toLowerCase() ||
+    (phone && c.phone === phone)
+  );
+}
+
+// Leads
+export function getLeads(): Lead[] {
+  return getItem<Lead[]>('crm_leads', DEFAULT_LEADS);
+}
+
+export function getLead(id: string): Lead | undefined {
+  return getLeads().find(l => l.id === id);
+}
+
+export function saveLead(lead: Partial<Lead> & { id?: string }): Lead {
+  const leads = getLeads();
+  const now = new Date().toISOString();
+  
+  if (lead.id) {
+    const index = leads.findIndex(l => l.id === lead.id);
+    if (index >= 0) {
+      leads[index] = { ...leads[index], ...lead, updatedAt: now };
+      setItem('crm_leads', leads);
+      return leads[index];
+    }
+  }
+  
+  const newLead: Lead = {
+    id: crypto.randomUUID(),
+    title: lead.title || '',
+    contactName: lead.contactName || '',
+    email: lead.email || '',
+    source: 'manual',
+    status: 'new',
+    priority: 'medium',
+    score: 0,
+    expectedRevenue: 0,
+    probability: 10,
+    tags: [],
+    createdAt: now,
+    updatedAt: now,
+    ...lead,
+  };
+  leads.push(newLead);
+  setItem('crm_leads', leads);
+  return newLead;
+}
+
+export function updateLeadStatus(id: string, status: LeadStatus): Lead | undefined {
+  const lead = getLead(id);
+  if (lead) {
+    return saveLead({ ...lead, status });
+  }
+  return undefined;
+}
+
+export function deleteLead(id: string): void {
+  const leads = getLeads().filter(l => l.id !== id);
+  setItem('crm_leads', leads);
+}
+
+// Convert lead to opportunity
+export function convertLeadToOpportunity(leadId: string, opportunityData?: Partial<Opportunity>): Opportunity | undefined {
+  const lead = getLead(leadId);
+  if (!lead) return undefined;
+  
+  const opportunity = saveOpportunity({
+    name: lead.title,
+    contactName: lead.contactName,
+    companyName: lead.companyName,
+    expectedRevenue: lead.expectedRevenue,
+    probability: lead.probability,
+    tags: lead.tags,
+    ...opportunityData,
+  });
+  
+  saveLead({
+    ...lead,
+    status: 'converted',
+    convertedAt: new Date().toISOString(),
+    convertedToOpportunityId: opportunity.id,
+  });
+  
+  return opportunity;
+}
+
+// Pipelines
+export function getPipelines(): Pipeline[] {
+  return getItem<Pipeline[]>('crm_pipelines', DEFAULT_PIPELINES);
+}
+
+export function getPipeline(id: string): Pipeline | undefined {
+  return getPipelines().find(p => p.id === id);
+}
+
+export function getDefaultPipeline(): Pipeline {
+  const pipelines = getPipelines();
+  return pipelines.find(p => p.isDefault) || pipelines[0];
+}
+
+export function savePipeline(pipeline: Partial<Pipeline> & { id?: string }): Pipeline {
+  const pipelines = getPipelines();
+  const now = new Date().toISOString();
+  
+  if (pipeline.id) {
+    const index = pipelines.findIndex(p => p.id === pipeline.id);
+    if (index >= 0) {
+      pipelines[index] = { ...pipelines[index], ...pipeline, updatedAt: now };
+      setItem('crm_pipelines', pipelines);
+      return pipelines[index];
+    }
+  }
+  
+  const newPipeline: Pipeline = {
+    id: crypto.randomUUID(),
+    name: pipeline.name || 'New Pipeline',
+    isDefault: false,
+    stages: [],
+    createdAt: now,
+    updatedAt: now,
+    ...pipeline,
+  };
+  pipelines.push(newPipeline);
+  setItem('crm_pipelines', pipelines);
+  return newPipeline;
+}
+
+// Opportunities
+export function getOpportunities(): Opportunity[] {
+  return getItem<Opportunity[]>('crm_opportunities', DEFAULT_OPPORTUNITIES);
+}
+
+export function getOpportunity(id: string): Opportunity | undefined {
+  return getOpportunities().find(o => o.id === id);
+}
+
+export function saveOpportunity(opp: Partial<Opportunity> & { id?: string }): Opportunity {
+  const opportunities = getOpportunities();
+  const now = new Date().toISOString();
+  const defaultPipeline = getDefaultPipeline();
+  
+  if (opp.id) {
+    const index = opportunities.findIndex(o => o.id === opp.id);
+    if (index >= 0) {
+      opportunities[index] = { ...opportunities[index], ...opp, updatedAt: now };
+      setItem('crm_opportunities', opportunities);
+      return opportunities[index];
+    }
+  }
+  
+  const newOpp: Opportunity = {
+    id: crypto.randomUUID(),
+    name: opp.name || '',
+    contactName: opp.contactName || '',
+    pipelineId: defaultPipeline.id,
+    stageId: defaultPipeline.stages[0]?.id || 'qual',
+    stage: 'qualification',
+    expectedRevenue: 0,
+    probability: 10,
+    expectedCloseDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    products: [],
+    tags: [],
+    createdAt: now,
+    updatedAt: now,
+    ...opp,
+  };
+  opportunities.push(newOpp);
+  setItem('crm_opportunities', opportunities);
+  return newOpp;
+}
+
+export function updateOpportunityStage(id: string, stageId: string, stage: OpportunityStage): Opportunity | undefined {
+  const opp = getOpportunity(id);
+  if (!opp) return undefined;
+  
+  const updates: Partial<Opportunity> = { stageId, stage };
+  
+  if (stage === 'closed_won') {
+    updates.wonAt = new Date().toISOString();
+    updates.probability = 100;
+  } else if (stage === 'closed_lost') {
+    updates.lostAt = new Date().toISOString();
+    updates.probability = 0;
+  }
+  
+  return saveOpportunity({ ...opp, ...updates });
+}
+
+export function deleteOpportunity(id: string): void {
+  const opportunities = getOpportunities().filter(o => o.id !== id);
+  setItem('crm_opportunities', opportunities);
+}
+
+// Activities
+export function getActivities(relatedTo?: string, relatedId?: string): Activity[] {
+  const activities = getItem<Activity[]>('crm_activities', DEFAULT_ACTIVITIES);
+  if (relatedTo && relatedId) {
+    return activities.filter(a => a.relatedTo === relatedTo && a.relatedId === relatedId);
+  }
+  return activities;
+}
+
+export function getActivity(id: string): Activity | undefined {
+  return getActivities().find(a => a.id === id);
+}
+
+export function saveActivity(activity: Partial<Activity> & { id?: string }): Activity {
+  const activities = getActivities();
+  const now = new Date().toISOString();
+  
+  if (activity.id) {
+    const index = activities.findIndex(a => a.id === activity.id);
+    if (index >= 0) {
+      activities[index] = { ...activities[index], ...activity, updatedAt: now };
+      setItem('crm_activities', activities);
+      return activities[index];
+    }
+  }
+  
+  const newActivity: Activity = {
+    id: crypto.randomUUID(),
+    type: 'task',
+    subject: activity.subject || '',
+    relatedTo: activity.relatedTo || 'contact',
+    relatedId: activity.relatedId || '',
+    userId: activity.userId || '',
+    userName: activity.userName || '',
+    completed: false,
+    createdAt: now,
+    updatedAt: now,
+    ...activity,
+  };
+  activities.push(newActivity);
+  setItem('crm_activities', activities);
+  return newActivity;
+}
+
+export function completeActivity(id: string): Activity | undefined {
+  const activity = getActivity(id);
+  if (activity) {
+    return saveActivity({
+      ...activity,
+      completed: true,
+      completedAt: new Date().toISOString(),
+    });
+  }
+  return undefined;
+}
+
+export function deleteActivity(id: string): void {
+  const activities = getActivities().filter(a => a.id !== id);
+  setItem('crm_activities', activities);
+}
+
+// Notes
+export function getNotes(relatedTo?: string, relatedId?: string): Note[] {
+  const notes = getItem<Note[]>('crm_notes', DEFAULT_NOTES);
+  if (relatedTo && relatedId) {
+    return notes.filter(n => n.relatedTo === relatedTo && n.relatedId === relatedId);
+  }
+  return notes;
+}
+
+export function saveNote(note: Partial<Note> & { id?: string }): Note {
+  const notes = getNotes();
+  const now = new Date().toISOString();
+  
+  if (note.id) {
+    const index = notes.findIndex(n => n.id === note.id);
+    if (index >= 0) {
+      notes[index] = { ...notes[index], ...note, updatedAt: now };
+      setItem('crm_notes', notes);
+      return notes[index];
+    }
+  }
+  
+  const newNote: Note = {
+    id: crypto.randomUUID(),
+    content: note.content || '',
+    relatedTo: note.relatedTo || 'contact',
+    relatedId: note.relatedId || '',
+    userId: note.userId || '',
+    userName: note.userName || '',
+    visibility: 'team',
+    createdAt: now,
+    updatedAt: now,
+    ...note,
+  };
+  notes.push(newNote);
+  setItem('crm_notes', notes);
+  return newNote;
+}
+
+export function deleteNote(id: string): void {
+  const notes = getNotes().filter(n => n.id !== id);
+  setItem('crm_notes', notes);
+}
+
+// Tags
+export function getTags(): CRMTag[] {
+  return getItem<CRMTag[]>('crm_tags', DEFAULT_TAGS);
+}
+
+export function saveTag(tag: Partial<CRMTag>): CRMTag {
+  const tags = getTags();
+  
+  if (tag.id) {
+    const index = tags.findIndex(t => t.id === tag.id);
+    if (index >= 0) {
+      tags[index] = { ...tags[index], ...tag };
+      setItem('crm_tags', tags);
+      return tags[index];
+    }
+  }
+  
+  const newTag: CRMTag = {
+    id: crypto.randomUUID(),
+    name: tag.name || '',
+    color: tag.color || 'hsl(var(--muted))',
+    ...tag,
+  };
+  tags.push(newTag);
+  setItem('crm_tags', tags);
+  return newTag;
+}
+
+// ================== Analytics ==================
+
+export interface CRMStats {
+  totalContacts: number;
+  totalCompanies: number;
+  totalLeads: number;
+  newLeadsThisMonth: number;
+  totalOpportunities: number;
+  activeOpportunities: number;
+  pipelineValue: number;
+  weightedPipelineValue: number;
+  wonRevenue: number;
+  lostRevenue: number;
+  winRate: number;
+  avgDealSize: number;
+  activitiesCompleted: number;
+  activitiesPending: number;
+}
+
+export function getCRMStats(): CRMStats {
+  const contacts = getContacts();
+  const companies = getCompanies();
+  const leads = getLeads();
+  const opportunities = getOpportunities();
+  const activities = getActivities();
+  
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  
+  const activeOpps = opportunities.filter(o => !o.stage.startsWith('closed'));
+  const wonOpps = opportunities.filter(o => o.stage === 'closed_won');
+  const lostOpps = opportunities.filter(o => o.stage === 'closed_lost');
+  const closedOpps = [...wonOpps, ...lostOpps];
+  
+  return {
+    totalContacts: contacts.filter(c => c.status === 'active').length,
+    totalCompanies: companies.filter(c => c.status === 'active').length,
+    totalLeads: leads.length,
+    newLeadsThisMonth: leads.filter(l => new Date(l.createdAt) >= monthStart).length,
+    totalOpportunities: opportunities.length,
+    activeOpportunities: activeOpps.length,
+    pipelineValue: activeOpps.reduce((sum, o) => sum + o.expectedRevenue, 0),
+    weightedPipelineValue: activeOpps.reduce((sum, o) => sum + (o.expectedRevenue * o.probability / 100), 0),
+    wonRevenue: wonOpps.reduce((sum, o) => sum + o.expectedRevenue, 0),
+    lostRevenue: lostOpps.reduce((sum, o) => sum + o.expectedRevenue, 0),
+    winRate: closedOpps.length > 0 ? Math.round((wonOpps.length / closedOpps.length) * 100) : 0,
+    avgDealSize: wonOpps.length > 0 ? Math.round(wonOpps.reduce((sum, o) => sum + o.expectedRevenue, 0) / wonOpps.length) : 0,
+    activitiesCompleted: activities.filter(a => a.completed).length,
+    activitiesPending: activities.filter(a => !a.completed).length,
+  };
+}
+
+export interface LeadsBySource {
+  source: string;
+  count: number;
+  value: number;
+}
+
+export function getLeadsBySource(): LeadsBySource[] {
+  const leads = getLeads();
+  const sourceMap = new Map<string, { count: number; value: number }>();
+  
+  leads.forEach(lead => {
+    const existing = sourceMap.get(lead.source) || { count: 0, value: 0 };
+    sourceMap.set(lead.source, {
+      count: existing.count + 1,
+      value: existing.value + lead.expectedRevenue,
+    });
+  });
+  
+  return Array.from(sourceMap.entries()).map(([source, data]) => ({
+    source,
+    ...data,
+  }));
+}
+
+export interface OpportunitiesByStage {
+  stage: string;
+  stageId: string;
+  count: number;
+  value: number;
+}
+
+export function getOpportunitiesByStage(): OpportunitiesByStage[] {
+  const opportunities = getOpportunities();
+  const pipeline = getDefaultPipeline();
+  
+  return pipeline.stages.map(stage => {
+    const stageOpps = opportunities.filter(o => o.stageId === stage.id);
+    return {
+      stage: stage.name,
+      stageId: stage.id,
+      count: stageOpps.length,
+      value: stageOpps.reduce((sum, o) => sum + o.expectedRevenue, 0),
+    };
+  });
+}
+
+// ================== Import/Export ==================
+
+export interface ImportResult {
+  success: number;
+  failed: number;
+  duplicates: number;
+  errors: string[];
+}
+
+export function importContacts(data: Partial<Contact>[]): ImportResult {
+  const result: ImportResult = { success: 0, failed: 0, duplicates: 0, errors: [] };
+  
+  data.forEach((row, index) => {
+    try {
+      if (!row.email) {
+        result.failed++;
+        result.errors.push(`Row ${index + 1}: Email is required`);
+        return;
+      }
+      
+      const duplicates = findDuplicateContacts(row.email, row.phone);
+      if (duplicates.length > 0) {
+        result.duplicates++;
+        return;
+      }
+      
+      saveContact({
+        ...row,
+        firstName: row.firstName || '',
+        lastName: row.lastName || '',
+      });
+      result.success++;
+    } catch (e) {
+      result.failed++;
+      result.errors.push(`Row ${index + 1}: ${e instanceof Error ? e.message : 'Unknown error'}`);
+    }
+  });
+  
+  return result;
+}
+
+export function exportContacts(): Contact[] {
+  return getContacts();
+}
+
+export function exportLeads(): Lead[] {
+  return getLeads();
+}
+
+export function exportOpportunities(): Opportunity[] {
+  return getOpportunities();
+}

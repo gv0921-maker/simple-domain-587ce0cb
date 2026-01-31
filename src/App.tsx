@@ -43,6 +43,13 @@ import ProductionPlanning from "@/pages/manufacturing/ProductionPlanning";
 import ShopFloor from "@/pages/manufacturing/ShopFloor";
 import PLMOverview from "@/pages/plm/PLMOverview";
 
+// CRM pages
+import CRMOverview from "@/pages/crm/CRMOverview";
+import CRMPipeline from "@/pages/crm/CRMPipeline";
+import CRMContactsList from "@/pages/crm/CRMContactsList";
+import CRMCompaniesList from "@/pages/crm/CRMCompaniesList";
+import CRMLeadsList from "@/pages/crm/CRMLeadsList";
+
 // Accounting pages
 import AccountingOverview from "@/pages/accounting/AccountingOverview";
 import ChartOfAccounts from "@/pages/accounting/ChartOfAccounts";
@@ -335,6 +342,19 @@ const App = () => (
             <Route path="/website" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
             <Route path="/employees" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
             <Route path="/employees/*" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+
+            {/* CRM module */}
+            <Route path="/crm" element={<ProtectedRoute><CRMOverview /></ProtectedRoute>} />
+            <Route path="/crm/pipeline" element={<ProtectedRoute><CRMPipeline /></ProtectedRoute>} />
+            <Route path="/crm/leads" element={<ProtectedRoute><CRMLeadsList /></ProtectedRoute>} />
+            <Route path="/crm/leads/:id" element={<ProtectedRoute><CRMLeadsList /></ProtectedRoute>} />
+            <Route path="/crm/opportunities" element={<ProtectedRoute><CRMPipeline /></ProtectedRoute>} />
+            <Route path="/crm/opportunities/:id" element={<ProtectedRoute><CRMPipeline /></ProtectedRoute>} />
+            <Route path="/crm/contacts" element={<ProtectedRoute><CRMContactsList /></ProtectedRoute>} />
+            <Route path="/crm/contacts/:id" element={<ProtectedRoute><CRMContactsList /></ProtectedRoute>} />
+            <Route path="/crm/companies" element={<ProtectedRoute><CRMCompaniesList /></ProtectedRoute>} />
+            <Route path="/crm/companies/:id" element={<ProtectedRoute><CRMCompaniesList /></ProtectedRoute>} />
+            <Route path="/crm/activities" element={<ProtectedRoute><CRMOverview /></ProtectedRoute>} />
 
             {/* Manufacturing module */}
             <Route path="/manufacturing" element={<ProtectedRoute><ManufacturingOverview /></ProtectedRoute>} />
