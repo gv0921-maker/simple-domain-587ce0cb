@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -155,19 +155,19 @@ export default function BOMList() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                     <Badge variant={bom.status === 'active' ? 'default' : bom.status === 'archived' ? 'secondary' : 'outline'}>
                       {bom.status}
                     </Badge>
                     {bom.status === 'draft' && (
-                      <Button size="sm" variant="outline" onClick={() => handleStatusChange(bom.id, 'active')}>
+                      <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleStatusChange(bom.id, 'active'); }}>
                         Activate
                       </Button>
                     )}
-                    <Button size="icon" variant="ghost" onClick={() => handleOpenDialog(bom)}>
+                    <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpenDialog(bom); }}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => handleDelete(bom.id)}>
+                    <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); handleDelete(bom.id); }}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -210,6 +210,9 @@ export default function BOMList() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingBOM ? 'Edit BOM' : 'New Bill of Materials'}</DialogTitle>
+            <DialogDescription>
+              {editingBOM ? 'Update bill of materials details and components' : 'Create a new bill of materials for production'}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">

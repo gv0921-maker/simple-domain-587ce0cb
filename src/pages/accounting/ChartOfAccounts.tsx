@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -187,8 +187,8 @@ export default function ChartOfAccounts() {
                           {account.isActive ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <Button size="icon" variant="ghost" onClick={() => handleOpenDialog(account)}>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpenDialog(account); }}>
                           <Edit className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -205,6 +205,9 @@ export default function ChartOfAccounts() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingAccount ? 'Edit Account' : 'New Account'}</DialogTitle>
+            <DialogDescription>
+              {editingAccount ? 'Update account details' : 'Create a new ledger account'}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">

@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -200,16 +200,16 @@ export default function InvoicesList() {
                       <TableCell>
                         <Badge variant={statusColors[inv.status]}>{inv.status}</Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1">
                           {inv.status === 'draft' && (
-                            <Button size="sm" variant="ghost" onClick={() => handleSend(inv.id)}>
+                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleSend(inv.id); }}>
                               <Send className="h-4 w-4 mr-1" />
                               Send
                             </Button>
                           )}
                           {(inv.status === 'sent' || inv.status === 'overdue') && (
-                            <Button size="sm" variant="ghost" onClick={() => handleMarkPaid(inv.id)}>
+                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleMarkPaid(inv.id); }}>
                               <DollarSign className="h-4 w-4 mr-1" />
                               Paid
                             </Button>
@@ -229,6 +229,9 @@ export default function InvoicesList() {
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>New Invoice</DialogTitle>
+            <DialogDescription>
+              Create a new customer invoice with line items
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
