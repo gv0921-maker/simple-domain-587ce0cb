@@ -6,7 +6,21 @@ import { CustomizationState, DEFAULT_CUSTOMIZATION } from './types';
 const CUSTOMIZATION_KEY = 'customization';
 
 export function getCustomization(): CustomizationState {
-  return getItem<CustomizationState>(CUSTOMIZATION_KEY, DEFAULT_CUSTOMIZATION);
+  const stored = getItem<CustomizationState>(CUSTOMIZATION_KEY, DEFAULT_CUSTOMIZATION);
+  
+  // Ensure all default modules exist (handles new modules added after initial save)
+  const storedIds = new Set(stored.modules.map(m => m.id));
+  const missingModules = DEFAULT_CUSTOMIZATION.modules.filter(m => !storedIds.has(m.id));
+  if (missingModules.length > 0) {
+    const maxOrder = Math.max(...stored.modules.map(m => m.order), -1);
+    stored.modules = [
+      ...stored.modules,
+      ...missingModules.map((m, i) => ({ ...m, order: maxOrder + 1 + i })),
+    ];
+    setItem(CUSTOMIZATION_KEY, stored);
+  }
+  
+  return stored;
 }
 
 export function setCustomization(state: CustomizationState): void {
