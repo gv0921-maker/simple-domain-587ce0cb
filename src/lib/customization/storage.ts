@@ -4,8 +4,18 @@ import { getItem, setItem } from '@/lib/storage';
 import { CustomizationState, DEFAULT_CUSTOMIZATION } from './types';
 
 const CUSTOMIZATION_KEY = 'customization';
+const CUSTOMIZATION_VERSION_KEY = 'customization_version';
+const CURRENT_VERSION = 2; // Bump to force refresh when module structure changes
 
 export function getCustomization(): CustomizationState {
+  // Force reset if version changed (e.g. modules were restructured)
+  const storedVersion = getItem<number>(CUSTOMIZATION_VERSION_KEY, 0);
+  if (storedVersion < CURRENT_VERSION) {
+    setItem(CUSTOMIZATION_KEY, DEFAULT_CUSTOMIZATION);
+    setItem(CUSTOMIZATION_VERSION_KEY, CURRENT_VERSION);
+    return DEFAULT_CUSTOMIZATION;
+  }
+
   const stored = getItem<CustomizationState>(CUSTOMIZATION_KEY, DEFAULT_CUSTOMIZATION);
   
   // Ensure all default modules exist (handles new modules added after initial save)
