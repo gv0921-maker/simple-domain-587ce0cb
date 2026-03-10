@@ -215,7 +215,17 @@ const App = () => (
               }
             />
             <Route
-              path="/inventory/barcode"
+              path="/inventory/stock-dashboard"
+              element={
+                <ProtectedRoute>
+                  <StockDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Barcode module */}
+            <Route
+              path="/barcode"
               element={
                 <ProtectedRoute>
                   <BarcodeOperations />
@@ -223,7 +233,7 @@ const App = () => (
               }
             />
             <Route
-              path="/inventory/barcode-labels"
+              path="/barcode/labels"
               element={
                 <ProtectedRoute>
                   <BarcodeLabels />
@@ -231,18 +241,10 @@ const App = () => (
               }
             />
             <Route
-              path="/inventory/scan-lookup"
+              path="/barcode/scan-lookup"
               element={
                 <ProtectedRoute>
                   <ProductScanLookup />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/inventory/stock-dashboard"
-              element={
-                <ProtectedRoute>
-                  <StockDashboard />
                 </ProtectedRoute>
               }
             />
@@ -397,7 +399,6 @@ const App = () => (
 
             {/* Placeholder routes for other modules */}
             <Route path="/dashboards" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-            <Route path="/barcode" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
             <Route path="/apps" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
             <Route path="/discuss" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
             <Route path="/maintenance" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />

@@ -39,7 +39,7 @@ import {
   getBarcodeOperations,
 } from '@/lib/data/inventory/storage';
 import type { StockMove, BarcodeOperation } from '@/lib/data/inventory/types';
-import { INVENTORY_NAV } from '@/lib/navigation';
+import { BARCODE_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -182,7 +182,7 @@ export default function BarcodeOperations() {
   }
 
   return (
-    <AppLayout title="Inventory" moduleNav={INVENTORY_NAV}>
+    <AppLayout title="Barcode" moduleNav={BARCODE_NAV}>
       <div className="p-4 md:p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

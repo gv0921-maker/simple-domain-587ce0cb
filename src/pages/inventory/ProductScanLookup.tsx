@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { getProducts, getProductByBarcode, getStockMoves, getLotsByProduct, getSerialsByProduct } from '@/lib/data/inventory/storage';
 import type { Product, StockMove } from '@/lib/data/inventory/types';
-import { INVENTORY_NAV } from '@/lib/navigation';
+import { BARCODE_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -97,7 +97,7 @@ export default function ProductScanLookup() {
     : null;
 
   return (
-    <AppLayout title="Inventory" moduleNav={INVENTORY_NAV}>
+    <AppLayout title="Barcode" moduleNav={BARCODE_NAV}>
       <div className="p-4 md:p-6 space-y-6">
         {/* Header */}
         <div>
