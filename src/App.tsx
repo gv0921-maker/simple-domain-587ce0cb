@@ -214,6 +214,14 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/inventory/stock-dashboard"
+              element={
+                <ProtectedRoute>
+                  <StockDashboard />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Barcode module */}
             <Route
