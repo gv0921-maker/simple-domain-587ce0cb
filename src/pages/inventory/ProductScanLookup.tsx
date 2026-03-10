@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { getProducts, getProductByBarcode, getStockMoves, getLotsByProduct, getSerialsByProduct } from '@/lib/data/inventory/storage';
 import type { Product, StockMove } from '@/lib/data/inventory/types';
-import { INVENTORY_NAV } from '@/lib/navigation';
+import { BARCODE_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
