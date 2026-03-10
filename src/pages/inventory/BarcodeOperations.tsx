@@ -39,7 +39,7 @@ import {
   getBarcodeOperations,
 } from '@/lib/data/inventory/storage';
 import type { StockMove, BarcodeOperation } from '@/lib/data/inventory/types';
-import { INVENTORY_NAV } from '@/lib/navigation';
+import { BARCODE_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
