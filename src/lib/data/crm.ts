@@ -130,17 +130,22 @@ export interface Opportunity {
   contactName: string;
   companyId?: string;
   companyName?: string;
+  email?: string;
+  phone?: string;
   pipelineId: string;
   stageId: string;
   stage: OpportunityStage;
   expectedRevenue: number;
   probability: number;
+  priority: 0 | 1 | 2 | 3; // star rating (0=none, 1-3 stars like Odoo)
   expectedCloseDate: string;
   assignedTo?: string;
+  salesTeam?: string;
   teamId?: string;
   products: OpportunityProduct[];
   tags: string[];
   notes?: string;
+  internalNotes?: string;
   lostReason?: string;
   wonAt?: string;
   lostAt?: string;
