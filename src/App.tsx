@@ -49,7 +49,6 @@ import BOMList from "@/pages/manufacturing/BOMList";
 import WorkCenters from "@/pages/manufacturing/WorkCenters";
 import ProductionPlanning from "@/pages/manufacturing/ProductionPlanning";
 import ShopFloor from "@/pages/manufacturing/ShopFloor";
-import PLMOverview from "@/pages/plm/PLMOverview";
 
 // CRM pages
 import CRMOverview from "@/pages/crm/CRMOverview";
