@@ -876,8 +876,22 @@ export function savePipeline(pipeline: Partial<Pipeline> & { id?: string }): Pip
   return newPipeline;
 }
 
-// Opportunities
+// Force reset CRM data to new Odoo-style pipeline on version change
+const CRM_VERSION_KEY = 'crm_data_version';
+const CRM_CURRENT_VERSION = 2;
+
+function ensureCRMVersion() {
+  const stored = getItem<number>(CRM_VERSION_KEY, 0);
+  if (stored < CRM_CURRENT_VERSION) {
+    // Clear old CRM data to use new defaults
+    setItem('crm_opportunities', DEFAULT_OPPORTUNITIES);
+    setItem('crm_pipelines', DEFAULT_PIPELINES);
+    setItem(CRM_VERSION_KEY, CRM_CURRENT_VERSION);
+  }
+}
+
 export function getOpportunities(): Opportunity[] {
+  ensureCRMVersion();
   return getItem<Opportunity[]>('crm_opportunities', DEFAULT_OPPORTUNITIES);
 }
 
