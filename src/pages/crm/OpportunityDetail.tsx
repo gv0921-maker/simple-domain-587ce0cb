@@ -1,14 +1,14 @@
-// Odoo-style Opportunity Detail Form — pixel-perfect replica
+// Odoo-style Opportunity Detail Form — exact replica from reference screenshots
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
@@ -24,24 +24,23 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  ArrowLeft,
+  ChevronRight,
+  ChevronLeft,
   Trophy,
   XCircle,
-  Phone,
-  Mail,
-  Building,
-  User,
-  Calendar,
-  DollarSign,
-  Clock,
-  MessageSquare,
-  Send,
-  Pencil,
   CalendarClock,
-  ChevronRight,
+  MessageSquare,
+  Clock,
+  Send,
+  Search,
+  Paperclip,
+  Maximize2,
+  Smile,
+  Settings,
 } from 'lucide-react';
 import {
   getOpportunity,
+  getOpportunities,
   saveOpportunity,
   updateOpportunityStage,
   getDefaultPipeline,
@@ -60,11 +59,24 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 
+// Contact avatar
+function ChatterAvatar({ name }: { name: string }) {
+  const initial = name.charAt(0).toUpperCase();
+  const colors = ['bg-[#00A09D]', 'bg-[#875A7B]', 'bg-[#F06050]', 'bg-[#6CC1ED]'];
+  const colorIndex = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length;
+  return (
+    <div className={cn('h-9 w-9 rounded-full text-white flex items-center justify-center font-bold text-sm shrink-0', colors[colorIndex])}>
+      {initial}
+    </div>
+  );
+}
+
 export default function OpportunityDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const pipeline = getDefaultPipeline();
+  const allOpportunities = getOpportunities();
 
   const [opportunity, setOpportunity] = useState<Opportunity | undefined>(() =>
     id ? getOpportunity(id) : undefined
@@ -73,12 +85,16 @@ export default function OpportunityDetail() {
   const [editData, setEditData] = useState<Partial<Opportunity>>({});
   const [showLostDialog, setShowLostDialog] = useState(false);
   const [lostReason, setLostReason] = useState('');
-  const [newNote, setNewNote] = useState('');
-  const [newLogMessage, setNewLogMessage] = useState('');
-  const [activeTab, setActiveTab] = useState('internal');
+  const [chatterTab, setChatterTab] = useState<'message' | 'note' | 'activity'>('note');
+  const [chatterInput, setChatterInput] = useState('');
+  const [formTab, setFormTab] = useState('notes');
 
   const activities = useMemo(() => id ? getActivities('opportunity', id) : [], [id]);
   const notes = useMemo(() => id ? getNotes('opportunity', id) : [], [id]);
+
+  // Navigation between records
+  const currentIndex = allOpportunities.findIndex(o => o.id === id);
+  const totalRecords = allOpportunities.length;
 
   if (!opportunity) {
     return (
@@ -129,38 +145,43 @@ export default function OpportunityDetail() {
     toast({ title: 'Opportunity updated' });
   };
 
-  const handleSendNote = () => {
-    if (!newNote.trim()) return;
-    saveNote({
-      content: newNote,
-      relatedTo: 'opportunity',
-      relatedId: opportunity.id,
-      userId: '1',
-      userName: 'You',
-      visibility: 'team',
-    });
-    setNewNote('');
-    toast({ title: 'Note added' });
+  const handleChatterSubmit = () => {
+    if (!chatterInput.trim()) return;
+    if (chatterTab === 'note') {
+      saveNote({
+        content: chatterInput,
+        relatedTo: 'opportunity',
+        relatedId: opportunity.id,
+        userId: '1',
+        userName: 'Management',
+        visibility: 'team',
+      });
+    } else {
+      saveActivity({
+        type: 'note',
+        subject: chatterInput,
+        relatedTo: 'opportunity',
+        relatedId: opportunity.id,
+        userId: '1',
+        userName: 'Management',
+        completed: true,
+        completedAt: new Date().toISOString(),
+      });
+    }
+    setChatterInput('');
+    toast({ title: chatterTab === 'note' ? 'Note logged' : 'Message sent' });
   };
 
-  const handleLogMessage = () => {
-    if (!newLogMessage.trim()) return;
-    saveActivity({
-      type: 'note',
-      subject: newLogMessage,
-      relatedTo: 'opportunity',
-      relatedId: opportunity.id,
-      userId: '1',
-      userName: 'You',
-      completed: true,
-      completedAt: new Date().toISOString(),
-    });
-    setNewLogMessage('');
-    toast({ title: 'Log added' });
+  const navigateRecord = (dir: 'prev' | 'next') => {
+    const newIndex = dir === 'prev' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex >= 0 && newIndex < totalRecords) {
+      navigate(`/crm/opportunities/${allOpportunities[newIndex].id}`);
+    }
   };
 
   const isWon = opportunity.stage === 'won';
   const isLost = opportunity.stage === 'lost';
+  const currentData = { ...opportunity, ...editData };
 
   return (
     <AppLayout title="CRM" moduleNav={CRM_NAV}>
@@ -168,353 +189,496 @@ export default function OpportunityDetail() {
         {/* Top control panel — Odoo style */}
         <div className="border-b border-border bg-card px-4 py-2 shrink-0">
           <div className="flex items-center justify-between">
-            {/* Breadcrumb */}
+            {/* Left: breadcrumb */}
             <div className="flex items-center gap-1.5 text-sm">
+              <Button
+                size="sm"
+                className="h-8 text-xs font-semibold bg-[#875A7B] hover:bg-[#6e4a64] text-white"
+                onClick={() => navigate('/crm/pipeline')}
+              >
+                New
+              </Button>
               <button
                 onClick={() => navigate('/crm/pipeline')}
-                className="text-primary hover:underline font-medium"
+                className="text-primary hover:underline font-medium text-sm"
               >
                 Pipeline
               </button>
               <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-foreground font-medium">{opportunity.name}</span>
+              <Settings className="h-3.5 w-3.5 text-muted-foreground ml-1 cursor-pointer" />
             </div>
 
-            {/* Action buttons */}
+            {/* Center: No Meeting button */}
             <div className="flex items-center gap-2">
-              {!isWon && !isLost && (
-                <>
-                  {isEditing ? (
-                    <>
-                      <Button size="sm" className="h-7 text-xs" onClick={handleSave}>Save</Button>
-                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setIsEditing(false); setEditData({}); }}>Discard</Button>
-                    </>
-                  ) : (
-                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setIsEditing(true)}>
-                      <Pencil className="h-3 w-3" /> Edit
-                    </Button>
-                  )}
-                  <div className="h-4 w-px bg-border" />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs gap-1 text-[#00A09D] border-[#00A09D]/30 hover:bg-[#00A09D]/10"
-                    onClick={handleWon}
-                  >
-                    <Trophy className="h-3 w-3" />
-                    Won
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs gap-1 text-destructive border-destructive/30 hover:bg-destructive/10"
-                    onClick={() => setShowLostDialog(true)}
-                  >
-                    <XCircle className="h-3 w-3" />
-                    Lost
-                  </Button>
-                </>
-              )}
-              {(isWon || isLost) && (
-                <Badge className={cn(
-                  'text-xs px-2.5 py-0.5',
-                  isWon ? 'bg-[#00A09D] text-white' : 'bg-destructive text-destructive-foreground'
-                )}>
-                  {isWon ? '🏆 Won' : '❌ Lost'}
-                </Badge>
-              )}
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
+                <CalendarClock className="h-3.5 w-3.5" />
+                No Meeting
+              </Button>
+            </div>
+
+            {/* Right: record pager */}
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <span>{currentIndex + 1} / {totalRecords}</span>
+              <button
+                onClick={() => navigateRecord('prev')}
+                disabled={currentIndex <= 0}
+                className="h-7 w-7 flex items-center justify-center rounded hover:bg-muted disabled:opacity-30"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => navigateRecord('next')}
+                disabled={currentIndex >= totalRecords - 1}
+                className="h-7 w-7 flex items-center justify-center rounded hover:bg-muted disabled:opacity-30"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-4 md:p-6 space-y-4 max-w-6xl mx-auto">
-            {/* Odoo-style Chevron Stage Bar */}
-            {!isLost && (
-              <div className="flex items-stretch overflow-hidden">
-                {activeStages.map((stage, index) => {
-                  const isActive = stage.id === opportunity.stageId;
-                  const isPast = index < currentStageIndex;
-                  const isLast = index === activeStages.length - 1;
-
-                  return (
-                    <button
-                      key={stage.id}
-                      onClick={() => handleStageClick(stage.id)}
-                      className={cn(
-                        'relative flex-1 py-1.5 text-center text-xs font-semibold transition-all',
-                        'clip-chevron',
-                        isActive && 'bg-primary text-primary-foreground z-10',
-                        isPast && 'bg-primary/20 text-primary',
-                        !isActive && !isPast && 'bg-muted/60 text-muted-foreground hover:bg-muted',
-                      )}
-                      style={{
-                        clipPath: isLast
-                          ? 'polygon(0 0, calc(100% - 0px) 0, 100% 50%, calc(100% - 0px) 100%, 0 100%, 12px 50%)'
-                          : index === 0
-                            ? 'polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%)'
-                            : 'polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%)',
-                      }}
+        {/* Content area — split: form left, chatter right */}
+        <div className="flex-1 overflow-hidden flex">
+          {/* Left: Form */}
+          <div className="flex-1 overflow-y-auto border-r border-border">
+            <div className="p-4 max-w-4xl">
+              {/* Won/Lost buttons + Chevron Stage Bar */}
+              <div className="flex items-center gap-2 mb-4">
+                {!isWon && !isLost && (
+                  <>
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs font-semibold bg-[#00A09D] hover:bg-[#008f8c] text-white rounded"
+                      onClick={handleWon}
                     >
-                      {stage.name}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Main form — Odoo 2-column layout */}
-            <div className="bg-card border border-border rounded-sm p-5">
-              {/* Title */}
-              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-border">
-                <StarRating
-                  value={opportunity.priority}
-                  onChange={(p) => {
-                    saveOpportunity({ ...opportunity, priority: p as 0 | 1 | 2 | 3 });
-                    setOpportunity(getOpportunity(opportunity.id));
-                  }}
-                />
-                <h1 className="text-xl font-bold text-foreground flex-1">{opportunity.name}</h1>
-                {opportunity.tags.map(tag => (
-                  <Badge key={tag} variant="secondary" className="text-[10px] font-medium">{tag}</Badge>
-                ))}
-              </div>
-
-              {/* Two-column form fields — Odoo style */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-                {/* Left column */}
-                <FormField label="Contact Name" icon={User}>
-                  {isEditing ? (
-                    <Input defaultValue={opportunity.contactName} className="h-8 text-sm" onChange={e => setEditData({...editData, contactName: e.target.value})} />
-                  ) : (
-                    <span className="text-sm text-primary hover:underline cursor-pointer">{opportunity.contactName || '—'}</span>
-                  )}
-                </FormField>
-
-                <FormField label="Expected Revenue" icon={DollarSign}>
-                  {isEditing ? (
-                    <Input type="number" defaultValue={opportunity.expectedRevenue} className="h-8 text-sm" onChange={e => setEditData({...editData, expectedRevenue: parseFloat(e.target.value) || 0})} />
-                  ) : (
-                    <span className="text-sm font-semibold">${opportunity.expectedRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                  )}
-                </FormField>
-
-                <FormField label="Email" icon={Mail}>
-                  {isEditing ? (
-                    <Input defaultValue={opportunity.email} className="h-8 text-sm" onChange={e => setEditData({...editData, email: e.target.value})} />
-                  ) : (
-                    opportunity.email ? <a href={`mailto:${opportunity.email}`} className="text-sm text-primary hover:underline">{opportunity.email}</a> : <span className="text-sm text-muted-foreground">—</span>
-                  )}
-                </FormField>
-
-                <FormField label="Probability" icon={BarChart3Icon}>
-                  {isEditing ? (
-                    <Input type="number" defaultValue={opportunity.probability} className="h-8 text-sm w-20" onChange={e => setEditData({...editData, probability: parseInt(e.target.value) || 0})} />
-                  ) : (
-                    <span className="text-sm">{opportunity.probability} %</span>
-                  )}
-                </FormField>
-
-                <FormField label="Phone" icon={Phone}>
-                  {isEditing ? (
-                    <Input defaultValue={opportunity.phone} className="h-8 text-sm" onChange={e => setEditData({...editData, phone: e.target.value})} />
-                  ) : (
-                    <span className="text-sm">{opportunity.phone || '—'}</span>
-                  )}
-                </FormField>
-
-                <FormField label="Expected Closing" icon={Calendar}>
-                  {isEditing ? (
-                    <Input type="date" defaultValue={opportunity.expectedCloseDate} className="h-8 text-sm" onChange={e => setEditData({...editData, expectedCloseDate: e.target.value})} />
-                  ) : (
-                    <span className="text-sm">{format(parseISO(opportunity.expectedCloseDate), 'MM/dd/yyyy')}</span>
-                  )}
-                </FormField>
-
-                <FormField label="Company" icon={Building}>
-                  {isEditing ? (
-                    <Input defaultValue={opportunity.companyName} className="h-8 text-sm" onChange={e => setEditData({...editData, companyName: e.target.value})} />
-                  ) : (
-                    <span className="text-sm text-primary hover:underline cursor-pointer">{opportunity.companyName || '—'}</span>
-                  )}
-                </FormField>
-
-                <FormField label="Salesperson" icon={User}>
-                  {isEditing ? (
-                    <Input defaultValue={opportunity.assignedTo} className="h-8 text-sm" onChange={e => setEditData({...editData, assignedTo: e.target.value})} />
-                  ) : (
-                    <span className="text-sm">{opportunity.assignedTo || '—'}</span>
-                  )}
-                </FormField>
-
-                <div /> {/* spacer */}
-
-                <FormField label="Sales Team" icon={Users}>
-                  {isEditing ? (
-                    <Input defaultValue={opportunity.salesTeam} className="h-8 text-sm" onChange={e => setEditData({...editData, salesTeam: e.target.value})} />
-                  ) : (
-                    <span className="text-sm">{opportunity.salesTeam || '—'}</span>
-                  )}
-                </FormField>
-              </div>
-            </div>
-
-            {/* Notebook tabs — Odoo style */}
-            <div className="bg-card border border-border rounded-sm">
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <div className="border-b border-border">
-                  <TabsList className="bg-transparent h-auto p-0 rounded-none">
-                    <TabsTrigger
-                      value="internal"
-                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-xs font-semibold"
+                      Won
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs font-semibold rounded"
+                      onClick={() => setShowLostDialog(true)}
                     >
-                      Internal Notes
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="extra"
-                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-xs font-semibold"
-                    >
-                      Extra Info
-                    </TabsTrigger>
-                  </TabsList>
+                      Lost
+                    </Button>
+                  </>
+                )}
+                {(isWon || isLost) && (
+                  <Badge className={cn(
+                    'text-xs px-2.5 py-1',
+                    isWon ? 'bg-[#00A09D] text-white' : 'bg-destructive text-destructive-foreground'
+                  )}>
+                    {isWon ? '🏆 Won' : '❌ Lost'}
+                  </Badge>
+                )}
+
+                {/* Chevron stage bar */}
+                {!isLost && (
+                  <div className="flex items-stretch flex-1 ml-2">
+                    {activeStages.map((stage, index) => {
+                      const isActive = stage.id === opportunity.stageId;
+                      const isPast = index < currentStageIndex;
+                      const isLast = index === activeStages.length - 1;
+                      const isFirst = index === 0;
+
+                      return (
+                        <button
+                          key={stage.id}
+                          onClick={() => handleStageClick(stage.id)}
+                          className={cn(
+                            'relative flex-1 py-1.5 text-center text-xs font-semibold transition-all flex items-center justify-center gap-1',
+                            isActive && 'bg-[#875A7B] text-white z-10',
+                            isPast && 'bg-[#875A7B]/20 text-[#875A7B]',
+                            !isActive && !isPast && 'bg-muted/60 text-muted-foreground hover:bg-muted',
+                          )}
+                          style={{
+                            clipPath: isFirst
+                              ? 'polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%)'
+                              : isLast
+                                ? 'polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%)'
+                                : 'polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%)',
+                          }}
+                        >
+                          {stage.name}
+                          {isActive && opportunity.createdAt && (
+                            <span className="text-[10px] font-normal opacity-80">
+                              {Math.ceil((Date.now() - new Date(opportunity.createdAt).getTime()) / (1000 * 60 * 60 * 24))}d
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Opportunity title */}
+              <h1 className="text-2xl font-normal text-foreground mb-4">
+                {isEditing ? (
+                  <Input
+                    defaultValue={opportunity.name}
+                    className="text-2xl font-normal h-auto py-1 border-0 border-b border-border rounded-none px-0 focus-visible:ring-0"
+                    onChange={e => setEditData({ ...editData, name: e.target.value })}
+                  />
+                ) : (
+                  opportunity.name
+                )}
+              </h1>
+
+              {/* Expected Revenue + Probability row — exact Odoo layout */}
+              <div className="flex items-start gap-16 mb-6">
+                <div>
+                  <div className="text-sm font-bold text-foreground mb-1">Expected Revenue</div>
+                  <div className="text-lg text-foreground">
+                    {isEditing ? (
+                      <Input type="number" defaultValue={opportunity.expectedRevenue} className="h-8 text-sm w-32" onChange={e => setEditData({ ...editData, expectedRevenue: parseFloat(e.target.value) || 0 })} />
+                    ) : (
+                      `$ ${currentData.expectedRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+                    )}
+                  </div>
                 </div>
+                <div>
+                  <div className="text-sm font-bold text-foreground mb-1 flex items-center gap-1">
+                    Probability
+                    <span className="text-[10px] text-muted-foreground bg-muted rounded px-1">AI</span>
+                  </div>
+                  <div className="text-lg text-foreground flex items-center gap-1">
+                    {isEditing ? (
+                      <Input type="number" defaultValue={opportunity.probability} className="h-8 text-sm w-20" onChange={e => setEditData({ ...editData, probability: parseInt(e.target.value) || 0 })} />
+                    ) : (
+                      <><span className="text-muted-foreground">at</span> {currentData.probability} <span className="text-muted-foreground">%</span></>
+                    )}
+                  </div>
+                </div>
+              </div>
 
-                <TabsContent value="internal" className="p-4 mt-0">
+              <Separator className="mb-4" />
+
+              {/* Two-column form — exact Odoo layout from screenshot 4 */}
+              <div className="grid grid-cols-2 gap-x-12 gap-y-3 mb-6">
+                {/* Left column */}
+                <OdooField label="Contact" link>
+                  {isEditing ? (
+                    <Input defaultValue={opportunity.contactName} className="h-8 text-sm" onChange={e => setEditData({ ...editData, contactName: e.target.value })} />
+                  ) : (
+                    currentData.contactName || '—'
+                  )}
+                </OdooField>
+
+                {/* Right column */}
+                <OdooField label="Salesperson" avatar>
+                  {isEditing ? (
+                    <Input defaultValue={opportunity.assignedTo} className="h-8 text-sm" onChange={e => setEditData({ ...editData, assignedTo: e.target.value })} />
+                  ) : (
+                    currentData.assignedTo || '—'
+                  )}
+                </OdooField>
+
+                <OdooField label="Email">
+                  {isEditing ? (
+                    <Input defaultValue={opportunity.email} className="h-8 text-sm" onChange={e => setEditData({ ...editData, email: e.target.value })} />
+                  ) : (
+                    currentData.email ? (
+                      <a href={`mailto:${currentData.email}`} className="text-primary hover:underline">{currentData.email}</a>
+                    ) : '—'
+                  )}
+                </OdooField>
+
+                <OdooField label="Expected Closing">
+                  {isEditing ? (
+                    <Input type="date" defaultValue={opportunity.expectedCloseDate} className="h-8 text-sm" onChange={e => setEditData({ ...editData, expectedCloseDate: e.target.value })} />
+                  ) : (
+                    currentData.expectedCloseDate ? format(parseISO(currentData.expectedCloseDate), 'MM/dd/yyyy') : 'No closing estimate'
+                  )}
+                  {!isEditing && (
+                    <div className="ml-4">
+                      <StarRating
+                        value={opportunity.priority}
+                        onChange={(p) => {
+                          saveOpportunity({ ...opportunity, priority: p as 0 | 1 | 2 | 3 });
+                          setOpportunity(getOpportunity(opportunity.id));
+                        }}
+                      />
+                    </div>
+                  )}
+                </OdooField>
+
+                <OdooField label="Phone">
+                  {isEditing ? (
+                    <Input defaultValue={opportunity.phone} className="h-8 text-sm" onChange={e => setEditData({ ...editData, phone: e.target.value })} />
+                  ) : (
+                    currentData.phone || '—'
+                  )}
+                </OdooField>
+
+                <OdooField label="Tags">
+                  <div className="flex gap-1">
+                    {opportunity.tags.map(tag => (
+                      <Badge key={tag} variant="secondary" className="text-[11px] font-medium">{tag}</Badge>
+                    ))}
+                    {opportunity.tags.length === 0 && <span className="text-muted-foreground">—</span>}
+                  </div>
+                </OdooField>
+              </div>
+
+              {/* Notebook Tabs — Notes + Contacts (exact Odoo from screenshot 7) */}
+              <Tabs value={formTab} onValueChange={setFormTab}>
+                <TabsList className="bg-transparent h-auto p-0 rounded-none border-b border-border w-full justify-start">
+                  <TabsTrigger
+                    value="notes"
+                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2 text-sm font-medium"
+                  >
+                    Notes
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="contacts"
+                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2 text-sm font-medium"
+                  >
+                    Contacts
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="notes" className="mt-4">
                   {isEditing ? (
                     <Textarea
-                      placeholder="Internal notes..."
+                      placeholder="Type '/' for commands"
                       defaultValue={opportunity.internalNotes}
-                      className="min-h-[80px] text-sm"
-                      onChange={e => setEditData({...editData, internalNotes: e.target.value})}
+                      className="min-h-[120px] text-sm"
+                      onChange={e => setEditData({ ...editData, internalNotes: e.target.value })}
                     />
                   ) : (
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                      {opportunity.internalNotes || 'No internal notes yet.'}
-                    </p>
+                    <div className="min-h-[80px] text-sm text-muted-foreground whitespace-pre-wrap">
+                      {opportunity.internalNotes || (
+                        <span className="text-muted-foreground/50 italic">Type "/" for commands</span>
+                      )}
+                    </div>
                   )}
                 </TabsContent>
 
-                <TabsContent value="extra" className="p-4 mt-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-                    <FormField label="Created on">
-                      <span className="text-sm">{format(parseISO(opportunity.createdAt), 'MM/dd/yyyy HH:mm:ss')}</span>
-                    </FormField>
-                    <FormField label="Last Updated">
-                      <span className="text-sm">{format(parseISO(opportunity.updatedAt), 'MM/dd/yyyy HH:mm:ss')}</span>
-                    </FormField>
-                    {isWon && opportunity.wonAt && (
-                      <FormField label="Won on">
-                        <span className="text-sm">{format(parseISO(opportunity.wonAt), 'MM/dd/yyyy HH:mm:ss')}</span>
-                      </FormField>
-                    )}
-                    {isLost && opportunity.lostAt && (
-                      <>
-                        <FormField label="Lost on">
-                          <span className="text-sm">{format(parseISO(opportunity.lostAt), 'MM/dd/yyyy HH:mm:ss')}</span>
-                        </FormField>
-                        <FormField label="Lost Reason">
-                          <span className="text-sm text-destructive">{opportunity.lostReason || '—'}</span>
-                        </FormField>
-                      </>
-                    )}
+                <TabsContent value="contacts" className="mt-4">
+                  {/* Company Information + Contact Information — Odoo Extra Info layout */}
+                  <div className="grid grid-cols-2 gap-x-12 gap-y-6">
+                    <div>
+                      <h3 className="text-sm font-bold text-[#875A7B] uppercase tracking-wide mb-3 border-b border-border pb-1">
+                        Company Information
+                      </h3>
+                      <div className="space-y-2">
+                        <OdooField label="Company Name" labelHint>
+                          {currentData.companyName || '—'}
+                        </OdooField>
+                        <OdooField label="Address">
+                          <div className="text-sm text-muted-foreground space-y-0.5">
+                            <div>Street...</div>
+                            <div>Street 2...</div>
+                            <div className="flex gap-4">
+                              <span>City</span>
+                              <span>ZIP</span>
+                              <span>State</span>
+                            </div>
+                            <div>Country</div>
+                          </div>
+                        </OdooField>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-bold text-[#875A7B] uppercase tracking-wide mb-3 border-b border-border pb-1">
+                        Contact Information
+                      </h3>
+                      <div className="space-y-2">
+                        <OdooField label="Contact Name">
+                          {currentData.contactName || '—'}
+                        </OdooField>
+                        <OdooField label="Job Position">
+                          —
+                        </OdooField>
+                        <OdooField label="Website" labelHint>
+                          <span className="text-muted-foreground">e.g. https://www.odoo.com</span>
+                        </OdooField>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-bold text-[#875A7B] uppercase tracking-wide mb-3 border-b border-border pb-1">
+                        Marketing
+                      </h3>
+                      <div className="space-y-2">
+                        <OdooField label="Campaign" labelHint>—</OdooField>
+                        <OdooField label="Medium" labelHint>—</OdooField>
+                        <OdooField label="Source" labelHint>—</OdooField>
+                        <OdooField label="Referred By">—</OdooField>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-bold text-[#875A7B] uppercase tracking-wide mb-3 border-b border-border pb-1">
+                        Ownership
+                      </h3>
+                      <div className="space-y-2">
+                        <OdooField label="Sales Team">
+                          {currentData.salesTeam || 'Sales'}
+                        </OdooField>
+                      </div>
+                    </div>
                   </div>
                 </TabsContent>
               </Tabs>
+
+              {/* Edit/Save bar */}
+              {!isWon && !isLost && (
+                <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border">
+                  {isEditing ? (
+                    <>
+                      <Button size="sm" className="h-8 text-xs bg-[#875A7B] hover:bg-[#6e4a64] text-white" onClick={handleSave}>Save</Button>
+                      <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => { setIsEditing(false); setEditData({}); }}>Discard</Button>
+                    </>
+                  ) : (
+                    <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setIsEditing(true)}>
+                      Edit
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Chatter panel — exact Odoo style from screenshot 5 */}
+          <div className="w-[380px] flex flex-col shrink-0 bg-card">
+            {/* Chatter tabs */}
+            <div className="flex items-center border-b border-border px-3 py-2 gap-1">
+              <Button
+                variant={chatterTab === 'message' ? 'default' : 'outline'}
+                size="sm"
+                className={cn(
+                  'h-7 text-xs',
+                  chatterTab === 'message' && 'bg-[#875A7B] hover:bg-[#6e4a64] text-white'
+                )}
+                onClick={() => setChatterTab('message')}
+              >
+                Send message
+              </Button>
+              <Button
+                variant={chatterTab === 'note' ? 'default' : 'outline'}
+                size="sm"
+                className={cn(
+                  'h-7 text-xs',
+                  chatterTab === 'note' && 'bg-foreground text-background hover:bg-foreground/90'
+                )}
+                onClick={() => setChatterTab('note')}
+              >
+                Log note
+              </Button>
+              <Button
+                variant={chatterTab === 'activity' ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setChatterTab('activity')}
+              >
+                Activity
+              </Button>
+              <div className="flex-1" />
+              <button className="text-muted-foreground hover:text-foreground">
+                <Search className="h-4 w-4" />
+              </button>
+              <button className="text-muted-foreground hover:text-foreground">
+                <Paperclip className="h-4 w-4" />
+              </button>
+              <button className="relative text-muted-foreground hover:text-foreground">
+                <span className="text-[10px] font-bold">👤</span>
+                <span className="absolute -top-1 -right-1 bg-[#875A7B] text-white text-[8px] rounded-full h-3 w-3 flex items-center justify-center">1</span>
+              </button>
             </div>
 
-            {/* Chatter — Odoo style */}
-            <div className="bg-card border border-border rounded-sm p-4">
-              {/* Chatter action buttons */}
-              <div className="flex items-center gap-2 mb-4">
-                <Button
-                  variant={newNote !== '' || (newLogMessage === '' && newNote === '') ? 'default' : 'outline'}
-                  size="sm"
-                  className="h-7 text-xs gap-1"
-                  onClick={() => setNewLogMessage('')}
-                >
-                  <MessageSquare className="h-3 w-3" />
-                  Send message
-                </Button>
-                <Button
-                  variant={newLogMessage !== '' ? 'default' : 'outline'}
-                  size="sm"
-                  className="h-7 text-xs gap-1"
-                  onClick={() => setNewNote('')}
-                >
-                  <Clock className="h-3 w-3" />
-                  Log note
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-xs gap-1"
-                >
-                  <CalendarClock className="h-3 w-3" />
-                  Activities
-                </Button>
-              </div>
-
-              {/* Compose area */}
-              <div className="flex gap-3 mb-4">
-                <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
-                  Y
-                </div>
-                <div className="flex-1">
-                  <Textarea
-                    placeholder="Write a note..."
-                    value={newNote || newLogMessage}
-                    onChange={(e) => {
-                      if (newLogMessage !== '') setNewLogMessage(e.target.value);
-                      else setNewNote(e.target.value);
-                    }}
-                    className="min-h-[50px] text-sm border-border"
-                  />
-                  <div className="flex justify-end mt-1.5">
-                    <Button
-                      size="sm"
-                      className="h-7 text-xs"
-                      disabled={!(newNote || newLogMessage).trim()}
-                      onClick={() => {
-                        if (newLogMessage) handleLogMessage();
-                        else handleSendNote();
-                      }}
-                    >
-                      <Send className="h-3 w-3 mr-1" />
-                      {newLogMessage ? 'Log' : 'Send'}
-                    </Button>
+            {/* Compose area */}
+            {(chatterTab === 'message' || chatterTab === 'note') && (
+              <div className="p-3 border-b border-border">
+                <div className="flex gap-2.5">
+                  <ChatterAvatar name="Management" />
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Input
+                        placeholder={chatterTab === 'note' ? 'Log an internal note...' : 'Send a message...'}
+                        className="h-9 text-sm pr-8 rounded-full border-[#00A09D] focus-visible:ring-[#00A09D]"
+                        value={chatterInput}
+                        onChange={(e) => setChatterInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleChatterSubmit(); }}
+                      />
+                      <button className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        <Smile className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <Button
+                        size="sm"
+                        className={cn(
+                          'h-7 text-xs px-3',
+                          chatterTab === 'note'
+                            ? 'bg-[#875A7B]/20 text-[#875A7B] hover:bg-[#875A7B]/30'
+                            : 'bg-[#00A09D] hover:bg-[#008f8c] text-white'
+                        )}
+                        disabled={!chatterInput.trim()}
+                        onClick={handleChatterSubmit}
+                      >
+                        {chatterTab === 'note' ? 'Log' : 'Send'}
+                      </Button>
+                      <div className="flex-1" />
+                      <button className="text-muted-foreground hover:text-foreground">
+                        <Paperclip className="h-3.5 w-3.5" />
+                      </button>
+                      <button className="text-muted-foreground hover:text-foreground">
+                        <Maximize2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
+            )}
 
-              {/* Timeline */}
-              <div className="space-y-3 border-t border-border pt-4">
-                {[...notes, ...activities.filter(a => a.completed)]
-                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                  .slice(0, 10)
-                  .map((item) => {
-                    const isNoteItem = 'content' in item;
-                    return (
-                      <div key={item.id} className="flex gap-3">
-                        <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold shrink-0 text-muted-foreground">
-                          {isNoteItem ? '📝' : '📋'}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 text-xs">
-                            <span className="font-semibold text-foreground">{(item as any).userName || 'System'}</span>
-                            <span className="text-muted-foreground">{format(parseISO(item.createdAt), 'MM/dd/yyyy HH:mm:ss')}</span>
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-0.5">
-                            {isNoteItem ? (item as Note).content : (item as Activity).subject}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                {notes.length === 0 && activities.filter(a => a.completed).length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-4">No messages yet.</p>
-                )}
+            {/* Timeline */}
+            <div className="flex-1 overflow-y-auto px-3 py-3">
+              {/* Date separator */}
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground">Today</span>
+                <div className="flex-1 h-px bg-border" />
               </div>
+
+              {[...notes, ...activities.filter(a => a.completed)]
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .slice(0, 20)
+                .map((item) => {
+                  const isNoteItem = 'content' in item;
+                  const userName = (item as any).userName || 'System';
+                  return (
+                    <div key={item.id} className="flex gap-2.5 mb-3">
+                      <ChatterAvatar name={userName} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-bold text-foreground">{userName}</span>
+                          <span className="text-xs text-muted-foreground">{format(parseISO(item.createdAt), 'h:mm a')}</span>
+                        </div>
+                        <p className="text-sm text-foreground mt-0.5">
+                          {isNoteItem ? (item as Note).content : (item as Activity).subject}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+
+              {/* Default creation message */}
+              {notes.length === 0 && activities.filter(a => a.completed).length === 0 && (
+                <div className="flex gap-2.5">
+                  <ChatterAvatar name="Management" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-bold text-foreground">Management</span>
+                      <span className="text-xs text-muted-foreground">{format(parseISO(opportunity.createdAt), 'h:mm a')}</span>
+                    </div>
+                    <p className="text-sm text-foreground mt-0.5">Lead/Opportunity created</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -551,34 +715,28 @@ export default function OpportunityDetail() {
   );
 }
 
-// Helper: Odoo-style form field row
-function FormField({ label, icon: Icon, children }: { label: string; icon?: React.ElementType; children: React.ReactNode }) {
+// Odoo-style form field — label left, value right
+function OdooField({ label, children, link, avatar, labelHint }: {
+  label: string;
+  children: React.ReactNode;
+  link?: boolean;
+  avatar?: boolean;
+  labelHint?: boolean;
+}) {
   return (
-    <div className="flex items-center gap-3 py-1">
-      <label className="text-xs font-semibold text-muted-foreground w-32 shrink-0 text-right">
+    <div className="flex items-start gap-3 py-1.5">
+      <label className="text-sm font-bold text-foreground w-36 shrink-0 flex items-center gap-0.5">
         {label}
+        {labelHint && <span className="text-muted-foreground/50 text-xs cursor-help">?</span>}
       </label>
-      <div className="flex items-center gap-1.5 flex-1 min-w-0">
-        {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />}
+      <div className={cn('flex items-center gap-1.5 flex-1 min-w-0 text-sm', link && 'text-primary')}>
+        {avatar && (
+          <div className="h-6 w-6 rounded-full bg-[#00A09D] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+            M
+          </div>
+        )}
         {children}
       </div>
     </div>
-  );
-}
-
-// Inline icon component
-function BarChart3Icon(props: any) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>
-    </svg>
-  );
-}
-
-function Users(props: any) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-    </svg>
   );
 }
