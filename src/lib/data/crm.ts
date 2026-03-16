@@ -927,10 +927,10 @@ export function updateOpportunityStage(id: string, stageId: string, stage: Oppor
   
   const updates: Partial<Opportunity> = { stageId, stage };
   
-  if (stage === 'closed_won') {
+  if (stage === 'won') {
     updates.wonAt = new Date().toISOString();
     updates.probability = 100;
-  } else if (stage === 'closed_lost') {
+  } else if (stage === 'lost') {
     updates.lostAt = new Date().toISOString();
     updates.probability = 0;
   }
