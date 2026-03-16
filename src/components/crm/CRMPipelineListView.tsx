@@ -1,41 +1,22 @@
-// Odoo-style List View for Pipeline — pixel-perfect replica
+// Odoo-style List View for Pipeline
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
+  Tooltip, TooltipContent, TooltipTrigger,
+} from '@/components/ui/tooltip';
 import {
-  Search,
-  List,
-  LayoutGrid,
-  ChevronDown,
-  ChevronUp,
-  Star,
-  SlidersHorizontal,
-  Users,
-  BarChart3,
-  Activity,
-  X,
+  Search, List, LayoutGrid, ChevronDown, ChevronUp, Star,
+  SlidersHorizontal, Users, BarChart3, Activity, Clock, Settings,
+  CalendarDays, Map,
 } from 'lucide-react';
 import {
-  getOpportunities,
-  getDefaultPipeline,
-  type Opportunity,
+  getOpportunities, getDefaultPipeline, type Opportunity,
 } from '@/lib/data/crm';
 import { StarRating } from '@/components/crm/CRMKanbanBoard';
 import { useCRMPermissions } from '@/hooks/useCRMPermissions';
@@ -104,96 +85,61 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
     return sortDir === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />;
   };
 
-  // Totals row
   const totalRevenue = filtered.reduce((s, o) => s + o.expectedRevenue, 0);
 
   return (
     <div className="h-full flex flex-col">
-      {/* Odoo-style control panel */}
+      {/* Toolbar — matching kanban */}
       <div className="border-b border-border bg-card px-4 py-2">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Button size="sm" onClick={onNewOpportunity} className="gap-1 h-8 text-xs font-semibold" disabled={!canCreateOpportunities}>
+            <Button size="sm" onClick={onNewOpportunity} className="gap-1 h-8 text-xs font-semibold bg-[#875A7B] hover:bg-[#6e4a64] text-white" disabled={!canCreateOpportunities}>
               New
             </Button>
-            <div className="h-4 w-px bg-border" />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground h-8 text-xs">
-                  <SlidersHorizontal className="h-3.5 w-3.5" /> Filters <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
-                <DropdownMenuItem>My Pipeline</DropdownMenuItem>
-                <DropdownMenuItem>Unassigned</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Won</DropdownMenuItem>
-                <DropdownMenuItem>Lost</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground h-8 text-xs">
-                  <Users className="h-3.5 w-3.5" /> Group By <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
-                <DropdownMenuItem>Salesperson</DropdownMenuItem>
-                <DropdownMenuItem>Sales Team</DropdownMenuItem>
-                <DropdownMenuItem>Stage</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground h-8 text-xs">
-                  <Star className="h-3.5 w-3.5" /> Favorites <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
-                <DropdownMenuItem>Save current search</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <span className="text-sm font-semibold text-foreground">Pipeline</span>
+            <Settings className="h-3.5 w-3.5 text-muted-foreground cursor-pointer" />
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Selected count */}
-            {selected.size > 0 && (
-              <span className="text-xs text-muted-foreground">
-                {selected.size} selected
-              </span>
-            )}
-
-            {/* Search */}
+          <div className="relative flex-1 max-w-md">
             <div className="relative flex items-center border border-border rounded bg-card overflow-hidden">
-              <Search className="h-3.5 w-3.5 text-muted-foreground ml-2" />
+              <Search className="h-4 w-4 text-muted-foreground ml-2.5" />
               <input
                 placeholder="Search..."
-                className="h-7 w-40 text-xs bg-transparent border-0 outline-none px-1.5 placeholder:text-muted-foreground"
+                className="h-8 w-full text-sm bg-transparent border-0 outline-none px-2 placeholder:text-muted-foreground"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
-            </div>
-
-            {/* View toggle */}
-            <div className="flex items-center border border-border rounded overflow-hidden">
-              <button onClick={() => onViewChange('list')} className={cn('h-7 w-7 flex items-center justify-center transition-colors', view === 'list' ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-muted-foreground')}>
-                <List className="h-3.5 w-3.5" />
-              </button>
-              <button onClick={() => onViewChange('kanban')} className={cn('h-7 w-7 flex items-center justify-center transition-colors', view === 'kanban' ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-muted-foreground')}>
-                <LayoutGrid className="h-3.5 w-3.5" />
-              </button>
-              <button className="h-7 w-7 flex items-center justify-center hover:bg-muted text-muted-foreground">
-                <BarChart3 className="h-3.5 w-3.5" />
-              </button>
-              <button className="h-7 w-7 flex items-center justify-center hover:bg-muted text-muted-foreground">
-                <Activity className="h-3.5 w-3.5" />
+              <button className="h-8 w-8 flex items-center justify-center border-l border-border text-muted-foreground hover:bg-muted">
+                <ChevronDown className="h-3.5 w-3.5" />
               </button>
             </div>
+          </div>
 
-            {/* Pager */}
-            <span className="text-xs text-muted-foreground whitespace-nowrap">
-              1-{filtered.length} / {filtered.length}
-            </span>
+          <div className="flex items-center gap-1">
+            {[
+              { icon: LayoutGrid, id: 'kanban' as const, title: 'Kanban' },
+              { icon: List, id: 'list' as const, title: 'List' },
+              { icon: CalendarDays, id: null, title: 'Calendar' },
+              { icon: BarChart3, id: null, title: 'Pivot' },
+              { icon: Activity, id: null, title: 'Graph' },
+              { icon: Map, id: null, title: 'Map' },
+              { icon: Clock, id: null, title: 'Activity' },
+            ].map(({ icon: Icon, id, title }) => (
+              <Tooltip key={title}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => id && onViewChange(id)}
+                    className={cn(
+                      'h-8 w-8 flex items-center justify-center rounded transition-colors',
+                      id && view === id ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">{title}</TooltipContent>
+              </Tooltip>
+            ))}
           </div>
         </div>
       </div>
@@ -258,19 +204,14 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
                           }}
                         />
                       </TableCell>
-                      <TableCell>
-                        <span className="font-medium">{opp.name}</span>
-                      </TableCell>
+                      <TableCell><span className="font-medium">{opp.name}</span></TableCell>
                       <TableCell className="text-muted-foreground">{opp.contactName || '—'}</TableCell>
                       <TableCell className="text-muted-foreground">{opp.salesTeam || '—'}</TableCell>
                       <TableCell className="text-right font-medium">${opp.expectedRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-right text-muted-foreground">{opp.probability}%</TableCell>
                       <TableCell>
-                        <Badge
-                          variant="outline"
-                          className="text-[11px] capitalize font-medium border-0 px-2 py-0.5"
-                          style={{ backgroundColor: stageColor ? `${stageColor}20` : undefined, color: stageColor || undefined }}
-                        >
+                        <Badge variant="outline" className="text-[11px] capitalize font-medium border-0 px-2 py-0.5"
+                          style={{ backgroundColor: stageColor ? `${stageColor}20` : undefined, color: stageColor || undefined }}>
                           {stageName}
                         </Badge>
                       </TableCell>
@@ -283,7 +224,6 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
                     </TableRow>
                   );
                 })}
-                {/* Totals row — Odoo style */}
                 <TableRow className="bg-muted/30 font-semibold hover:bg-muted/30">
                   <TableCell colSpan={4} className="pl-4 text-xs text-muted-foreground">
                     {filtered.length} record{filtered.length !== 1 ? 's' : ''}
