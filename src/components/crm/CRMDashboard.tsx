@@ -219,7 +219,7 @@ export function CRMDashboard() {
           <CardContent>
             <div className="flex justify-center gap-4 mb-4">
               {opportunitiesByStage
-                .filter((s) => !s.stageId.startsWith('closed'))
+                .filter((s) => s.stageId !== 'lost')
                 .map((stage, i) => (
                   <div key={stage.stageId} className="flex items-center gap-1 text-xs text-muted-foreground">
                     <div className={cn('w-2 h-2 rounded-full',
