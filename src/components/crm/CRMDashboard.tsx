@@ -96,13 +96,13 @@ export function CRMDashboard() {
 
   const pipelineChartData = useMemo(() => {
     const colors: Record<string, 'blue' | 'teal' | 'orange' | 'coral'> = {
-      qual: 'blue',
-      needs: 'teal',
-      proposal: 'orange',
-      nego: 'coral',
+      new: 'blue',
+      qualified: 'teal',
+      proposition: 'orange',
+      won: 'coral',
     };
     return opportunitiesByStage
-      .filter((s) => !s.stageId.startsWith('closed'))
+      .filter((s) => s.stageId !== 'lost')
       .map((stage) => ({
         value: stage.count,
         color: colors[stage.stageId] || 'blue',
