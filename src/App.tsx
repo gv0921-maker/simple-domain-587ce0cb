@@ -56,6 +56,7 @@ import CRMPipeline from "@/pages/crm/CRMPipeline";
 import CRMContactsList from "@/pages/crm/CRMContactsList";
 import CRMCompaniesList from "@/pages/crm/CRMCompaniesList";
 import CRMLeadsList from "@/pages/crm/CRMLeadsList";
+import OpportunityDetail from "@/pages/crm/OpportunityDetail";
 
 // Accounting pages
 import AccountingOverview from "@/pages/accounting/AccountingOverview";
