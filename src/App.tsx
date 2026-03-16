@@ -49,7 +49,6 @@ import BOMList from "@/pages/manufacturing/BOMList";
 import WorkCenters from "@/pages/manufacturing/WorkCenters";
 import ProductionPlanning from "@/pages/manufacturing/ProductionPlanning";
 import ShopFloor from "@/pages/manufacturing/ShopFloor";
-import PLMOverview from "@/pages/plm/PLMOverview";
 
 // CRM pages
 import CRMOverview from "@/pages/crm/CRMOverview";
@@ -399,10 +398,7 @@ const App = () => (
 
             {/* Placeholder routes for other modules */}
             <Route path="/dashboards" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-            <Route path="/apps" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
             <Route path="/discuss" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-            <Route path="/maintenance" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-            <Route path="/calendar" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
             <Route path="/helpdesk" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
             <Route path="/email-marketing" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
             <Route path="/website" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
@@ -429,8 +425,6 @@ const App = () => (
             <Route path="/manufacturing/work-centers" element={<ProtectedRoute><WorkCenters /></ProtectedRoute>} />
             <Route path="/manufacturing/planning" element={<ProtectedRoute><ProductionPlanning /></ProtectedRoute>} />
             <Route path="/shop-floor" element={<ProtectedRoute><ShopFloor /></ProtectedRoute>} />
-            <Route path="/plm" element={<ProtectedRoute><PLMOverview /></ProtectedRoute>} />
-            <Route path="/plm/*" element={<ProtectedRoute><PLMOverview /></ProtectedRoute>} />
 
             {/* Accounting module */}
             <Route path="/accounting" element={<ProtectedRoute><AccountingOverview /></ProtectedRoute>} />
