@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import glfLogo from '@/assets/glf-logo.png';
 import {
@@ -26,15 +26,18 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
 
 interface TopNavProps {
   title?: string;
   subtitle?: string;
+  moduleNav?: { label: string; href: string }[];
 }
 
-export function TopNav({ title, subtitle }: TopNavProps) {
+export function TopNav({ title, subtitle, moduleNav }: TopNavProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
     logout();
@@ -103,11 +106,33 @@ export function TopNav({ title, subtitle }: TopNavProps) {
             )}
           </div>
         )}
+
+        {/* Module sub-navigation inline */}
+        {moduleNav && moduleNav.length > 0 && (
+          <nav className="hidden md:flex items-center gap-1 ml-2">
+            {moduleNav.map((item) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={cn(
+                    'text-sm px-3 py-1.5 rounded-md transition-colors whitespace-nowrap',
+                    isActive
+                      ? 'bg-accent text-foreground font-medium'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
       </div>
 
       {/* Right side */}
       <div className="flex items-center gap-1 md:gap-2 shrink-0">
-        {/* These icons hidden on mobile */}
         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground hidden sm:inline-flex">
           <Sparkles className="h-4 w-4" />
         </Button>
