@@ -203,7 +203,7 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
                       <TableCell><span className="font-medium">{opp.name}</span></TableCell>
                       <TableCell className="text-muted-foreground">{opp.contactName || '—'}</TableCell>
                       <TableCell className="text-muted-foreground">{opp.salesTeam || '—'}</TableCell>
-                      <TableCell className="text-right font-medium">${opp.expectedRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-right font-medium">₹{opp.expectedRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-right text-muted-foreground">{opp.probability}%</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-[11px] capitalize font-medium border-0 px-2 py-0.5"
