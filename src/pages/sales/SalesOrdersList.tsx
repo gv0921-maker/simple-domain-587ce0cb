@@ -505,7 +505,7 @@ export default function SalesOrdersList() {
                     <div className="w-48 space-y-1 text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Subtotal</span>
-                        <span>${lines.reduce((s, l) => s + l.total, 0).toLocaleString()}</span>
+                        <span>₹{lines.reduce((s, l) => s + l.total, 0).toLocaleString('en-IN')}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Tax (18%)</span>
