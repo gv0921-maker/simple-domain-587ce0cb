@@ -379,7 +379,7 @@ export default function QuotationsList() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-semibold">
-                      ${quotation.total.toLocaleString()}
+                      ₹{quotation.total.toLocaleString('en-IN')}
                     </TableCell>
                     <TableCell>
                       <Badge className={cn('font-normal', STATUS_CONFIG[quotation.status].className)}>
