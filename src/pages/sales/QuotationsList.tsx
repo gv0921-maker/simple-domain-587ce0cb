@@ -560,7 +560,7 @@ export default function QuotationsList() {
                       </div>
                       <div className="flex justify-between font-semibold border-t pt-1">
                         <span>Total</span>
-                        <span>${(lines.reduce((s, l) => s + l.total, 0) * 1.18).toLocaleString()}</span>
+                        <span>₹{(lines.reduce((s, l) => s + l.total, 0) * 1.18).toLocaleString('en-IN')}</span>
                       </div>
                     </div>
                   </div>

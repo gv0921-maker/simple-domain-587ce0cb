@@ -723,7 +723,7 @@ export default function QuotationForm() {
                 <Separator />
                 <div className="flex justify-between">
                   <span className="font-semibold">Total</span>
-                  <span className="text-xl font-bold">${totals.total.toLocaleString()}</span>
+                  <span className="text-xl font-bold">₹{totals.total.toLocaleString('en-IN')}</span>
                 </div>
               </CardContent>
             </Card>
