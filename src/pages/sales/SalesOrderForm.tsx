@@ -610,7 +610,7 @@ export default function SalesOrderForm() {
                           <TableCell className="text-right">
                             {line.discount > 0 && (
                               <span className="text-destructive">
-                                -{line.discountType === 'percentage' ? `${line.discount}%` : `$${line.discount}`}
+                                -{line.discountType === 'percentage' ? `${line.discount}%` : `₹${line.discount}`}
                               </span>
                             )}
                           </TableCell>
