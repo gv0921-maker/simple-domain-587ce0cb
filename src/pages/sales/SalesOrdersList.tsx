@@ -332,7 +332,7 @@ export default function SalesOrdersList() {
                       )}
                     </TableCell>
                     <TableCell className="text-right font-semibold">
-                      ${order.total.toLocaleString()}
+                      ₹{order.total.toLocaleString('en-IN')}
                     </TableCell>
                     <TableCell>
                       <Badge className={cn('font-normal', STATUS_CONFIG[order.status].className)}>
