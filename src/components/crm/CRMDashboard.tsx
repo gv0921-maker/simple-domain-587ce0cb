@@ -175,7 +175,7 @@ export function CRMDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Weighted Pipeline"
-          value={`$${stats.weightedPipelineValue.toLocaleString()}`}
+          value={`₹${stats.weightedPipelineValue.toLocaleString('en-IN')}`}
           subtitle="Probability-adjusted"
           icon={BarChart3}
           delay={200}
