@@ -238,7 +238,7 @@ export function CRMDashboard() {
                 .map((stage) => (
                   <div key={stage.stageId} className="flex justify-between">
                     <span className="text-muted-foreground">{stage.stage}</span>
-                    <span className="font-medium">${stage.value.toLocaleString()}</span>
+                    <span className="font-medium">₹{stage.value.toLocaleString('en-IN')}</span>
                   </div>
                 ))}
             </div>
