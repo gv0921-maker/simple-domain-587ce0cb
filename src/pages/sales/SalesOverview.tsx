@@ -114,7 +114,7 @@ export default function SalesOverview() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ${stats.totalRevenue.toLocaleString()}
+                ₹{stats.totalRevenue.toLocaleString('en-IN')}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 {stats.totalOrders} total orders
