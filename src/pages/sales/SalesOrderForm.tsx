@@ -691,7 +691,7 @@ export default function SalesOrderForm() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Tax</span>
-                    <span>${totals.taxAmount.toLocaleString()}</span>
+                    <span>₹{totals.taxAmount.toLocaleString('en-IN')}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-bold text-lg">

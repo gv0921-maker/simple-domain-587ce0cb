@@ -81,10 +81,10 @@ export default function OpportunitiesList() {
               <div>
                 <p className="text-sm text-muted-foreground">Won This Month</p>
                 <p className="text-2xl font-semibold">
-                  ${opportunities
+                  ₹{opportunities
                     .filter((o) => o.stage === 'closed_won')
                     .reduce((sum, o) => sum + o.expectedRevenue, 0)
-                    .toLocaleString()}
+                    .toLocaleString('en-IN')}
                 </p>
               </div>
             </div>

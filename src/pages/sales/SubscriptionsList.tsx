@@ -507,7 +507,7 @@ export default function SubscriptionsList() {
               </div>
               <div className="flex justify-between font-semibold">
                 <span>Total per {formData.billingCycle.replace('ly', '')}</span>
-                <span>${((formData.unitPrice * formData.quantity) * 1.18).toLocaleString()}</span>
+                <span>₹{((formData.unitPrice * formData.quantity) * 1.18).toLocaleString('en-IN')}</span>
               </div>
             </div>
           </div>

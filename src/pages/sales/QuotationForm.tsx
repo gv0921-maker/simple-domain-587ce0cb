@@ -753,7 +753,7 @@ export default function QuotationForm() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="percentage">%</SelectItem>
-                        <SelectItem value="fixed">$</SelectItem>
+                        <SelectItem value="fixed">₹</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

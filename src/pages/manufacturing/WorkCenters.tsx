@@ -135,7 +135,7 @@ export default function WorkCenters() {
                     <span className="text-muted-foreground flex items-center gap-1">
                       <DollarSign className="h-4 w-4" /> Cost/Hour
                     </span>
-                    <span>${wc.costPerHour}</span>
+                    <span>₹{wc.costPerHour}</span>
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-sm">

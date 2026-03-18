@@ -257,7 +257,7 @@ export default function SalesOverview() {
                       </Badge>
                       <div>
                         <p className="font-semibold text-sm">
-                          ${order.total.toLocaleString()}
+                          ₹{order.total.toLocaleString('en-IN')}
                         </p>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Calendar className="h-3 w-3" />

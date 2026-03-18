@@ -529,7 +529,7 @@ export default function QuotationsList() {
                           <TableCell className="text-right">₹{line.unitPrice}</TableCell>
                           <TableCell className="text-right">{line.discount}%</TableCell>
                           <TableCell className="text-right font-medium">
-                            ${line.total.toLocaleString()}
+                            ₹{line.total.toLocaleString('en-IN')}
                           </TableCell>
                           <TableCell>
                             <Button
