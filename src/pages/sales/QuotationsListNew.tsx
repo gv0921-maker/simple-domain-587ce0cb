@@ -170,11 +170,11 @@ Date: ${quotation.quotationDate}
 Valid Until: ${quotation.validUntil}
 
 ITEMS:
-${quotation.lines.map((line) => `- ${line.productName}: ${line.quantity} x $${line.unitPrice} = $${line.total}`).join('\n')}
+${quotation.lines.map((line) => `- ${line.productName}: ${line.quantity} x ₹${line.unitPrice} = ₹${line.total}`).join('\n')}
 
-Subtotal: $${quotation.subtotal.toLocaleString()}
-Tax: $${quotation.taxAmount.toLocaleString()}
-Total: $${quotation.total.toLocaleString()}
+Subtotal: ₹${quotation.subtotal.toLocaleString()}
+Tax: ₹${quotation.taxAmount.toLocaleString()}
+Total: ₹${quotation.total.toLocaleString()}
 
 ${quotation.termsAndConditions || ''}
     `.trim();

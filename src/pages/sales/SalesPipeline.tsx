@@ -193,7 +193,7 @@ export default function SalesPipeline() {
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    ${getStageTotal(stage.id).toLocaleString()}
+                    ₹{getStageTotal(stage.id).toLocaleString('en-IN')}
                   </p>
                 </div>
 

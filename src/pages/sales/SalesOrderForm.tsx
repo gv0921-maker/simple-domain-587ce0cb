@@ -606,16 +606,16 @@ export default function SalesOrderForm() {
                               line.quantity
                             )}
                           </TableCell>
-                          <TableCell className="text-right">${line.unitPrice.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">₹{line.unitPrice.toFixed(2)}</TableCell>
                           <TableCell className="text-right">
                             {line.discount > 0 && (
                               <span className="text-destructive">
-                                -{line.discountType === 'percentage' ? `${line.discount}%` : `$${line.discount}`}
+                                -{line.discountType === 'percentage' ? `${line.discount}%` : `₹${line.discount}`}
                               </span>
                             )}
                           </TableCell>
-                          <TableCell className="text-right">${line.taxAmount.toFixed(2)}</TableCell>
-                          <TableCell className="text-right font-medium">${line.total.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">₹{line.taxAmount.toFixed(2)}</TableCell>
+                          <TableCell className="text-right font-medium">₹{line.total.toFixed(2)}</TableCell>
                           {isEditable && (
                             <TableCell>
                               <Button
@@ -687,11 +687,11 @@ export default function SalesOrderForm() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal</span>
-                    <span>${totals.subtotal.toLocaleString()}</span>
+                    <span>₹{totals.subtotal.toLocaleString('en-IN')}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Tax</span>
-                    <span>${totals.taxAmount.toLocaleString()}</span>
+                    <span>₹{totals.taxAmount.toLocaleString('en-IN')}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-bold text-lg">

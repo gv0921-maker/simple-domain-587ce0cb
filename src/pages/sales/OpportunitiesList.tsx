@@ -69,7 +69,7 @@ export default function OpportunitiesList() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Pipeline Value</p>
-                <p className="text-2xl font-semibold">${totalPipeline.toLocaleString()}</p>
+                <p className="text-2xl font-semibold">₹{totalPipeline.toLocaleString('en-IN')}</p>
               </div>
             </div>
           </Card>
@@ -81,10 +81,10 @@ export default function OpportunitiesList() {
               <div>
                 <p className="text-sm text-muted-foreground">Won This Month</p>
                 <p className="text-2xl font-semibold">
-                  ${opportunities
+                  ₹{opportunities
                     .filter((o) => o.stage === 'closed_won')
                     .reduce((sum, o) => sum + o.expectedRevenue, 0)
-                    .toLocaleString()}
+                    .toLocaleString('en-IN')}
                 </p>
               </div>
             </div>

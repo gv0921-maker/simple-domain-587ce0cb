@@ -499,15 +499,15 @@ export default function SubscriptionsList() {
             <div className="p-4 bg-muted rounded-lg">
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span>${(formData.unitPrice * formData.quantity).toLocaleString()}</span>
+                <span>₹{(formData.unitPrice * formData.quantity).toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-muted-foreground">Tax (18%)</span>
-                <span>${((formData.unitPrice * formData.quantity) * 0.18).toLocaleString()}</span>
+                <span>₹{((formData.unitPrice * formData.quantity) * 0.18).toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between font-semibold">
                 <span>Total per {formData.billingCycle.replace('ly', '')}</span>
-                <span>${((formData.unitPrice * formData.quantity) * 1.18).toLocaleString()}</span>
+                <span>₹{((formData.unitPrice * formData.quantity) * 1.18).toLocaleString('en-IN')}</span>
               </div>
             </div>
           </div>

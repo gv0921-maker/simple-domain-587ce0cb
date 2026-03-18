@@ -708,22 +708,22 @@ export default function QuotationForm() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span className="font-medium">${totals.subtotal.toLocaleString()}</span>
+                  <span className="font-medium">₹{totals.subtotal.toLocaleString('en-IN')}</span>
                 </div>
                 {totals.discountAmount > 0 && (
                   <div className="flex justify-between text-sm text-success">
                     <span>Discount</span>
-                    <span>-${totals.discountAmount.toLocaleString()}</span>
+                    <span>-₹{totals.discountAmount.toLocaleString('en-IN')}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Tax</span>
-                  <span className="font-medium">${totals.taxAmount.toLocaleString()}</span>
+                  <span className="font-medium">₹{totals.taxAmount.toLocaleString('en-IN')}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between">
                   <span className="font-semibold">Total</span>
-                  <span className="text-xl font-bold">${totals.total.toLocaleString()}</span>
+                  <span className="text-xl font-bold">₹{totals.total.toLocaleString('en-IN')}</span>
                 </div>
               </CardContent>
             </Card>
@@ -753,7 +753,7 @@ export default function QuotationForm() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="percentage">%</SelectItem>
-                        <SelectItem value="fixed">$</SelectItem>
+                        <SelectItem value="fixed">₹</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

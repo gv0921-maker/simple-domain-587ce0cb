@@ -97,7 +97,7 @@ export default function SalesOverview() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ${stats.monthlyRevenue.toLocaleString()}
+                ₹{stats.monthlyRevenue.toLocaleString('en-IN')}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 {stats.monthlyOrderCount} orders this month
@@ -114,7 +114,7 @@ export default function SalesOverview() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ${stats.totalRevenue.toLocaleString()}
+                ₹{stats.totalRevenue.toLocaleString('en-IN')}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 {stats.totalOrders} total orders
@@ -257,7 +257,7 @@ export default function SalesOverview() {
                       </Badge>
                       <div>
                         <p className="font-semibold text-sm">
-                          ${order.total.toLocaleString()}
+                          ₹{order.total.toLocaleString('en-IN')}
                         </p>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Calendar className="h-3 w-3" />

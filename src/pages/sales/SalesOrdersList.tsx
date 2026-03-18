@@ -332,7 +332,7 @@ export default function SalesOrdersList() {
                       )}
                     </TableCell>
                     <TableCell className="text-right font-semibold">
-                      ${order.total.toLocaleString()}
+                      ₹{order.total.toLocaleString('en-IN')}
                     </TableCell>
                     <TableCell>
                       <Badge className={cn('font-normal', STATUS_CONFIG[order.status].className)}>
@@ -479,10 +479,10 @@ export default function SalesOrdersList() {
                         <TableRow key={line.id}>
                           <TableCell>{line.productName}</TableCell>
                           <TableCell className="text-right">{line.quantity}</TableCell>
-                          <TableCell className="text-right">${line.unitPrice}</TableCell>
+                          <TableCell className="text-right">₹{line.unitPrice}</TableCell>
                           <TableCell className="text-right">{line.discount}%</TableCell>
                           <TableCell className="text-right font-medium">
-                            ${line.total.toLocaleString()}
+                            ₹{line.total.toLocaleString('en-IN')}
                           </TableCell>
                           <TableCell>
                             <Button
@@ -505,15 +505,15 @@ export default function SalesOrdersList() {
                     <div className="w-48 space-y-1 text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Subtotal</span>
-                        <span>${lines.reduce((s, l) => s + l.total, 0).toLocaleString()}</span>
+                        <span>₹{lines.reduce((s, l) => s + l.total, 0).toLocaleString('en-IN')}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Tax (18%)</span>
-                        <span>${(lines.reduce((s, l) => s + l.total, 0) * 0.18).toLocaleString()}</span>
+                        <span>₹{(lines.reduce((s, l) => s + l.total, 0) * 0.18).toLocaleString('en-IN')}</span>
                       </div>
                       <div className="flex justify-between font-semibold border-t pt-1">
                         <span>Total</span>
-                        <span>${(lines.reduce((s, l) => s + l.total, 0) * 1.18).toLocaleString()}</span>
+                        <span>₹{(lines.reduce((s, l) => s + l.total, 0) * 1.18).toLocaleString('en-IN')}</span>
                       </div>
                     </div>
                   </div>
