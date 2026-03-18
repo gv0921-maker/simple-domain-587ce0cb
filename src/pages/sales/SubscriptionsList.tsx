@@ -503,7 +503,7 @@ export default function SubscriptionsList() {
               </div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-muted-foreground">Tax (18%)</span>
-                <span>${((formData.unitPrice * formData.quantity) * 0.18).toLocaleString()}</span>
+                <span>₹{((formData.unitPrice * formData.quantity) * 0.18).toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between font-semibold">
                 <span>Total per {formData.billingCycle.replace('ly', '')}</span>
