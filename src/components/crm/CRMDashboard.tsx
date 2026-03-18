@@ -164,7 +164,7 @@ export function CRMDashboard() {
         <StatCard
           title="Win Rate"
           value={`${stats.winRate}%`}
-          subtitle={`Avg deal: $${stats.avgDealSize.toLocaleString()}`}
+          subtitle={`Avg deal: ₹${stats.avgDealSize.toLocaleString('en-IN')}`}
           icon={TrendingUp}
           color="info"
           delay={150}
