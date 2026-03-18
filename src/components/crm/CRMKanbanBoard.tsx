@@ -136,7 +136,7 @@ function KanbanCard({ opportunity, onPriorityChange }: { opportunity: Opportunit
 
       {/* Revenue */}
       <div className="text-[13px] text-foreground mt-0.5">
-        $ {opportunity.expectedRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+        ₹ {opportunity.expectedRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
       </div>
 
       {/* Contact with avatar */}
