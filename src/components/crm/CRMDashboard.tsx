@@ -10,7 +10,7 @@ import {
   Building,
   Target,
   TrendingUp,
-  DollarSign,
+  IndianRupee,
   CheckCircle2,
   Clock,
   Calendar,
