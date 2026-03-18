@@ -155,7 +155,7 @@ export function CRMDashboard() {
         />
         <StatCard
           title="Pipeline Value"
-          value={`$${stats.pipelineValue.toLocaleString()}`}
+          value={`₹${stats.pipelineValue.toLocaleString('en-IN')}`}
           subtitle={`${stats.activeOpportunities} active deals`}
           icon={DollarSign}
           color="success"
@@ -164,7 +164,7 @@ export function CRMDashboard() {
         <StatCard
           title="Win Rate"
           value={`${stats.winRate}%`}
-          subtitle={`Avg deal: $${stats.avgDealSize.toLocaleString()}`}
+          subtitle={`Avg deal: ₹${stats.avgDealSize.toLocaleString('en-IN')}`}
           icon={TrendingUp}
           color="info"
           delay={150}
@@ -175,14 +175,14 @@ export function CRMDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Weighted Pipeline"
-          value={`$${stats.weightedPipelineValue.toLocaleString()}`}
+          value={`₹${stats.weightedPipelineValue.toLocaleString('en-IN')}`}
           subtitle="Probability-adjusted"
           icon={BarChart3}
           delay={200}
         />
         <StatCard
           title="Won Revenue"
-          value={`$${stats.wonRevenue.toLocaleString()}`}
+          value={`₹${stats.wonRevenue.toLocaleString('en-IN')}`}
           icon={CheckCircle2}
           color="success"
           delay={250}
@@ -238,7 +238,7 @@ export function CRMDashboard() {
                 .map((stage) => (
                   <div key={stage.stageId} className="flex justify-between">
                     <span className="text-muted-foreground">{stage.stage}</span>
-                    <span className="font-medium">${stage.value.toLocaleString()}</span>
+                    <span className="font-medium">₹{stage.value.toLocaleString('en-IN')}</span>
                   </div>
                 ))}
             </div>
@@ -276,7 +276,7 @@ export function CRMDashboard() {
                   <span className="text-muted-foreground capitalize">{source.source.replace('_', ' ')}</span>
                   <div className="flex items-center gap-4">
                     <span>{source.count} leads</span>
-                    <span className="font-medium">${source.value.toLocaleString()}</span>
+                    <span className="font-medium">₹{source.value.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
               ))}
@@ -308,7 +308,7 @@ export function CRMDashboard() {
                   >
                     <div className="flex justify-between items-start">
                       <p className="font-medium text-sm truncate">{deal.name}</p>
-                      <span className="text-sm font-semibold">${deal.expectedRevenue.toLocaleString()}</span>
+                      <span className="text-sm font-semibold">₹{deal.expectedRevenue.toLocaleString('en-IN')}</span>
                     </div>
                     <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                       <Calendar className="h-3 w-3" />
@@ -348,7 +348,7 @@ export function CRMDashboard() {
                       <Badge variant="outline" className="text-xs capitalize">
                         {lead.source.replace('_', ' ')}
                       </Badge>
-                      <span className="text-xs font-medium">${lead.expectedRevenue.toLocaleString()}</span>
+                      <span className="text-xs font-medium">₹{lead.expectedRevenue.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
                 ))

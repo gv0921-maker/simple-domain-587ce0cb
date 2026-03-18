@@ -136,7 +136,7 @@ function KanbanCard({ opportunity, onPriorityChange }: { opportunity: Opportunit
 
       {/* Revenue */}
       <div className="text-[13px] text-foreground mt-0.5">
-        $ {opportunity.expectedRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+        ₹ {opportunity.expectedRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
       </div>
 
       {/* Contact with avatar */}
@@ -233,7 +233,7 @@ function KanbanColumn({
           <div className="flex items-center gap-1">
             {totalValue > 0 && (
               <span className="text-xs text-muted-foreground font-medium">
-                ${(totalValue / 1000).toFixed(0)}k
+                ₹{(totalValue / 1000).toFixed(0)}k
               </span>
             )}
             <button
@@ -307,7 +307,7 @@ function KanbanColumn({
               />
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-muted-foreground font-medium w-3.5 text-center shrink-0">$</span>
+              <span className="text-xs text-muted-foreground font-medium w-3.5 text-center shrink-0">₹</span>
               <Input
                 placeholder="0.00"
                 type="number"

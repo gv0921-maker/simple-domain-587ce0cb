@@ -233,7 +233,7 @@ export default function CRMLeadsList() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Value</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${stats.totalValue.toLocaleString()}</div>
+              <div className="text-2xl font-bold">₹{stats.totalValue.toLocaleString('en-IN')}</div>
             </CardContent>
           </Card>
         </div>
@@ -420,7 +420,7 @@ export default function CRMLeadsList() {
                           <Badge className={cn('text-xs capitalize', PRIORITY_COLORS[lead.priority])}>
                             {lead.priority}
                           </Badge>
-                          <span className="text-sm font-medium">${lead.expectedRevenue.toLocaleString()}</span>
+                          <span className="text-sm font-medium">₹{lead.expectedRevenue.toLocaleString('en-IN')}</span>
                         </div>
                       </Card>
                     ))}
@@ -528,7 +528,7 @@ export default function CRMLeadsList() {
                 <div className="grid gap-2">
                   <Label>Expected Revenue</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
                     <Input
                       type="number"
                       value={formData.expectedRevenue || ''}
