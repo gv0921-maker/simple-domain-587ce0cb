@@ -182,7 +182,7 @@ export function CRMDashboard() {
         />
         <StatCard
           title="Won Revenue"
-          value={`$${stats.wonRevenue.toLocaleString()}`}
+          value={`₹${stats.wonRevenue.toLocaleString('en-IN')}`}
           icon={CheckCircle2}
           color="success"
           delay={250}
