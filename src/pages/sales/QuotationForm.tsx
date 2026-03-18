@@ -718,7 +718,7 @@ export default function QuotationForm() {
                 )}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Tax</span>
-                  <span className="font-medium">${totals.taxAmount.toLocaleString()}</span>
+                  <span className="font-medium">₹{totals.taxAmount.toLocaleString('en-IN')}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between">
