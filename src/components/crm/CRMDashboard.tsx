@@ -308,7 +308,7 @@ export function CRMDashboard() {
                   >
                     <div className="flex justify-between items-start">
                       <p className="font-medium text-sm truncate">{deal.name}</p>
-                      <span className="text-sm font-semibold">${deal.expectedRevenue.toLocaleString()}</span>
+                      <span className="text-sm font-semibold">₹{deal.expectedRevenue.toLocaleString('en-IN')}</span>
                     </div>
                     <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                       <Calendar className="h-3 w-3" />
