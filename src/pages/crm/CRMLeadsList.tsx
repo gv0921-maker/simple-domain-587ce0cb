@@ -233,7 +233,7 @@ export default function CRMLeadsList() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Value</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${stats.totalValue.toLocaleString()}</div>
+              <div className="text-2xl font-bold">₹{stats.totalValue.toLocaleString('en-IN')}</div>
             </CardContent>
           </Card>
         </div>
