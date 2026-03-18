@@ -69,7 +69,7 @@ export default function OpportunitiesList() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Pipeline Value</p>
-                <p className="text-2xl font-semibold">${totalPipeline.toLocaleString()}</p>
+                <p className="text-2xl font-semibold">₹{totalPipeline.toLocaleString('en-IN')}</p>
               </div>
             </div>
           </Card>
