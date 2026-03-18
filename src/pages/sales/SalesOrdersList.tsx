@@ -479,7 +479,7 @@ export default function SalesOrdersList() {
                         <TableRow key={line.id}>
                           <TableCell>{line.productName}</TableCell>
                           <TableCell className="text-right">{line.quantity}</TableCell>
-                          <TableCell className="text-right">${line.unitPrice}</TableCell>
+                          <TableCell className="text-right">₹{line.unitPrice}</TableCell>
                           <TableCell className="text-right">{line.discount}%</TableCell>
                           <TableCell className="text-right font-medium">
                             ${line.total.toLocaleString()}
