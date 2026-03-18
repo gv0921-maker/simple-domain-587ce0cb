@@ -420,7 +420,7 @@ export default function CRMLeadsList() {
                           <Badge className={cn('text-xs capitalize', PRIORITY_COLORS[lead.priority])}>
                             {lead.priority}
                           </Badge>
-                          <span className="text-sm font-medium">${lead.expectedRevenue.toLocaleString()}</span>
+                          <span className="text-sm font-medium">₹{lead.expectedRevenue.toLocaleString('en-IN')}</span>
                         </div>
                       </Card>
                     ))}
