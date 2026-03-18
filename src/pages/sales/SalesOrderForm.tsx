@@ -606,7 +606,7 @@ export default function SalesOrderForm() {
                               line.quantity
                             )}
                           </TableCell>
-                          <TableCell className="text-right">${line.unitPrice.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">₹{line.unitPrice.toFixed(2)}</TableCell>
                           <TableCell className="text-right">
                             {line.discount > 0 && (
                               <span className="text-destructive">
