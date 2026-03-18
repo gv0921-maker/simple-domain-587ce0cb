@@ -155,7 +155,7 @@ export function CRMDashboard() {
         />
         <StatCard
           title="Pipeline Value"
-          value={`$${stats.pipelineValue.toLocaleString()}`}
+          value={`₹${stats.pipelineValue.toLocaleString('en-IN')}`}
           subtitle={`${stats.activeOpportunities} active deals`}
           icon={DollarSign}
           color="success"
