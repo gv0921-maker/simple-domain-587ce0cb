@@ -260,7 +260,6 @@ export default function CRMLeadsList() {
 
         {/* List View */}
         <Card className="animate-fade-in">
-          <Card className="animate-fade-in">
             <Table>
               <TableHeader>
                 <TableRow>
