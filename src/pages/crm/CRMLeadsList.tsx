@@ -258,22 +258,6 @@ export default function CRMLeadsList() {
               <Filter className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
-            <Button
-              variant={view === 'list' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => setView('list')}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={view === 'kanban' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => setView('kanban')}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-          </div>
         </div>
 
         {/* List View */}
