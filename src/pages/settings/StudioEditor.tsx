@@ -139,7 +139,7 @@ export default function StudioEditor() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {hasChanges && <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-200">Unsaved changes</Badge>}
+            {hasChanges && <Badge variant="outline" className="text-xs bg-accent text-accent-foreground">Unsaved changes</Badge>}
             <Button variant="outline" size="sm" onClick={handleReset} className="gap-1.5">
               <RotateCcw className="h-3.5 w-3.5" />
               Reset
