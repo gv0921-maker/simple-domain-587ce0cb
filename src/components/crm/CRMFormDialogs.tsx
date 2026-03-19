@@ -24,11 +24,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, X, AlertTriangle } from 'lucide-react';
 import {
   type Contact,
-  type Company,
   type ContactType,
-  getCompanies,
   saveContact,
-  saveCompany,
   findDuplicateContacts,
 } from '@/lib/data/crm';
 import { useToast } from '@/hooks/use-toast';
