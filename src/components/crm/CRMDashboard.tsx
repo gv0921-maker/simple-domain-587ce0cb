@@ -195,12 +195,6 @@ export function CRMDashboard() {
           color="warning"
           delay={300}
         />
-        <StatCard
-          title="Companies"
-          value={stats.totalCompanies}
-          icon={Building}
-          delay={350}
-        />
       </div>
 
       {/* Charts Row */}
