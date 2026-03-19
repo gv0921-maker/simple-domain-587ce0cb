@@ -366,6 +366,14 @@ const App = () => (
               }
             />
             <Route
+              path="/settings/studio"
+              element={
+                <ProtectedRoute>
+                  <StudioEditor />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/settings/users"
               element={
                 <ProtectedRoute>
