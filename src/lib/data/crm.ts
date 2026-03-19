@@ -898,6 +898,7 @@ export function findDuplicateContacts(email: string, phone?: string): Contact[] 
 
 // Leads
 export function getLeads(): Lead[] {
+  ensureCRMVersion();
   return getItem<Lead[]>('crm_leads', DEFAULT_LEADS);
 }
 
