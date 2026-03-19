@@ -45,8 +45,6 @@ import {
   Trash2,
   IndianRupee,
   Filter,
-  LayoutGrid,
-  List,
   Sparkles,
   User,
 } from 'lucide-react';
