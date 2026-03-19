@@ -42,22 +42,17 @@ import {
   Search,
   Plus,
   MoreHorizontal,
-  Pencil,
   Trash2,
   IndianRupee,
-  Target,
   Filter,
   LayoutGrid,
   List,
-  ArrowRight,
   Sparkles,
   User,
-  Building,
 } from 'lucide-react';
 import {
   getLeads,
   deleteLead,
-  updateLeadStatus,
   convertLeadToOpportunity,
   saveLead,
   type Lead,
@@ -69,6 +64,7 @@ import { CRM_NAV } from '@/lib/navigation/crm';
 import { CRMExportButton } from '@/components/crm/CRMImportExport';
 import { useToast } from '@/hooks/use-toast';
 import { useCRMPermissions } from '@/hooks/useCRMPermissions';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 
@@ -91,7 +87,8 @@ const PRIORITY_COLORS: Record<LeadPriority, string> = {
 export default function CRMLeadsList() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { canCreateLeads, canEditLeads, canDeleteLeads, canConvertLeads } = useCRMPermissions();
+  const { canCreateLeads, canDeleteLeads, canConvertLeads } = useCRMPermissions();
+  const { user } = useAuth();
   
   const [leads, setLeads] = useState<Lead[]>(() => getLeads());
   const [search, setSearch] = useState('');
@@ -139,12 +136,6 @@ export default function CRMLeadsList() {
     totalValue: leads.reduce((sum, l) => sum + l.expectedRevenue, 0),
   }), [leads]);
 
-  const handleMoveLead = (id: string, status: LeadStatus) => {
-    updateLeadStatus(id, status);
-    setLeads(getLeads());
-    toast({ title: `Lead moved to ${status}` });
-  };
-
   const handleConvert = (id: string) => {
     const opportunity = convertLeadToOpportunity(id);
     if (opportunity) {
@@ -166,7 +157,7 @@ export default function CRMLeadsList() {
       return;
     }
 
-    saveLead(formData);
+    saveLead({ ...formData, createdBy: user?.name || 'Unknown' });
     setLeads(getLeads());
     setIsNewDialogOpen(false);
     setFormData({
@@ -283,7 +274,7 @@ export default function CRMLeadsList() {
                   <TableHead>Source</TableHead>
                   <TableHead>Priority</TableHead>
                   <TableHead>Value</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Created By</TableHead>
                   <TableHead className="w-[60px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -333,15 +324,10 @@ export default function CRMLeadsList() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge 
-                          className={cn(
-                            'text-xs',
-                            LEAD_STATUSES.find((s) => s.id === lead.status)?.color,
-                            'text-foreground'
-                          )}
-                        >
-                          {LEAD_STATUSES.find((s) => s.id === lead.status)?.label}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <User className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-sm">{lead.createdBy || 'Unknown'}</span>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -351,27 +337,15 @@ export default function CRMLeadsList() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {canEditLeads && LEAD_STATUSES.filter((s) => s.id !== lead.status && !['converted', 'lost'].includes(s.id)).map((status) => (
-                              <DropdownMenuItem
-                                key={status.id}
-                                onClick={(e) => { e.stopPropagation(); handleMoveLead(lead.id, status.id); }}
-                              >
-                                <ArrowRight className="h-4 w-4 mr-2" />
-                                Move to {status.label}
-                              </DropdownMenuItem>
-                            ))}
                             {canConvertLeads && lead.status === 'qualified' && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleConvert(lead.id); }}>
-                                  <Sparkles className="h-4 w-4 mr-2" />
-                                  Convert to Opportunity
-                                </DropdownMenuItem>
-                              </>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleConvert(lead.id); }}>
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                Convert to Opportunity
+                              </DropdownMenuItem>
                             )}
                             {canDeleteLeads && (
                               <>
-                                <DropdownMenuSeparator />
+                                {canConvertLeads && lead.status === 'qualified' && <DropdownMenuSeparator />}
                                 <DropdownMenuItem
                                   onClick={(e) => { e.stopPropagation(); handleDelete(lead.id); }}
                                   className="text-destructive"
