@@ -46,6 +46,9 @@ import {
   Check,
   X,
   LayoutGrid,
+  Import,
+  Download,
+  Printer,
 } from 'lucide-react';
 import { 
   getRoles, 
@@ -231,7 +234,7 @@ export default function RolesManagement() {
     setEditFormData({
       name: '',
       description: '',
-      permissions: MODULES.map((m) => ({ module: m, level: 'none' as PermissionLevel, scope: 'own' as const })),
+      permissions: MODULES.map((m) => ({ module: m, level: 'none' as PermissionLevel, scope: 'own' as const, canImport: false, canExport: false, canPrint: false })),
     });
     setIsNewRole(true);
     setIsEditDialogOpen(true);
@@ -285,6 +288,25 @@ export default function RolesManagement() {
           : [{ module, level, scope: 'own' as const }]
       ),
     }));
+  };
+
+  // Update additional permissions (import/export/print)
+  const handleAdditionalPermChange = (module: string, field: 'canImport' | 'canExport' | 'canPrint', value: boolean) => {
+    setEditFormData((prev) => {
+      const existing = prev.permissions.find((p) => p.module === module);
+      if (existing) {
+        return {
+          ...prev,
+          permissions: prev.permissions.map((p) =>
+            p.module === module ? { ...p, [field]: value } : p
+          ),
+        };
+      }
+      return {
+        ...prev,
+        permissions: [...prev.permissions, { module, level: 'none' as PermissionLevel, scope: 'own' as const, [field]: value }],
+      };
+    });
   };
 
   // Delete role
@@ -427,28 +449,47 @@ export default function RolesManagement() {
 
                   <TabsContent value="modules" className="p-4">
                     <h3 className="text-sm font-medium text-foreground mb-3">Permission Matrix</h3>
-                    <div className="border rounded-lg overflow-hidden">
+                    <div className="border rounded-lg overflow-hidden overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="w-[180px]">Module</TableHead>
+                            <TableHead className="w-[150px]">Module</TableHead>
                             <TableHead className="text-center">View</TableHead>
                             <TableHead className="text-center">Create</TableHead>
                             <TableHead className="text-center">Edit</TableHead>
                             <TableHead className="text-center">Delete</TableHead>
                             <TableHead className="text-center">Admin</TableHead>
+                            <TableHead className="text-center border-l border-border">
+                              <div className="flex flex-col items-center gap-0.5">
+                                <Import className="h-3.5 w-3.5" />
+                                <span className="text-[10px]">Import</span>
+                              </div>
+                            </TableHead>
+                            <TableHead className="text-center">
+                              <div className="flex flex-col items-center gap-0.5">
+                                <Download className="h-3.5 w-3.5" />
+                                <span className="text-[10px]">Export</span>
+                              </div>
+                            </TableHead>
+                            <TableHead className="text-center">
+                              <div className="flex flex-col items-center gap-0.5">
+                                <Printer className="h-3.5 w-3.5" />
+                                <span className="text-[10px]">Print</span>
+                              </div>
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {MODULES.map((module) => {
                             const level = getPermissionLevel(selectedRole, module);
                             const levelWeight = PERMISSION_LEVELS.findIndex((p) => p.id === level);
+                            const perm = selectedRole.permissions.find((p) => p.module === module);
 
                             return (
                               <TableRow key={module}>
                                 <TableCell className="font-medium capitalize">{module}</TableCell>
-                                {['view', 'create', 'edit', 'delete', 'admin'].map((perm, idx) => (
-                                  <TableCell key={perm} className="text-center">
+                                {['view', 'create', 'edit', 'delete', 'admin'].map((p, idx) => (
+                                  <TableCell key={p} className="text-center">
                                     {levelWeight >= idx + 1 ? (
                                       <Check className="h-4 w-4 text-success mx-auto" />
                                     ) : (
@@ -456,6 +497,27 @@ export default function RolesManagement() {
                                     )}
                                   </TableCell>
                                 ))}
+                                <TableCell className="text-center border-l border-border">
+                                  {perm?.canImport ? (
+                                    <Check className="h-4 w-4 text-success mx-auto" />
+                                  ) : (
+                                    <X className="h-4 w-4 text-muted-foreground/30 mx-auto" />
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  {perm?.canExport ? (
+                                    <Check className="h-4 w-4 text-success mx-auto" />
+                                  ) : (
+                                    <X className="h-4 w-4 text-muted-foreground/30 mx-auto" />
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  {perm?.canPrint ? (
+                                    <Check className="h-4 w-4 text-success mx-auto" />
+                                  ) : (
+                                    <X className="h-4 w-4 text-muted-foreground/30 mx-auto" />
+                                  )}
+                                </TableCell>
                               </TableRow>
                             );
                           })}
@@ -646,25 +708,44 @@ export default function RolesManagement() {
 
               <div className="grid gap-2">
                 <Label>Module Permissions</Label>
-                <div className="border rounded-lg overflow-hidden">
+                <div className="border rounded-lg overflow-hidden overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[150px]">Module</TableHead>
+                        <TableHead className="w-[130px]">Module</TableHead>
                         <TableHead>Permission Level</TableHead>
+                        <TableHead className="text-center border-l border-border">
+                          <div className="flex flex-col items-center gap-0.5">
+                            <Import className="h-3.5 w-3.5" />
+                            <span className="text-[10px]">Import</span>
+                          </div>
+                        </TableHead>
+                        <TableHead className="text-center">
+                          <div className="flex flex-col items-center gap-0.5">
+                            <Download className="h-3.5 w-3.5" />
+                            <span className="text-[10px]">Export</span>
+                          </div>
+                        </TableHead>
+                        <TableHead className="text-center">
+                          <div className="flex flex-col items-center gap-0.5">
+                            <Printer className="h-3.5 w-3.5" />
+                            <span className="text-[10px]">Print</span>
+                          </div>
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {MODULES.map((module) => (
-                        <TableRow key={module}>
-                          <TableCell className="font-medium capitalize">{module}</TableCell>
-                          <TableCell>
-                            <div>
+                      {MODULES.map((module) => {
+                        const perm = editFormData.permissions.find((p) => p.module === module);
+                        return (
+                          <TableRow key={module}>
+                            <TableCell className="font-medium capitalize">{module}</TableCell>
+                            <TableCell>
                               <Select
                                 value={getEditPermissionLevel(module)}
                                 onValueChange={(v) => handlePermissionChange(module, v as PermissionLevel)}
                               >
-                                <SelectTrigger className="w-[150px]">
+                                <SelectTrigger className="w-[140px]">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -675,10 +756,28 @@ export default function RolesManagement() {
                                   ))}
                                 </SelectContent>
                               </Select>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                            </TableCell>
+                            <TableCell className="text-center border-l border-border">
+                              <Checkbox
+                                checked={!!perm?.canImport}
+                                onCheckedChange={(checked) => handleAdditionalPermChange(module, 'canImport', !!checked)}
+                              />
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Checkbox
+                                checked={!!perm?.canExport}
+                                onCheckedChange={(checked) => handleAdditionalPermChange(module, 'canExport', !!checked)}
+                              />
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Checkbox
+                                checked={!!perm?.canPrint}
+                                onCheckedChange={(checked) => handleAdditionalPermChange(module, 'canPrint', !!checked)}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>

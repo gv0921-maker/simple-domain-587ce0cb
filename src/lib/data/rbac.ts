@@ -15,6 +15,9 @@ export interface Permission {
   module: string;
   level: PermissionLevel;
   scope: RecordScope;
+  canImport?: boolean;
+  canExport?: boolean;
+  canPrint?: boolean;
 }
 
 export interface Role {
@@ -72,7 +75,7 @@ const DEFAULT_ROLES: Role[] = [
     name: 'Super Admin',
     description: 'Full system access with all permissions',
     isSystem: true,
-    permissions: MODULES.map((m) => ({ module: m, level: 'admin' as PermissionLevel, scope: 'all' as RecordScope })),
+    permissions: MODULES.map((m) => ({ module: m, level: 'admin' as PermissionLevel, scope: 'all' as RecordScope, canImport: true, canExport: true, canPrint: true })),
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
   },
@@ -81,7 +84,7 @@ const DEFAULT_ROLES: Role[] = [
     name: 'Admin',
     description: 'Administrative access to most modules',
     isSystem: true,
-    permissions: MODULES.filter((m) => m !== 'settings').map((m) => ({ module: m, level: 'admin' as PermissionLevel, scope: 'all' as RecordScope })),
+    permissions: MODULES.filter((m) => m !== 'settings').map((m) => ({ module: m, level: 'admin' as PermissionLevel, scope: 'all' as RecordScope, canImport: true, canExport: true, canPrint: true })),
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
   },
@@ -91,10 +94,10 @@ const DEFAULT_ROLES: Role[] = [
     description: 'Manage sales team and CRM',
     isSystem: true,
     permissions: [
-      { module: 'sales', level: 'admin', scope: 'all' },
-      { module: 'crm', level: 'admin', scope: 'all' },
-      { module: 'inventory', level: 'view', scope: 'all' },
-      { module: 'reports', level: 'view', scope: 'department' },
+      { module: 'sales', level: 'admin', scope: 'all', canImport: true, canExport: true, canPrint: true },
+      { module: 'crm', level: 'admin', scope: 'all', canImport: true, canExport: true, canPrint: true },
+      { module: 'inventory', level: 'view', scope: 'all', canExport: true, canPrint: true },
+      { module: 'reports', level: 'view', scope: 'department', canExport: true, canPrint: true },
     ],
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
@@ -167,7 +170,7 @@ const DEFAULT_ROLES: Role[] = [
     name: 'Read-Only User',
     description: 'View-only access to allowed modules',
     isSystem: true,
-    permissions: MODULES.map((m) => ({ module: m, level: 'view' as PermissionLevel, scope: 'all' as RecordScope })),
+    permissions: MODULES.map((m) => ({ module: m, level: 'view' as PermissionLevel, scope: 'all' as RecordScope, canExport: false, canImport: false, canPrint: true })),
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
   },
@@ -251,9 +254,18 @@ export function getUserPermissions(userId: string): Permission[] {
         if (existing) {
           existing.level = p.level;
           existing.scope = p.scope;
+          // Merge additional permissions (union - if any role grants it, it's granted)
+          existing.canImport = existing.canImport || p.canImport;
+          existing.canExport = existing.canExport || p.canExport;
+          existing.canPrint = existing.canPrint || p.canPrint;
         } else {
           permissions.push({ ...p });
         }
+      } else if (existing) {
+        // Even if level is lower, merge additional permissions
+        existing.canImport = existing.canImport || p.canImport;
+        existing.canExport = existing.canExport || p.canExport;
+        existing.canPrint = existing.canPrint || p.canPrint;
       }
     });
   }
@@ -279,6 +291,18 @@ export function hasPermission(userId: string, module: string, requiredLevel: Per
   const modulePermission = permissions.find((p) => p.module === module);
   if (!modulePermission) return false;
   return getPermissionWeight(modulePermission.level) >= getPermissionWeight(requiredLevel);
+}
+
+export function hasModulePermission(userId: string, module: string, permission: 'import' | 'export' | 'print'): boolean {
+  const permissions = getUserPermissions(userId);
+  const modulePermission = permissions.find((p) => p.module === module);
+  if (!modulePermission) return false;
+  switch (permission) {
+    case 'import': return !!modulePermission.canImport;
+    case 'export': return !!modulePermission.canExport;
+    case 'print': return !!modulePermission.canPrint;
+    default: return false;
+  }
 }
 
 // Tab permission checking
