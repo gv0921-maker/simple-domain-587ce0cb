@@ -170,7 +170,7 @@ const DEFAULT_ROLES: Role[] = [
     name: 'Read-Only User',
     description: 'View-only access to allowed modules',
     isSystem: true,
-    permissions: MODULES.map((m) => ({ module: m, level: 'view' as PermissionLevel, scope: 'all' as RecordScope })),
+    permissions: MODULES.map((m) => ({ module: m, level: 'view' as PermissionLevel, scope: 'all' as RecordScope, canExport: false, canImport: false, canPrint: true })),
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
   },
