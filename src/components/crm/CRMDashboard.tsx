@@ -404,11 +404,6 @@ export function CRMDashboard() {
               Manage Contacts
               <ArrowRight className="h-4 w-4 ml-auto" />
             </Button>
-            <Button variant="outline" className="justify-start gap-2" onClick={() => navigate('/crm/companies')}>
-              <Building className="h-4 w-4" />
-              Manage Companies
-              <ArrowRight className="h-4 w-4 ml-auto" />
-            </Button>
             <Button variant="outline" className="justify-start gap-2" onClick={() => navigate('/crm/leads')}>
               <Target className="h-4 w-4" />
               View Leads

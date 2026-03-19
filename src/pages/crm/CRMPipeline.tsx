@@ -114,19 +114,6 @@ export default function CRMPipeline() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-1.5">
-                <Label className="text-xs font-semibold">Company</Label>
-                <Select value={formData.companyId} onValueChange={(v) => setFormData({ ...formData, companyId: v })}>
-                  <SelectTrigger className="h-8 text-sm">
-                    <SelectValue placeholder="Select company" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {companies.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">

@@ -198,20 +198,11 @@ export function ContactFormDialog({ open, onOpenChange, contact, onSave }: Conta
 
             <div className="grid gap-2">
               <Label>Company</Label>
-              <Select
-                value={formData.companyId}
-                onValueChange={(v) => setFormData({ ...formData, companyId: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select company" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">No company</SelectItem>
-                  {companies.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
+              <Input
+                value={formData.companyId || ''}
+                onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
+                placeholder="Company name"
+              />
                 </SelectContent>
               </Select>
             </div>
