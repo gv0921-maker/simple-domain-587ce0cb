@@ -46,14 +46,12 @@ export default function CRMPipeline() {
     }
 
     const contact = contacts.find((c) => c.id === formData.contactId);
-    const company = companies.find((c) => c.id === formData.companyId);
 
     saveOpportunity({
       name: formData.name,
       contactId: formData.contactId,
       contactName: contact ? `${contact.firstName} ${contact.lastName}` : '',
-      companyId: formData.companyId,
-      companyName: company?.name,
+      companyName: contact?.companyName,
       expectedRevenue: formData.expectedRevenue,
       expectedCloseDate: formData.expectedCloseDate,
     });
@@ -63,7 +61,6 @@ export default function CRMPipeline() {
     setFormData({
       name: '',
       contactId: '',
-      companyId: '',
       expectedRevenue: 0,
       expectedCloseDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     });
