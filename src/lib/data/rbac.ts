@@ -254,9 +254,18 @@ export function getUserPermissions(userId: string): Permission[] {
         if (existing) {
           existing.level = p.level;
           existing.scope = p.scope;
+          // Merge additional permissions (union - if any role grants it, it's granted)
+          existing.canImport = existing.canImport || p.canImport;
+          existing.canExport = existing.canExport || p.canExport;
+          existing.canPrint = existing.canPrint || p.canPrint;
         } else {
           permissions.push({ ...p });
         }
+      } else if (existing) {
+        // Even if level is lower, merge additional permissions
+        existing.canImport = existing.canImport || p.canImport;
+        existing.canExport = existing.canExport || p.canExport;
+        existing.canPrint = existing.canPrint || p.canPrint;
       }
     });
   }
