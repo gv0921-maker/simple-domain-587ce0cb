@@ -105,14 +105,19 @@ export default function CRMLeadsList() {
     expectedRevenue: 0,
   });
 
+  const isSearching = search.trim().length > 0;
+
   const filteredLeads = useMemo(() => {
-    return leads.filter(
+    const base = isSearching
+      ? leads
+      : leads.filter((l) => l.status !== 'converted');
+    return base.filter(
       (l) =>
         l.title.toLowerCase().includes(search.toLowerCase()) ||
         l.contactName.toLowerCase().includes(search.toLowerCase()) ||
         (l.companyName?.toLowerCase().includes(search.toLowerCase()) ?? false)
     );
-  }, [leads, search]);
+  }, [leads, search, isSearching]);
 
   const leadsByStatus = useMemo(() => {
     const grouped: Record<LeadStatus, Lead[]> = {
