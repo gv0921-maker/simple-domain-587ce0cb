@@ -203,8 +203,7 @@ export function ContactFormDialog({ open, onOpenChange, contact, onSave }: Conta
                 onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
                 placeholder="Company name"
               />
-                </SelectContent>
-              </Select>
+            </div>
             </div>
           </TabsContent>
 
