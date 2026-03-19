@@ -92,7 +92,7 @@ export default function CRMLeadsList() {
   
   const [leads, setLeads] = useState<Lead[]>(() => getLeads());
   const [search, setSearch] = useState('');
-  const [view, setView] = useState<'list' | 'kanban'>('list');
+  
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<Lead>>({
     title: '',
