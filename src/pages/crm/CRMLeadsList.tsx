@@ -45,8 +45,6 @@ import {
   Trash2,
   IndianRupee,
   Filter,
-  LayoutGrid,
-  List,
   Sparkles,
   User,
 } from 'lucide-react';
@@ -56,7 +54,6 @@ import {
   convertLeadToOpportunity,
   saveLead,
   type Lead,
-  type LeadStatus,
   type LeadSource,
   type LeadPriority,
 } from '@/lib/data/crm';
@@ -68,14 +65,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 
-const LEAD_STATUSES: { id: LeadStatus; label: string; color: string }[] = [
-  { id: 'new', label: 'New', color: 'bg-info' },
-  { id: 'contacted', label: 'Contacted', color: 'bg-accent' },
-  { id: 'qualified', label: 'Qualified', color: 'bg-warning' },
-  { id: 'unqualified', label: 'Unqualified', color: 'bg-muted' },
-  { id: 'converted', label: 'Converted', color: 'bg-success' },
-  { id: 'lost', label: 'Lost', color: 'bg-destructive' },
-];
+
 
 const PRIORITY_COLORS: Record<LeadPriority, string> = {
   low: 'bg-muted text-muted-foreground',
@@ -92,7 +82,7 @@ export default function CRMLeadsList() {
   
   const [leads, setLeads] = useState<Lead[]>(() => getLeads());
   const [search, setSearch] = useState('');
-  const [view, setView] = useState<'list' | 'kanban'>('list');
+  
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<Lead>>({
     title: '',
@@ -119,20 +109,6 @@ export default function CRMLeadsList() {
     );
   }, [leads, search, isSearching]);
 
-  const leadsByStatus = useMemo(() => {
-    const grouped: Record<LeadStatus, Lead[]> = {
-      new: [],
-      contacted: [],
-      qualified: [],
-      unqualified: [],
-      converted: [],
-      lost: [],
-    };
-    filteredLeads.forEach((lead) => {
-      grouped[lead.status].push(lead);
-    });
-    return grouped;
-  }, [filteredLeads]);
 
   const stats = useMemo(() => {
     const activeLeads = leads.filter((l) => l.status !== 'converted');
@@ -258,27 +234,10 @@ export default function CRMLeadsList() {
               <Filter className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
-            <Button
-              variant={view === 'list' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => setView('list')}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={view === 'kanban' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => setView('kanban')}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-          </div>
         </div>
 
         {/* List View */}
-        {view === 'list' && (
-          <Card className="animate-fade-in">
+        <Card className="animate-fade-in">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -376,50 +335,8 @@ export default function CRMLeadsList() {
                 )}
               </TableBody>
             </Table>
-          </Card>
-        )}
+        </Card>
 
-        {/* Kanban View */}
-        {view === 'kanban' && (
-          <div className="overflow-x-auto">
-            <div className="flex gap-4 min-w-max pb-4">
-              {LEAD_STATUSES.filter((s) => !['converted', 'lost'].includes(s.id)).map((status) => (
-                <div key={status.id} className="w-72 flex flex-col bg-muted/30 rounded-lg">
-                  <div className="p-3 border-b border-border">
-                    <div className="flex items-center gap-2">
-                      <div className={cn('w-2 h-2 rounded-full', status.color)} />
-                      <h3 className="font-medium text-sm">{status.label}</h3>
-                      <Badge variant="secondary" className="ml-auto text-xs">
-                        {leadsByStatus[status.id].length}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex-1 p-2 space-y-2 min-h-[200px]">
-                    {leadsByStatus[status.id].map((lead) => (
-                      <Card
-                        key={lead.id}
-                        className="p-3 cursor-pointer card-hover"
-                        onClick={() => navigate(`/crm/leads/${lead.id}`)}
-                      >
-                        <p className="font-medium text-sm line-clamp-2">{lead.title}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{lead.contactName}</p>
-                        <div className="flex items-center justify-between mt-2">
-                          <Badge className={cn('text-xs capitalize', PRIORITY_COLORS[lead.priority])}>
-                            {lead.priority}
-                          </Badge>
-                          <span className="text-sm font-medium">₹{lead.expectedRevenue.toLocaleString('en-IN')}</span>
-                        </div>
-                      </Card>
-                    ))}
-                    {leadsByStatus[status.id].length === 0 && (
-                      <p className="text-center text-sm text-muted-foreground py-8">No leads</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* New Lead Dialog */}
         <Dialog open={isNewDialogOpen} onOpenChange={setIsNewDialogOpen}>
