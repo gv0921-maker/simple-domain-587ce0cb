@@ -42,17 +42,13 @@ import {
   Search,
   Plus,
   MoreHorizontal,
-  Pencil,
   Trash2,
   IndianRupee,
-  Target,
   Filter,
   LayoutGrid,
   List,
-  ArrowRight,
   Sparkles,
   User,
-  Building,
 } from 'lucide-react';
 import {
   getLeads,
