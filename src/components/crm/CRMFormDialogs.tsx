@@ -204,7 +204,6 @@ export function ContactFormDialog({ open, onOpenChange, contact, onSave }: Conta
                 placeholder="Company name"
               />
             </div>
-            </div>
           </TabsContent>
 
           <TabsContent value="details" className="space-y-4 mt-4">
