@@ -135,17 +135,15 @@ export default function CRMLeadsList() {
   }, [filteredLeads]);
 
   const stats = useMemo(() => {
+    const activeLeads = leads.filter((l) => l.status !== 'converted');
     const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const todayLeads = leads.filter(
-      (l) => format(parseISO(l.createdAt), 'yyyy-MM-dd') === todayStr
-    );
     const convertedToday = leads.filter(
       (l) => l.status === 'converted' && l.convertedAt && format(parseISO(l.convertedAt), 'yyyy-MM-dd') === todayStr
     ).length;
-    const pendingCount = todayLeads.filter((l) => l.status !== 'converted').length;
+    const pendingCount = activeLeads.length;
     return {
-      total: todayLeads.length,
-      new: todayLeads.filter((l) => l.status === 'new').length,
+      total: activeLeads.length,
+      new: activeLeads.filter((l) => l.status === 'new').length,
       completed: convertedToday,
       pending: pendingCount,
     };
