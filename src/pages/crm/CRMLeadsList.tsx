@@ -110,20 +110,6 @@ export default function CRMLeadsList() {
     );
   }, [leads, search, isSearching]);
 
-  const leadsByStatus = useMemo(() => {
-    const grouped: Record<LeadStatus, Lead[]> = {
-      new: [],
-      contacted: [],
-      qualified: [],
-      unqualified: [],
-      converted: [],
-      lost: [],
-    };
-    filteredLeads.forEach((lead) => {
-      grouped[lead.status].push(lead);
-    });
-    return grouped;
-  }, [filteredLeads]);
 
   const stats = useMemo(() => {
     const activeLeads = leads.filter((l) => l.status !== 'converted');
