@@ -105,14 +105,19 @@ export default function CRMLeadsList() {
     expectedRevenue: 0,
   });
 
+  const isSearching = search.trim().length > 0;
+
   const filteredLeads = useMemo(() => {
-    return leads.filter(
+    const base = isSearching
+      ? leads
+      : leads.filter((l) => l.status !== 'converted');
+    return base.filter(
       (l) =>
         l.title.toLowerCase().includes(search.toLowerCase()) ||
         l.contactName.toLowerCase().includes(search.toLowerCase()) ||
         (l.companyName?.toLowerCase().includes(search.toLowerCase()) ?? false)
     );
-  }, [leads, search]);
+  }, [leads, search, isSearching]);
 
   const leadsByStatus = useMemo(() => {
     const grouped: Record<LeadStatus, Lead[]> = {
@@ -129,12 +134,15 @@ export default function CRMLeadsList() {
     return grouped;
   }, [filteredLeads]);
 
-  const stats = useMemo(() => ({
-    total: leads.length,
-    new: leads.filter((l) => l.status === 'new').length,
-    qualified: leads.filter((l) => l.status === 'qualified').length,
-    totalValue: leads.reduce((sum, l) => sum + l.expectedRevenue, 0),
-  }), [leads]);
+  const stats = useMemo(() => {
+    const activeLeads = leads.filter((l) => l.status !== 'converted');
+    return {
+      total: activeLeads.length,
+      new: activeLeads.filter((l) => l.status === 'new').length,
+      qualified: activeLeads.filter((l) => l.status === 'qualified').length,
+      totalValue: activeLeads.reduce((sum, l) => sum + l.expectedRevenue, 0),
+    };
+  }, [leads]);
 
   const handleConvert = (id: string) => {
     const opportunity = convertLeadToOpportunity(id);
