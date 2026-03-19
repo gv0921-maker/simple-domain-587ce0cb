@@ -54,7 +54,6 @@ import {
   convertLeadToOpportunity,
   saveLead,
   type Lead,
-  type LeadStatus,
   type LeadSource,
   type LeadPriority,
 } from '@/lib/data/crm';
