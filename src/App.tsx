@@ -69,6 +69,7 @@ import FinancialReports from "@/pages/accounting/FinancialReports";
 // Settings pages
 import GeneralSettings from "@/pages/settings/GeneralSettings";
 import CustomizationSettings from "@/pages/settings/CustomizationSettings";
+import StudioEditor from "@/pages/settings/StudioEditor";
 import UsersManagement from "@/pages/settings/UsersManagement";
 import RolesManagement from "@/pages/settings/RolesManagement";
 import AuditLogs from "@/pages/settings/AuditLogs";
