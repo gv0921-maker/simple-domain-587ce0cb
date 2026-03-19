@@ -358,8 +358,7 @@ export default function CRMLeadsList() {
                 )}
               </TableBody>
             </Table>
-          </Card>
-        )}
+        </Card>
 
 
         {/* New Lead Dialog */}
