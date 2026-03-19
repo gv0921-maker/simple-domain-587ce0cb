@@ -135,12 +135,6 @@ export default function CRMLeadsList() {
     totalValue: leads.reduce((sum, l) => sum + l.expectedRevenue, 0),
   }), [leads]);
 
-  const handleMoveLead = (id: string, status: LeadStatus) => {
-    updateLeadStatus(id, status);
-    setLeads(getLeads());
-    toast({ title: `Lead moved to ${status}` });
-  };
-
   const handleConvert = (id: string) => {
     const opportunity = convertLeadToOpportunity(id);
     if (opportunity) {
