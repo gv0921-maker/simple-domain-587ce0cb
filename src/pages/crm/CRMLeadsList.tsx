@@ -136,11 +136,18 @@ export default function CRMLeadsList() {
 
   const stats = useMemo(() => {
     const activeLeads = leads.filter((l) => l.status !== 'converted');
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const convertedToday = leads.filter(
+      (l) => l.status === 'converted' && l.convertedAt && format(parseISO(l.convertedAt), 'yyyy-MM-dd') === todayStr
+    ).length;
+    const pendingToday = leads.filter(
+      (l) => l.status !== 'converted' && format(parseISO(l.createdAt), 'yyyy-MM-dd') === todayStr
+    ).length;
     return {
       total: activeLeads.length,
       new: activeLeads.filter((l) => l.status === 'new').length,
-      qualified: activeLeads.filter((l) => l.status === 'qualified').length,
-      totalValue: activeLeads.reduce((sum, l) => sum + l.expectedRevenue, 0),
+      completed: convertedToday,
+      pending: pendingToday,
     };
   }, [leads]);
 
