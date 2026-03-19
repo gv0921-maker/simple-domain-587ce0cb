@@ -273,7 +273,7 @@ export default function CRMLeadsList() {
                   <TableHead>Source</TableHead>
                   <TableHead>Priority</TableHead>
                   <TableHead>Value</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Created By</TableHead>
                   <TableHead className="w-[60px]"></TableHead>
                 </TableRow>
               </TableHeader>
