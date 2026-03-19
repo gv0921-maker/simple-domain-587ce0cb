@@ -66,7 +66,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 
-const LEAD_STATUSES: { id: LeadStatus; label: string; color: string }[] = [
+
 
 const PRIORITY_COLORS: Record<LeadPriority, string> = {
   low: 'bg-muted text-muted-foreground',
