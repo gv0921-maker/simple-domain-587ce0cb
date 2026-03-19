@@ -67,13 +67,6 @@ import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 
 const LEAD_STATUSES: { id: LeadStatus; label: string; color: string }[] = [
-  { id: 'new', label: 'New', color: 'bg-info' },
-  { id: 'contacted', label: 'Contacted', color: 'bg-accent' },
-  { id: 'qualified', label: 'Qualified', color: 'bg-warning' },
-  { id: 'unqualified', label: 'Unqualified', color: 'bg-muted' },
-  { id: 'converted', label: 'Converted', color: 'bg-success' },
-  { id: 'lost', label: 'Lost', color: 'bg-destructive' },
-];
 
 const PRIORITY_COLORS: Record<LeadPriority, string> = {
   low: 'bg-muted text-muted-foreground',
