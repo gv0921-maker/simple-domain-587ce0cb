@@ -234,7 +234,7 @@ export default function RolesManagement() {
     setEditFormData({
       name: '',
       description: '',
-      permissions: MODULES.map((m) => ({ module: m, level: 'none' as PermissionLevel, scope: 'own' as const })),
+      permissions: MODULES.map((m) => ({ module: m, level: 'none' as PermissionLevel, scope: 'own' as const, canImport: false, canExport: false, canPrint: false })),
     });
     setIsNewRole(true);
     setIsEditDialogOpen(true);
