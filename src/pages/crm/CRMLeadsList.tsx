@@ -78,7 +78,7 @@ const PRIORITY_COLORS: Record<LeadPriority, string> = {
 export default function CRMLeadsList() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { canCreateLeads, canDeleteLeads, canConvertLeads } = useCRMPermissions();
+  const { canCreateLeads, canDeleteLeads, canConvertLeads, filterByScope } = useCRMPermissions();
   const { user } = useAuth();
   const studio = useStudioConfig('crm', 'New Lead');
   const [leads, setLeads] = useState<Lead[]>(() => getLeads());
