@@ -347,9 +347,10 @@ interface CRMKanbanBoardProps {
 export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange }: CRMKanbanBoardProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { canCreateOpportunities, canEditOpportunities } = useCRMPermissions();
+  const { canCreateOpportunities, canEditOpportunities, filterByScope } = useCRMPermissions();
 
-  const [opportunities, setOpportunities] = useState<Opportunity[]>(() => getOpportunities());
+  const [allOpportunities, setAllOpportunities] = useState<Opportunity[]>(() => getOpportunities());
+  const opportunities = useMemo(() => filterByScope(allOpportunities), [allOpportunities, filterByScope]);
   const [pipeline] = useState<Pipeline>(() => getDefaultPipeline());
   const [search, setSearch] = useState('');
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
