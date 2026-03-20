@@ -341,17 +341,6 @@ export default function TransferForm() {
                       </div>
                     </div>
                   )}
-                  <div className="grid gap-2 md:col-span-2">
-                    <Label className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      Scheduled Date
-                    </Label>
-                    <Input
-                      type="datetime-local"
-                      value={transfer.scheduledDate}
-                      onChange={(e) => handleChange('scheduledDate', e.target.value)}
-                    />
-                  </div>
                 </div>
               </CardContent>
             </Card>
