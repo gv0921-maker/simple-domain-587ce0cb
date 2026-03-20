@@ -491,7 +491,7 @@ export default function SalesReports() {
                   <div className="p-6 bg-muted/50 rounded-lg text-center">
                     <p className="text-sm text-muted-foreground mb-2">Pipeline Value</p>
                     <p className="text-3xl font-bold">
-                      ${quotations
+                      {`₹${quotations
                         .filter((q) => q.status === 'sent')
                         .reduce((sum, q) => sum + q.total, 0)
                         .toLocaleString('en-IN')}`}
