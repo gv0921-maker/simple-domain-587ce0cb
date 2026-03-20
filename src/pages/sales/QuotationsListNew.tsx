@@ -172,9 +172,9 @@ Valid Until: ${quotation.validUntil}
 ITEMS:
 ${quotation.lines.map((line) => `- ${line.productName}: ${line.quantity} x ₹${line.unitPrice} = ₹${line.total}`).join('\n')}
 
-Subtotal: ₹${quotation.subtotal.toLocaleString('en-IN')}`}
-Tax: ₹${quotation.taxAmount.toLocaleString('en-IN')}`}
-Total: ₹${quotation.total.toLocaleString('en-IN')}`}
+Subtotal: ₹${quotation.subtotal.toLocaleString('en-IN')}
+Tax: ₹${quotation.taxAmount.toLocaleString('en-IN')}
+Total: ₹${quotation.total.toLocaleString('en-IN')}
 
 ${quotation.termsAndConditions || ''}
     `.trim();

@@ -501,7 +501,7 @@ export default function SalesReports() {
                   <div className="p-6 bg-success/10 rounded-lg text-center">
                     <p className="text-sm text-muted-foreground mb-2">Expected Close (30d)</p>
                     <p className="text-3xl font-bold text-success">
-                      ${Math.round(
+                      {`₹${Math.round(
                         quotations
                           .filter((q) => q.status === 'sent')
                           .reduce((sum, q) => sum + q.total * 0.6, 0)

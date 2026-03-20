@@ -656,7 +656,7 @@ export default function SalesOrderForm() {
                       </TableRow>
                       <TableRow className="bg-muted/50">
                         <TableCell colSpan={5} className="text-right font-bold text-lg">Total</TableCell>
-                        <TableCell className="text-right font-bold text-lg">{`₹${totals.total.toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-bold text-lg">{`₹${totals.total.toFixed(2)}`}</TableCell>
                         {isEditable && <TableCell />}
                       </TableRow>
                     </TableFooter>

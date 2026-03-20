@@ -654,7 +654,7 @@ export default function QuotationForm() {
                       {totals.discountAmount > 0 && (
                         <TableRow>
                           <TableCell colSpan={isEditable ? 5 : 4} className="text-right font-medium text-success">Discount</TableCell>
-                          <TableCell className="text-right text-success">-${totals.discountAmount.toLocaleString('en-IN')}`}</TableCell>
+                          <TableCell className="text-right text-success">{`-₹${totals.discountAmount.toLocaleString('en-IN')}`}</TableCell>
                           {isEditable && <TableCell />}
                         </TableRow>
                       )}
