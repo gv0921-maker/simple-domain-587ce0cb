@@ -466,7 +466,6 @@ export default function CRMLeadsList() {
                 )}
               </div>
             </div>
-            </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsNewDialogOpen(false)}>Cancel</Button>
               <Button onClick={handleCreate}>Create Lead</Button>
