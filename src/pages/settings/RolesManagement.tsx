@@ -285,16 +285,17 @@ export default function RolesManagement() {
 
   // Update permission in edit form
   const handlePermissionChange = (module: string, level: PermissionLevel) => {
+    const scopeForLevel = level === 'admin' ? 'all' as RecordScope : undefined;
     setEditFormData((prev) => ({
       ...prev,
       permissions: prev.permissions.map((p) =>
         p.module === module
-          ? { ...p, level, ...(level === 'admin' ? { canImport: true, canExport: true, canPrint: true } : {}) }
+          ? { ...p, level, ...(level === 'admin' ? { canImport: true, canExport: true, canPrint: true, scope: 'all' as RecordScope } : {}), ...(scopeForLevel ? { scope: scopeForLevel } : {}) }
           : p
       ).concat(
         prev.permissions.find((p) => p.module === module)
           ? []
-          : [{ module, level, scope: 'own' as const, ...(level === 'admin' ? { canImport: true, canExport: true, canPrint: true } : {}) }]
+          : [{ module, level, scope: (level === 'admin' ? 'all' : 'own') as RecordScope, ...(level === 'admin' ? { canImport: true, canExport: true, canPrint: true } : {}) }]
       ),
     }));
   };
