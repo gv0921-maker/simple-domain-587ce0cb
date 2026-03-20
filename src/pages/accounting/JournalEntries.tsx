@@ -120,7 +120,7 @@ export default function JournalEntries() {
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search entries..."
+            placeholder=""
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -213,7 +213,7 @@ export default function JournalEntries() {
                 <Input
                   value={formData.reference}
                   onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-                  placeholder="Optional"
+                  placeholder=""
                 />
               </div>
             </div>
@@ -232,21 +232,21 @@ export default function JournalEntries() {
                   </SelectContent>
                 </Select>
                 <Input
-                  placeholder="Description"
+                  placeholder=""
                   value={newLine.description}
                   onChange={(e) => setNewLine({ ...newLine, description: e.target.value })}
                   className="w-40"
                 />
                 <Input
                   type="number"
-                  placeholder="Debit"
+                  placeholder=""
                   value={newLine.debit || ''}
                   onChange={(e) => setNewLine({ ...newLine, debit: parseFloat(e.target.value) || 0, credit: 0 })}
                   className="w-28"
                 />
                 <Input
                   type="number"
-                  placeholder="Credit"
+                  placeholder=""
                   value={newLine.credit || ''}
                   onChange={(e) => setNewLine({ ...newLine, credit: parseFloat(e.target.value) || 0, debit: 0 })}
                   className="w-28"

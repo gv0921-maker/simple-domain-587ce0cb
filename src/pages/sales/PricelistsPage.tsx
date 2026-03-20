@@ -208,7 +208,7 @@ export default function PricelistsPage() {
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search pricelists..."
+            placeholder=""
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -331,7 +331,7 @@ export default function PricelistsPage() {
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g., Wholesale Pricing"
+                  placeholder=""
                 />
               </div>
               <div className="grid gap-2">
@@ -339,7 +339,7 @@ export default function PricelistsPage() {
                 <Input
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                  placeholder="e.g., WHL"
+                  placeholder=""
                 />
               </div>
             </div>
@@ -406,7 +406,7 @@ export default function PricelistsPage() {
                   value={newRule.minQuantity}
                   onChange={(e) => setNewRule({ ...newRule, minQuantity: parseInt(e.target.value) || 1 })}
                   className="w-24"
-                  placeholder="Min qty"
+                  placeholder=""
                 />
                 <div className="flex items-center gap-1">
                   <Input
@@ -416,7 +416,7 @@ export default function PricelistsPage() {
                     value={newRule.discountPercentage}
                     onChange={(e) => setNewRule({ ...newRule, discountPercentage: parseFloat(e.target.value) || 0 })}
                     className="w-20"
-                    placeholder="Disc"
+                    placeholder=""
                   />
                   <Percent className="h-4 w-4 text-muted-foreground" />
                 </div>
