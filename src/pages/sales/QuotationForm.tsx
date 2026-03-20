@@ -65,6 +65,7 @@ import { getProducts } from '@/lib/data/inventory';
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStudioConfig } from '@/hooks/useStudioConfig';
 import { format, parseISO, addDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -90,6 +91,7 @@ export default function QuotationForm() {
   const { toast } = useToast();
   const { user } = useAuth();
   const isNew = !id || id === 'new';
+  const studio = useStudioConfig('sales', 'Quotation');
   
   const [contacts] = useState(() => getContacts());
   const [products] = useState(() => getProducts());
@@ -405,44 +407,48 @@ export default function QuotationForm() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Customer *</Label>
-                    <Select
-                      value={formData.customerId}
-                      onValueChange={handleCustomerChange}
-                      disabled={!isEditable}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select customer" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {contacts.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name} {c.company && `- ${c.company}`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Pricelist</Label>
-                    <Select
-                      value={formData.pricelistId}
-                      onValueChange={(v) => setFormData({ ...formData, pricelistId: v })}
-                      disabled={!isEditable}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select pricelist" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {pricelists.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name} ({p.currency})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {studio.isFieldVisible('customer') && (
+                    <div className="space-y-2">
+                      <Label>{studio.getFieldLabel('customer', 'Customer')} {studio.isFieldRequired('customer', true) && '*'}</Label>
+                      <Select
+                        value={formData.customerId}
+                        onValueChange={handleCustomerChange}
+                        disabled={!isEditable}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select customer" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {contacts.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name} {c.company && `- ${c.company}`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  {studio.isFieldVisible('pricelist') && (
+                    <div className="space-y-2">
+                      <Label>{studio.getFieldLabel('pricelist', 'Pricelist')}</Label>
+                      <Select
+                        value={formData.pricelistId}
+                        onValueChange={(v) => setFormData({ ...formData, pricelistId: v })}
+                        disabled={!isEditable}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select pricelist" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {pricelists.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name} ({p.currency})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-2">
@@ -454,34 +460,38 @@ export default function QuotationForm() {
                       disabled={!isEditable}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Valid Until</Label>
-                    <Input
-                      type="date"
-                      value={formData.validUntil}
-                      onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
-                      disabled={!isEditable}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Payment Terms</Label>
-                    <Select
-                      value={formData.paymentTerms}
-                      onValueChange={(v) => setFormData({ ...formData, paymentTerms: v })}
-                      disabled={!isEditable}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select terms" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PAYMENT_TERMS.map((term) => (
-                          <SelectItem key={term.value} value={term.value}>
-                            {term.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {studio.isFieldVisible('expirationDate') && (
+                    <div className="space-y-2">
+                      <Label>{studio.getFieldLabel('expirationDate', 'Valid Until')}</Label>
+                      <Input
+                        type="date"
+                        value={formData.validUntil}
+                        onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
+                        disabled={!isEditable}
+                      />
+                    </div>
+                  )}
+                  {studio.isFieldVisible('paymentTerms') && (
+                    <div className="space-y-2">
+                      <Label>{studio.getFieldLabel('paymentTerms', 'Payment Terms')}</Label>
+                      <Select
+                        value={formData.paymentTerms}
+                        onValueChange={(v) => setFormData({ ...formData, paymentTerms: v })}
+                        disabled={!isEditable}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select terms" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PAYMENT_TERMS.map((term) => (
+                            <SelectItem key={term.value} value={term.value}>
+                              {term.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

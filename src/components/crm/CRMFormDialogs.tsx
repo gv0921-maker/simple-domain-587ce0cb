@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { useStudioConfig } from '@/hooks/useStudioConfig';
 import {
   Dialog,
   DialogContent,
@@ -40,7 +41,7 @@ interface ContactFormDialogProps {
 export function ContactFormDialog({ open, onOpenChange, contact, onSave }: ContactFormDialogProps) {
   const { toast } = useToast();
   const isEdit = !!contact;
-  
+  const studio = useStudioConfig('crm', 'New Contact');
   
   const [formData, setFormData] = useState({
     type: 'individual' as ContactType,
@@ -157,65 +158,83 @@ export function ContactFormDialog({ open, onOpenChange, contact, onSave }: Conta
             )}
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>First Name *</Label>
-                <Input
-                  value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  placeholder="John"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Last Name</Label>
-                <Input
-                  value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                  placeholder="Doe"
-                />
-              </div>
+              {studio.isFieldVisible('firstName') && (
+                <div className="grid gap-2">
+                  <Label>{studio.getFieldLabel('firstName', 'First Name')} {studio.isFieldRequired('firstName', true) && '*'}</Label>
+                  <Input
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    placeholder={studio.getFieldPlaceholder('firstName', 'John')}
+                    readOnly={studio.isFieldReadOnly('firstName')}
+                  />
+                </div>
+              )}
+              {studio.isFieldVisible('lastName') && (
+                <div className="grid gap-2">
+                  <Label>{studio.getFieldLabel('lastName', 'Last Name')} {studio.isFieldRequired('lastName') && '*'}</Label>
+                  <Input
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    placeholder={studio.getFieldPlaceholder('lastName', 'Doe')}
+                    readOnly={studio.isFieldReadOnly('lastName')}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>Email *</Label>
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  onBlur={handleEmailBlur}
-                  placeholder="john@example.com"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Phone</Label>
-                <Input
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+1 555-0123"
-                />
-              </div>
+              {studio.isFieldVisible('email') && (
+                <div className="grid gap-2">
+                  <Label>{studio.getFieldLabel('email', 'Email')} {studio.isFieldRequired('email') && '*'}</Label>
+                  <Input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onBlur={handleEmailBlur}
+                    placeholder={studio.getFieldPlaceholder('email', 'john@example.com')}
+                    readOnly={studio.isFieldReadOnly('email')}
+                  />
+                </div>
+              )}
+              {studio.isFieldVisible('phone') && (
+                <div className="grid gap-2">
+                  <Label>{studio.getFieldLabel('phone', 'Phone')}</Label>
+                  <Input
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder={studio.getFieldPlaceholder('phone', '+1 555-0123')}
+                    readOnly={studio.isFieldReadOnly('phone')}
+                  />
+                </div>
+              )}
             </div>
 
-            <div className="grid gap-2">
-              <Label>Company</Label>
-              <Input
-                value={formData.companyId || ''}
-                onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
-                placeholder="Company name"
-              />
-            </div>
+            {studio.isFieldVisible('company') && (
+              <div className="grid gap-2">
+                <Label>{studio.getFieldLabel('company', 'Company')}</Label>
+                <Input
+                  value={formData.companyId || ''}
+                  onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
+                  placeholder={studio.getFieldPlaceholder('company', 'Company name')}
+                  readOnly={studio.isFieldReadOnly('company')}
+                />
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="details" className="space-y-4 mt-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>Job Title</Label>
-                <Input
-                  value={formData.jobTitle}
-                  onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
-                  placeholder="e.g., Sales Manager"
-                />
-              </div>
+              {studio.isFieldVisible('jobTitle') && (
+                <div className="grid gap-2">
+                  <Label>{studio.getFieldLabel('jobTitle', 'Job Title')}</Label>
+                  <Input
+                    value={formData.jobTitle}
+                    onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
+                    placeholder={studio.getFieldPlaceholder('jobTitle', 'e.g., Sales Manager')}
+                    readOnly={studio.isFieldReadOnly('jobTitle')}
+                  />
+                </div>
+              )}
               <div className="grid gap-2">
                 <Label>Department</Label>
                 <Input
@@ -226,40 +245,45 @@ export function ContactFormDialog({ open, onOpenChange, contact, onSave }: Conta
               </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label>Tags</Label>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {formData.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="gap-1">
-                    {tag}
-                    <button onClick={() => handleRemoveTag(tag)} className="ml-1">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
+            {studio.isFieldVisible('tags') && (
+              <div className="grid gap-2">
+                <Label>{studio.getFieldLabel('tags', 'Tags')}</Label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {formData.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="gap-1">
+                      {tag}
+                      <button onClick={() => handleRemoveTag(tag)} className="ml-1">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={newTag}
+                    onChange={(e) => setNewTag(e.target.value)}
+                    placeholder="Add tag"
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                  />
+                  <Button type="button" variant="outline" size="icon" onClick={handleAddTag}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Input
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  placeholder="Add tag"
-                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                />
-                <Button type="button" variant="outline" size="icon" onClick={handleAddTag}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+            )}
 
-            <div className="grid gap-2">
-              <Label>Notes</Label>
-              <Textarea
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Additional notes..."
-                rows={3}
-              />
-            </div>
+            {studio.isFieldVisible('notes') && (
+              <div className="grid gap-2">
+                <Label>{studio.getFieldLabel('notes', 'Notes')}</Label>
+                <Textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder={studio.getFieldPlaceholder('notes', 'Additional notes...')}
+                  rows={3}
+                  readOnly={studio.isFieldReadOnly('notes')}
+                />
+              </div>
+            )}
           </TabsContent>
         </Tabs>
 

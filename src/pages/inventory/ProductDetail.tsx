@@ -36,6 +36,7 @@ import {
 import { getProduct, saveProduct, deleteProduct, type Product, type ProductVariant } from '@/lib/data/inventory';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useStudioConfig } from '@/hooks/useStudioConfig';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -57,6 +58,7 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const isNew = id === 'new';
+  const studio = useStudioConfig('inventory', 'Product');
 
   const [product, setProduct] = useState<Product>({
     id: '',
@@ -307,42 +309,50 @@ export default function ProductDetail() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="name">Product Name *</Label>
-                    <Input
-                      id="name"
-                      value={product.name}
-                      onChange={(e) => handleChange('name', e.target.value)}
-                      placeholder="Enter product name"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="sku">SKU *</Label>
-                    <Input
-                      id="sku"
-                      value={product.sku}
-                      onChange={(e) => handleChange('sku', e.target.value)}
-                      placeholder="e.g., PROD-001"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="category">Category</Label>
-                    <Select
-                      value={product.category}
-                      onValueChange={(v) => handleChange('category', v)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CATEGORIES.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {studio.isFieldVisible('name') && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="name">{studio.getFieldLabel('name', 'Product Name')} {studio.isFieldRequired('name', true) && '*'}</Label>
+                      <Input
+                        id="name"
+                        value={product.name}
+                        onChange={(e) => handleChange('name', e.target.value)}
+                        placeholder={studio.getFieldPlaceholder('name', 'Enter product name')}
+                        readOnly={studio.isFieldReadOnly('name')}
+                      />
+                    </div>
+                  )}
+                  {studio.isFieldVisible('sku') && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="sku">{studio.getFieldLabel('sku', 'SKU')} *</Label>
+                      <Input
+                        id="sku"
+                        value={product.sku}
+                        onChange={(e) => handleChange('sku', e.target.value)}
+                        placeholder={studio.getFieldPlaceholder('sku', 'e.g., PROD-001')}
+                        readOnly={studio.isFieldReadOnly('sku')}
+                      />
+                    </div>
+                  )}
+                  {studio.isFieldVisible('category') && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="category">{studio.getFieldLabel('category', 'Category')}</Label>
+                      <Select
+                        value={product.category}
+                        onValueChange={(v) => handleChange('category', v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CATEGORIES.map((cat) => (
+                            <SelectItem key={cat} value={cat}>
+                              {cat}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div className="grid gap-2">
                     <Label htmlFor="uom">Unit of Measure</Label>
                     <Select
