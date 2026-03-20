@@ -41,7 +41,7 @@ interface ContactFormDialogProps {
 export function ContactFormDialog({ open, onOpenChange, contact, onSave }: ContactFormDialogProps) {
   const { toast } = useToast();
   const isEdit = !!contact;
-  
+  const studio = useStudioConfig('crm', 'New Contact');
   
   const [formData, setFormData] = useState({
     type: 'individual' as ContactType,
