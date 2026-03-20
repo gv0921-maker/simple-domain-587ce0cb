@@ -347,9 +347,10 @@ interface CRMKanbanBoardProps {
 export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange }: CRMKanbanBoardProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { canCreateOpportunities, canEditOpportunities } = useCRMPermissions();
+  const { canCreateOpportunities, canEditOpportunities, filterByScope } = useCRMPermissions();
 
-  const [opportunities, setOpportunities] = useState<Opportunity[]>(() => getOpportunities());
+  const [allOpportunities, setAllOpportunities] = useState<Opportunity[]>(() => getOpportunities());
+  const opportunities = useMemo(() => filterByScope(allOpportunities), [allOpportunities, filterByScope]);
   const [pipeline] = useState<Pipeline>(() => getDefaultPipeline());
   const [search, setSearch] = useState('');
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
@@ -378,7 +379,7 @@ export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange
     (oppId: string, stageId: string, stage: OpportunityStage) => {
       if (!canEditOpportunities) return;
       updateOpportunityStage(oppId, stageId, stage);
-      setOpportunities(getOpportunities());
+      setAllOpportunities(getOpportunities());
       const stageName = pipeline.stages.find((s) => s.id === stageId)?.name;
       toast({ title: `Moved to ${stageName}` });
     },
@@ -390,7 +391,7 @@ export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange
       const opp = opportunities.find(o => o.id === oppId);
       if (opp) {
         saveOpportunity({ ...opp, priority });
-        setOpportunities(getOpportunities());
+        setAllOpportunities(getOpportunities());
       }
     },
     [opportunities]

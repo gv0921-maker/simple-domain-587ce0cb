@@ -306,6 +306,13 @@ export function hasModulePermission(userId: string, module: string, permission: 
   }
 }
 
+export function getModuleRecordScope(userId: string, module: string): RecordScope | 'none' {
+  const permissions = getUserPermissions(userId);
+  const modulePermission = permissions.find((p) => p.module === module);
+  if (!modulePermission || modulePermission.level === 'none') return 'none';
+  return modulePermission.scope || 'own';
+}
+
 // Tab permission checking
 export function getUserTabPermissions(userId: string): TabPermission[] {
   const userRole = getUserRole(userId);

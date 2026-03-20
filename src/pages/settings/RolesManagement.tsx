@@ -59,8 +59,15 @@ import {
   type PermissionLevel, 
   type Permission,
   type TabPermission,
+  type RecordScope,
 } from '@/lib/data/rbac';
 import { MODULE_TABS, getModuleTabIds } from '@/lib/data/moduleTabs';
+
+const RECORD_SCOPE_OPTIONS: { id: RecordScope | 'none'; label: string; description: string }[] = [
+  { id: 'none', label: 'None', description: 'No access to records' },
+  { id: 'own', label: 'Own', description: 'Only own records' },
+  { id: 'all', label: 'All', description: 'All user records' },
+];
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
@@ -278,16 +285,17 @@ export default function RolesManagement() {
 
   // Update permission in edit form
   const handlePermissionChange = (module: string, level: PermissionLevel) => {
+    const scopeForLevel = level === 'admin' ? 'all' as RecordScope : undefined;
     setEditFormData((prev) => ({
       ...prev,
       permissions: prev.permissions.map((p) =>
         p.module === module
-          ? { ...p, level, ...(level === 'admin' ? { canImport: true, canExport: true, canPrint: true } : {}) }
+          ? { ...p, level, ...(level === 'admin' ? { canImport: true, canExport: true, canPrint: true, scope: 'all' as RecordScope } : {}), ...(scopeForLevel ? { scope: scopeForLevel } : {}) }
           : p
       ).concat(
         prev.permissions.find((p) => p.module === module)
           ? []
-          : [{ module, level, scope: 'own' as const, ...(level === 'admin' ? { canImport: true, canExport: true, canPrint: true } : {}) }]
+          : [{ module, level, scope: (level === 'admin' ? 'all' : 'own') as RecordScope, ...(level === 'admin' ? { canImport: true, canExport: true, canPrint: true } : {}) }]
       ),
     }));
   };
@@ -307,6 +315,25 @@ export default function RolesManagement() {
       return {
         ...prev,
         permissions: [...prev.permissions, { module, level: 'none' as PermissionLevel, scope: 'own' as const, [field]: value }],
+      };
+    });
+  };
+
+  // Update record scope
+  const handleScopeChange = (module: string, scope: RecordScope) => {
+    setEditFormData((prev) => {
+      const existing = prev.permissions.find((p) => p.module === module);
+      if (existing) {
+        return {
+          ...prev,
+          permissions: prev.permissions.map((p) =>
+            p.module === module ? { ...p, scope } : p
+          ),
+        };
+      }
+      return {
+        ...prev,
+        permissions: [...prev.permissions, { module, level: 'view' as PermissionLevel, scope, canImport: false, canExport: false, canPrint: false }],
       };
     });
   };
@@ -461,6 +488,7 @@ export default function RolesManagement() {
                             <TableHead className="text-center">Edit</TableHead>
                             <TableHead className="text-center">Delete</TableHead>
                             <TableHead className="text-center">Admin</TableHead>
+                            <TableHead className="text-center border-l border-border">Record Access</TableHead>
                             <TableHead className="text-center border-l border-border">
                               <div className="flex flex-col items-center gap-0.5">
                                 <Import className="h-3.5 w-3.5" />
@@ -504,6 +532,11 @@ export default function RolesManagement() {
                                     )}
                                   </TableCell>
                                 ))}
+                                <TableCell className="text-center border-l border-border">
+                                  <Badge variant={level === 'none' ? 'secondary' : perm?.scope === 'all' ? 'default' : 'outline'} className="text-xs">
+                                    {level === 'none' ? 'None' : (perm?.scope === 'all' ? 'All' : 'Own')}
+                                  </Badge>
+                                </TableCell>
                                 <TableCell className="text-center border-l border-border">
                                   {hasImport ? (
                                     <Check className="h-4 w-4 text-success mx-auto" />
@@ -721,6 +754,7 @@ export default function RolesManagement() {
                       <TableRow>
                         <TableHead className="w-[130px]">Module</TableHead>
                         <TableHead>Permission Level</TableHead>
+                        <TableHead className="text-center border-l border-border">Record Access</TableHead>
                         <TableHead className="text-center border-l border-border">
                           <div className="flex flex-col items-center gap-0.5">
                             <Import className="h-3.5 w-3.5" />
@@ -759,6 +793,33 @@ export default function RolesManagement() {
                                   {PERMISSION_LEVELS.map((level) => (
                                     <SelectItem key={level.id} value={level.id}>
                                       <span className={level.color}>{level.label}</span>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell className="text-center border-l border-border">
+                              <Select
+                                value={getEditPermissionLevel(module) === 'none' ? 'none' : (perm?.scope || 'own')}
+                                onValueChange={(v) => {
+                                  if (v === 'none') {
+                                    handlePermissionChange(module, 'none');
+                                  } else {
+                                    handleScopeChange(module, v as RecordScope);
+                                    // If permission is none, auto-set to view
+                                    if (getEditPermissionLevel(module) === 'none') {
+                                      handlePermissionChange(module, 'view');
+                                    }
+                                  }
+                                }}
+                              >
+                                <SelectTrigger className="w-[90px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {RECORD_SCOPE_OPTIONS.map((opt) => (
+                                    <SelectItem key={opt.id} value={opt.id}>
+                                      {opt.label}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>

@@ -34,10 +34,11 @@ type SortDir = 'asc' | 'desc';
 
 export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CRMPipelineListViewProps) {
   const navigate = useNavigate();
-  const { canCreateOpportunities } = useCRMPermissions();
+  const { canCreateOpportunities, filterByScope } = useCRMPermissions();
   const pipeline = getDefaultPipeline();
 
-  const [opportunities] = useState<Opportunity[]>(() => getOpportunities());
+  const [allOpportunities] = useState<Opportunity[]>(() => getOpportunities());
+  const opportunities = useMemo(() => filterByScope(allOpportunities), [allOpportunities, filterByScope]);
   const [search, setSearch] = useState('');
   const [sortField, setSortField] = useState<SortField>('expectedRevenue');
   const [sortDir, setSortDir] = useState<SortDir>('desc');

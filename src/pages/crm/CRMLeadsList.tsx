@@ -78,7 +78,7 @@ const PRIORITY_COLORS: Record<LeadPriority, string> = {
 export default function CRMLeadsList() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { canCreateLeads, canDeleteLeads, canConvertLeads } = useCRMPermissions();
+  const { canCreateLeads, canDeleteLeads, canConvertLeads, filterByScope } = useCRMPermissions();
   const { user } = useAuth();
   const studio = useStudioConfig('crm', 'New Lead');
   const [leads, setLeads] = useState<Lead[]>(() => getLeads());
@@ -98,17 +98,19 @@ export default function CRMLeadsList() {
 
   const isSearching = search.trim().length > 0;
 
+  const scopedLeads = useMemo(() => filterByScope(leads), [leads, filterByScope]);
+
   const filteredLeads = useMemo(() => {
     const base = isSearching
-      ? leads
-      : leads.filter((l) => l.status !== 'converted');
+      ? scopedLeads
+      : scopedLeads.filter((l) => l.status !== 'converted');
     return base.filter(
       (l) =>
         l.title.toLowerCase().includes(search.toLowerCase()) ||
         l.contactName.toLowerCase().includes(search.toLowerCase()) ||
         (l.companyName?.toLowerCase().includes(search.toLowerCase()) ?? false)
     );
-  }, [leads, search, isSearching]);
+  }, [scopedLeads, search, isSearching]);
 
 
   const stats = useMemo(() => {

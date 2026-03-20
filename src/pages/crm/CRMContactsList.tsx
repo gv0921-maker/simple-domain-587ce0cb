@@ -45,7 +45,7 @@ import { cn } from '@/lib/utils';
 export default function CRMContactsList() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { canCreateContacts, canEditContacts, canDeleteContacts, canImportData } = useCRMPermissions();
+  const { canCreateContacts, canEditContacts, canDeleteContacts, canImportData, filterByScope } = useCRMPermissions();
   
   const [contacts, setContacts] = useState<Contact[]>(() => getContacts());
   const [search, setSearch] = useState('');
@@ -53,15 +53,17 @@ export default function CRMContactsList() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | undefined>();
 
+  const scopedContacts = useMemo(() => filterByScope(contacts), [contacts, filterByScope]);
+
   const filteredContacts = useMemo(() => {
-    return contacts.filter(
+    return scopedContacts.filter(
       (c) =>
         c.firstName.toLowerCase().includes(search.toLowerCase()) ||
         c.lastName.toLowerCase().includes(search.toLowerCase()) ||
         c.email.toLowerCase().includes(search.toLowerCase()) ||
         (c.companyName?.toLowerCase().includes(search.toLowerCase()) ?? false)
     );
-  }, [contacts, search]);
+  }, [scopedContacts, search]);
 
   const stats = useMemo(() => ({
     total: contacts.length,
