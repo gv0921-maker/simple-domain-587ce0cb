@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { getContacts, saveOpportunity, getOpportunities } from '@/lib/data/crm';
 import { useToast } from '@/hooks/use-toast';
+import { useStudioConfig } from '@/hooks/useStudioConfig';
 
 export default function CRMPipeline() {
   const navigate = useNavigate();
@@ -32,6 +33,7 @@ export default function CRMPipeline() {
   const [view, setView] = useState<'kanban' | 'list'>('kanban');
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [contacts] = useState(() => getContacts());
+  const studio = useStudioConfig('crm', 'New Opportunity');
   const [formData, setFormData] = useState({
     name: '',
     contactId: '',
