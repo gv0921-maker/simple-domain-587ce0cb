@@ -252,24 +252,26 @@ export default function TransferForm() {
                     <Label>Reference</Label>
                     <Input value={transfer.reference} disabled className="bg-muted" />
                   </div>
-                  <div className="grid gap-2">
-                    <Label>Operation Type *</Label>
-                    <Select
-                      value={transfer.operationType}
-                      onValueChange={(v) => handleChange('operationType', v)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {operationTypes.map((op) => (
-                          <SelectItem key={op.id} value={op.name}>
-                            {op.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {studio.isFieldVisible('operationType') && (
+                    <div className="grid gap-2">
+                      <Label>{studio.getFieldLabel('operationType', 'Operation Type')} *</Label>
+                      <Select
+                        value={transfer.operationType}
+                        onValueChange={(v) => handleChange('operationType', v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {operationTypes.map((op) => (
+                            <SelectItem key={op.id} value={op.name}>
+                              {op.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div className="grid gap-2">
                     <Label>Contact Name *</Label>
                     <Input
@@ -286,42 +288,59 @@ export default function TransferForm() {
                       placeholder="Phone number"
                     />
                   </div>
-                  <div className="grid gap-2">
-                    <Label>Source Location *</Label>
-                    <Select
-                      value={transfer.sourceLocation}
-                      onValueChange={(v) => handleChange('sourceLocation', v)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {warehouses.map((wh) => (
-                          <SelectItem key={wh.id} value={wh.name}>
-                            {wh.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Destination Location *</Label>
-                    <Select
-                      value={transfer.destinationLocation}
-                      onValueChange={(v) => handleChange('destinationLocation', v)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {warehouses.map((wh) => (
-                          <SelectItem key={wh.id} value={wh.name}>
-                            {wh.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {studio.isFieldVisible('sourceWarehouse') && (
+                    <div className="grid gap-2">
+                      <Label>{studio.getFieldLabel('sourceWarehouse', 'Source Location')} *</Label>
+                      <Select
+                        value={transfer.sourceLocation}
+                        onValueChange={(v) => handleChange('sourceLocation', v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {warehouses.map((wh) => (
+                            <SelectItem key={wh.id} value={wh.name}>
+                              {wh.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  {studio.isFieldVisible('destWarehouse') && (
+                    <div className="grid gap-2">
+                      <Label>{studio.getFieldLabel('destWarehouse', 'Destination Location')} *</Label>
+                      <Select
+                        value={transfer.destinationLocation}
+                        onValueChange={(v) => handleChange('destinationLocation', v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {warehouses.map((wh) => (
+                            <SelectItem key={wh.id} value={wh.name}>
+                              {wh.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  {studio.isFieldVisible('scheduledDate') && (
+                    <div className="grid gap-2">
+                      <Label>{studio.getFieldLabel('scheduledDate', 'Scheduled Date')}</Label>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="datetime-local"
+                          value={transfer.scheduledDate}
+                          onChange={(e) => handleChange('scheduledDate', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
                   <div className="grid gap-2 md:col-span-2">
                     <Label className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
