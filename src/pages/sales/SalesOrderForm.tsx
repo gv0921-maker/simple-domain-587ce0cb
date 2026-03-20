@@ -395,25 +395,27 @@ export default function SalesOrderForm() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Customer *</Label>
-                    <Select
-                      value={formData.customerId}
-                      onValueChange={handleCustomerChange}
-                      disabled={!isEditable}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select customer" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {contacts.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name} {c.company && `- ${c.company}`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {studio.isFieldVisible('customer') && (
+                    <div className="space-y-2">
+                      <Label>{studio.getFieldLabel('customer', 'Customer')} {studio.isFieldRequired('customer', true) && '*'}</Label>
+                      <Select
+                        value={formData.customerId}
+                        onValueChange={handleCustomerChange}
+                        disabled={!isEditable}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select customer" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {contacts.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name} {c.company && `- ${c.company}`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label>Pricelist</Label>
                     <Select
@@ -435,43 +437,49 @@ export default function SalesOrderForm() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Order Date</Label>
-                    <Input
-                      type="date"
-                      value={formData.orderDate}
-                      onChange={(e) => setFormData({ ...formData, orderDate: e.target.value })}
-                      disabled={!isEditable}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Delivery Date</Label>
-                    <Input
-                      type="date"
-                      value={formData.deliveryDate}
-                      onChange={(e) => setFormData({ ...formData, deliveryDate: e.target.value })}
-                      disabled={!isEditable}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Payment Terms</Label>
-                    <Select
-                      value={formData.paymentTerms}
-                      onValueChange={(v) => setFormData({ ...formData, paymentTerms: v })}
-                      disabled={!isEditable}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select terms" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PAYMENT_TERMS.map((term) => (
-                          <SelectItem key={term.value} value={term.value}>
-                            {term.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {studio.isFieldVisible('orderDate') && (
+                    <div className="space-y-2">
+                      <Label>{studio.getFieldLabel('orderDate', 'Order Date')}</Label>
+                      <Input
+                        type="date"
+                        value={formData.orderDate}
+                        onChange={(e) => setFormData({ ...formData, orderDate: e.target.value })}
+                        disabled={!isEditable}
+                      />
+                    </div>
+                  )}
+                  {studio.isFieldVisible('deliveryDate') && (
+                    <div className="space-y-2">
+                      <Label>{studio.getFieldLabel('deliveryDate', 'Delivery Date')}</Label>
+                      <Input
+                        type="date"
+                        value={formData.deliveryDate}
+                        onChange={(e) => setFormData({ ...formData, deliveryDate: e.target.value })}
+                        disabled={!isEditable}
+                      />
+                    </div>
+                  )}
+                  {studio.isFieldVisible('paymentTerms') && (
+                    <div className="space-y-2">
+                      <Label>{studio.getFieldLabel('paymentTerms', 'Payment Terms')}</Label>
+                      <Select
+                        value={formData.paymentTerms}
+                        onValueChange={(v) => setFormData({ ...formData, paymentTerms: v })}
+                        disabled={!isEditable}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select terms" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PAYMENT_TERMS.map((term) => (
+                            <SelectItem key={term.value} value={term.value}>
+                              {term.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
