@@ -69,9 +69,14 @@ export function CRMDashboard() {
   const stats = useMemo(() => getCRMStats(), []);
   const leadsBySource = useMemo(() => getLeadsBySource(), []);
   const opportunitiesByStage = useMemo(() => getOpportunitiesByStage(), []);
-  const opportunities = useMemo(() => getOpportunities(), []);
-  const leads = useMemo(() => getLeads(), []);
+  const allOpportunities = useMemo(() => getOpportunities(), []);
+  const allLeads = useMemo(() => getLeads(), []);
   const activities = useMemo(() => getActivities(), []);
+
+  // Note: Dashboard shows aggregate stats for all users (admin view)
+  // Individual list pages enforce record scope filtering
+  const opportunities = allOpportunities;
+  const leads = allLeads;
 
   const upcomingDeals = useMemo(() => {
     return opportunities
