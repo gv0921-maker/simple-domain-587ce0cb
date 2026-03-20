@@ -518,7 +518,7 @@ export default function QuotationForm() {
                           <SelectItem key={p.id} value={p.id}>
                             <div className="flex items-center gap-2">
                               <Package className="h-4 w-4" />
-                              {p.name} - ${p.salePrice}
+                              {p.name} - ₹{p.salePrice}
                               <Badge variant="outline" className="ml-2">
                                 Stock: {p.stockOnHand}
                               </Badge>

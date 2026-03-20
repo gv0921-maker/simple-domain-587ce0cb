@@ -435,7 +435,7 @@ export default function SalesOrdersList() {
                     <SelectContent>
                       {products.map((p) => (
                         <SelectItem key={p.id} value={p.id}>
-                          {p.name} - ${p.salePrice} (Stock: {p.stockOnHand})
+                          {p.name} - ₹{p.salePrice} (Stock: {p.stockOnHand})
                         </SelectItem>
                       ))}
                     </SelectContent>
