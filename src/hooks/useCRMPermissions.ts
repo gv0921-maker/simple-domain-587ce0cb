@@ -1,7 +1,7 @@
 // CRM Permission Hook - Demo RBAC for CRM module
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserPermissions, hasPermission, type PermissionLevel, type RecordScope } from '@/lib/data/rbac';
+import { getUserPermissions, hasPermission, getModuleRecordScope, type PermissionLevel, type RecordScope } from '@/lib/data/rbac';
 
 export type CRMAction = 
   | 'view_crm'
@@ -36,8 +36,9 @@ interface CRMPermissions {
   canViewAnalytics: boolean;
   canExportData: boolean;
   canImportData: boolean;
-  recordScope: RecordScope;
+  recordScope: RecordScope | 'none';
   can: (action: CRMAction) => boolean;
+  filterByScope: <T extends { assignedTo?: string; createdBy?: string }>(records: T[]) => T[];
 }
 
 export function useCRMPermissions(): CRMPermissions {
@@ -61,8 +62,9 @@ export function useCRMPermissions(): CRMPermissions {
         canViewAnalytics: false,
         canExportData: false,
         canImportData: false,
-        recordScope: 'own' as RecordScope,
+        recordScope: 'none' as const,
         can: () => false,
+        filterByScope: <T,>() => [] as T[],
       };
     }
     
@@ -82,7 +84,7 @@ export function useCRMPermissions(): CRMPermissions {
     const canDelete = effectiveLevel >= 4;
     const isAdmin = effectiveLevel >= 5;
     
-    const recordScope = crmPerm?.scope || salesPerm?.scope || 'own';
+    const recordScope = getModuleRecordScope(user.id, 'crm');
     
     const can = (action: CRMAction): boolean => {
       switch (action) {
@@ -114,6 +116,19 @@ export function useCRMPermissions(): CRMPermissions {
           return false;
       }
     };
+
+    const filterByScope = <T extends { assignedTo?: string; createdBy?: string }>(records: T[]): T[] => {
+      if (recordScope === 'none') return [];
+      if (recordScope === 'all') return records;
+      // 'own' — filter to records assigned to or created by current user
+      return records.filter(r => 
+        r.assignedTo === user.name || 
+        r.createdBy === user.name || 
+        r.assignedTo === user.id ||
+        r.createdBy === user.id ||
+        (!r.assignedTo && !r.createdBy) // Unassigned records visible to all
+      );
+    };
     
     return {
       canViewCRM: canView,
@@ -133,6 +148,7 @@ export function useCRMPermissions(): CRMPermissions {
       canImportData: canCreate,
       recordScope,
       can,
+      filterByScope,
     };
   }, [user]);
   
@@ -165,10 +181,11 @@ export function useCanAccessRecord(
     case 'all':
       return true;
     case 'department':
-      // In a real app, check if user is in the same department/team
       return true;
     case 'own':
-      return ownerId === user.id || !ownerId;
+      return ownerId === user.id || ownerId === user.name || !ownerId;
+    case 'none':
+      return false;
     default:
       return false;
   }
