@@ -9,160 +9,23 @@ import {
 } from './types';
 
 // ========== DEFAULT DATA ==========
-const DEFAULT_PRODUCTS: Product[] = [
-  {
-    id: '1', sku: '102880', name: 'Cushion Cover (Punch)', type: 'stockable',
-    category: 'Accessories', unitOfMeasure: 'Units', costMethod: 'average',
-    costPrice: 150, salePrice: 299, stockOnHand: 45, reorderLevel: 20,
-    barcode: '8901234567890', trackInventory: true, trackLots: false, trackSerials: false,
-    createdAt: '2025-01-15T10:00:00Z', updatedAt: '2025-01-20T14:30:00Z',
-  },
-  {
-    id: '2', sku: '102881', name: 'Wooden Chair - Oak', type: 'stockable',
-    category: 'Furniture', unitOfMeasure: 'Units', costMethod: 'fifo',
-    costPrice: 2500, salePrice: 4999, stockOnHand: 12, reorderLevel: 5,
-    barcode: '8901234567891', trackInventory: true, trackLots: true, trackSerials: false,
-    createdAt: '2025-01-10T09:00:00Z', updatedAt: '2025-01-18T11:00:00Z',
-  },
-  {
-    id: '3', sku: '102882', name: 'Office Desk - Modern', type: 'stockable',
-    category: 'Furniture', unitOfMeasure: 'Units', costMethod: 'average',
-    costPrice: 8000, salePrice: 15999, stockOnHand: 8, reorderLevel: 3,
-    trackInventory: true, trackLots: false, trackSerials: true,
-    createdAt: '2025-01-05T08:00:00Z', updatedAt: '2025-01-22T16:00:00Z',
-  },
-  {
-    id: '4', sku: '102883', name: 'LED Table Lamp', type: 'stockable',
-    category: 'Lighting', unitOfMeasure: 'Units', costMethod: 'average',
-    costPrice: 800, salePrice: 1499, stockOnHand: 0, reorderLevel: 10,
-    trackInventory: true, trackLots: false, trackSerials: true,
-    createdAt: '2025-01-12T12:00:00Z', updatedAt: '2025-01-25T09:00:00Z',
-  },
-  {
-    id: '5', sku: '102884', name: 'Packaging Tape', type: 'consumable',
-    category: 'Consumables', unitOfMeasure: 'Rolls', costMethod: 'average',
-    costPrice: 50, salePrice: 0, stockOnHand: 200, reorderLevel: 50,
-    trackInventory: false, trackLots: false, trackSerials: false,
-    createdAt: '2025-01-01T08:00:00Z', updatedAt: '2025-01-01T08:00:00Z',
-  },
-  {
-    id: '6', sku: 'SVC001', name: 'Installation Service', type: 'service',
-    category: 'Services', unitOfMeasure: 'Hours', costMethod: 'average',
-    costPrice: 500, salePrice: 1000, stockOnHand: 0, reorderLevel: 0,
-    trackInventory: false, trackLots: false, trackSerials: false,
-    createdAt: '2025-01-01T08:00:00Z', updatedAt: '2025-01-01T08:00:00Z',
-  },
-];
+const DEFAULT_PRODUCTS: Product[] = [];
 
-const DEFAULT_WAREHOUSES: Warehouse[] = [
-  { id: '1', name: 'Main Warehouse', code: 'GLF', address: 'Industrial Area, Block A', isActive: true },
-  { id: '2', name: 'Factory', code: 'GLF-FAC', address: 'Manufacturing Zone', isActive: true },
-  { id: '3', name: 'Retail Store', code: 'GLF-RET', address: 'City Center Mall', isActive: true },
-];
+const DEFAULT_WAREHOUSES: Warehouse[] = [];
 
-const DEFAULT_LOCATIONS: Location[] = [
-  { id: 'loc-1', name: 'Stock', code: 'GLF/Stock', warehouseId: '1', type: 'internal', isActive: true },
-  { id: 'loc-2', name: 'Delivery Orders', code: 'GLF/Delivery', warehouseId: '1', parentId: 'loc-1', type: 'internal', isActive: true },
-  { id: 'loc-3', name: 'Receipts', code: 'GLF/Receipts', warehouseId: '1', parentId: 'loc-1', type: 'internal', isActive: true },
-  { id: 'loc-4', name: 'Quality Control', code: 'GLF/QC', warehouseId: '1', type: 'internal', isActive: true },
-  { id: 'loc-5', name: 'Scrap', code: 'GLF/Scrap', warehouseId: '1', type: 'virtual', isActive: true },
-  { id: 'loc-6', name: 'Customer', code: 'Customers', warehouseId: '', type: 'customer', isActive: true },
-  { id: 'loc-7', name: 'Vendor', code: 'Vendors', warehouseId: '', type: 'vendor', isActive: true },
-  { id: 'loc-8', name: 'Transit', code: 'Transit', warehouseId: '', type: 'transit', isActive: true },
-  { id: 'loc-9', name: 'Production Floor', code: 'FAC/Production', warehouseId: '2', type: 'production', isActive: true },
-  { id: 'loc-10', name: 'Raw Materials', code: 'FAC/Raw', warehouseId: '2', type: 'internal', isActive: true },
-  { id: 'loc-11', name: 'Aisle A - Shelf 1', code: 'GLF/A1', warehouseId: '1', parentId: 'loc-1', type: 'internal', isActive: true, aisle: 'A', shelf: '1' },
-  { id: 'loc-12', name: 'Aisle A - Shelf 2', code: 'GLF/A2', warehouseId: '1', parentId: 'loc-1', type: 'internal', isActive: true, aisle: 'A', shelf: '2' },
-];
+const DEFAULT_LOCATIONS: Location[] = [];
 
-const DEFAULT_LOTS: Lot[] = [
-  { id: 'lot-1', name: 'LOT-2025-001', productId: '2', quantity: 6, manufacturingDate: '2025-01-01', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' },
-  { id: 'lot-2', name: 'LOT-2025-002', productId: '2', quantity: 6, manufacturingDate: '2025-01-15', expirationDate: '2027-01-15', createdAt: '2025-01-15T00:00:00Z', updatedAt: '2025-01-15T00:00:00Z' },
-];
+const DEFAULT_LOTS: Lot[] = [];
 
-const DEFAULT_SERIALS: SerialNumber[] = [
-  { id: 'ser-1', name: 'DESK-2025-0001', productId: '3', locationId: 'loc-1', status: 'available', createdAt: '2025-01-01T00:00:00Z' },
-  { id: 'ser-2', name: 'DESK-2025-0002', productId: '3', locationId: 'loc-1', status: 'available', createdAt: '2025-01-01T00:00:00Z' },
-  { id: 'ser-3', name: 'DESK-2025-0003', productId: '3', locationId: 'loc-1', status: 'sold', createdAt: '2025-01-01T00:00:00Z' },
-  { id: 'ser-4', name: 'LAMP-2025-0001', productId: '4', locationId: 'loc-1', status: 'available', createdAt: '2025-01-01T00:00:00Z' },
-];
+const DEFAULT_SERIALS: SerialNumber[] = [];
 
-const DEFAULT_STOCK_MOVES: StockMove[] = [
-  {
-    id: 'sm-1', reference: 'REC/2025/0001', operationType: 'receipt',
-    sourceLocationId: 'loc-7', sourceLocationName: 'Vendors',
-    destinationLocationId: 'loc-1', destinationLocationName: 'GLF/Stock',
-    partnerId: 'vendor-1', partnerName: 'Supplier ABC',
-    scheduledDate: '2025-01-20T10:00:00Z', effectiveDate: '2025-01-20T11:30:00Z',
-    state: 'done',
-    lines: [
-      { id: 'sml-1', productId: '1', productName: 'Cushion Cover (Punch)', productSku: '102880', demandQty: 50, reservedQty: 0, doneQty: 50, unitOfMeasure: 'Units', sourceLocationId: 'loc-7', destinationLocationId: 'loc-1' }
-    ],
-    sourceDocument: 'PO-2025-001',
-    createdBy: 'Vikesh', createdAt: '2025-01-20T09:00:00Z', updatedAt: '2025-01-20T11:30:00Z'
-  },
-  {
-    id: 'sm-2', reference: 'DEL/2025/0001', operationType: 'delivery',
-    sourceLocationId: 'loc-1', sourceLocationName: 'GLF/Stock',
-    destinationLocationId: 'loc-6', destinationLocationName: 'Customers',
-    partnerId: 'cust-1', partnerName: 'Acme Corporation',
-    scheduledDate: '2025-01-25T14:00:00Z',
-    state: 'confirmed',
-    lines: [
-      { id: 'sml-2', productId: '1', productName: 'Cushion Cover (Punch)', productSku: '102880', demandQty: 10, reservedQty: 10, doneQty: 0, unitOfMeasure: 'Units', sourceLocationId: 'loc-1', destinationLocationId: 'loc-6' },
-      { id: 'sml-3', productId: '2', productName: 'Wooden Chair - Oak', productSku: '102881', demandQty: 4, reservedQty: 4, doneQty: 0, unitOfMeasure: 'Units', sourceLocationId: 'loc-1', destinationLocationId: 'loc-6', lotId: 'lot-1', lotName: 'LOT-2025-001' }
-    ],
-    sourceDocument: 'SO-2025-001',
-    createdBy: 'Vikesh', createdAt: '2025-01-24T09:00:00Z', updatedAt: '2025-01-24T09:00:00Z'
-  },
-  {
-    id: 'sm-3', reference: 'INT/2025/0001', operationType: 'internal',
-    sourceLocationId: 'loc-1', sourceLocationName: 'GLF/Stock',
-    destinationLocationId: 'loc-9', destinationLocationName: 'FAC/Production',
-    scheduledDate: '2025-01-22T08:00:00Z', effectiveDate: '2025-01-22T08:30:00Z',
-    state: 'done',
-    lines: [
-      { id: 'sml-4', productId: '2', productName: 'Wooden Chair - Oak', productSku: '102881', demandQty: 2, reservedQty: 0, doneQty: 2, unitOfMeasure: 'Units', sourceLocationId: 'loc-1', destinationLocationId: 'loc-9', lotId: 'lot-2', lotName: 'LOT-2025-002' }
-    ],
-    createdBy: 'Admin', createdAt: '2025-01-21T16:00:00Z', updatedAt: '2025-01-22T08:30:00Z'
-  }
-];
+const DEFAULT_STOCK_MOVES: StockMove[] = [];
 
-const DEFAULT_TRANSFERS: InventoryTransfer[] = [
-  {
-    id: '1', reference: 'GLF/EST/25-26/00670', contact: 'MR ALLWYN L PEREIRA',
-    contactPhone: '9845164282', operationType: 'GLF: ITEM - ESTIMATE',
-    sourceLocation: 'GLF/Stock', destinationLocation: 'GLF/Stock/Delivery Orders',
-    scheduledDate: '2025-09-08T11:32:00Z', estimateDate: '2025-08-08T11:00:00Z',
-    status: 'waiting', productAvailability: 'not_available',
-    sourceDocument: 'S00598-VIKESH', backOrderOf: 'GLF/EST/25-26/00669',
-    moves: [{ productId: '1', productName: '[102880] Cushion Cover (Punch)', demand: 3, quantity: 0, unit: 'Units', available: false }],
-    notes: ['CUSHION NOT RECEIVED', 'CUSHION PENDING'],
-    activities: [
-      { id: 'a1', userId: '1', userName: 'Vikesh', action: 'Transfer created', timestamp: '2025-08-09T10:38:00Z' },
-      { id: 'a2', userId: '1', userName: 'Vikesh', action: 'Scheduled Date changed', details: '09/08/2025 → 26/08/2025', timestamp: '2025-08-23T17:12:00Z' },
-    ],
-    createdBy: 'Vikesh', createdAt: '2025-08-23T17:12:00Z', updatedAt: '2025-09-04T19:21:00Z',
-  },
-];
+const DEFAULT_TRANSFERS: InventoryTransfer[] = [];
 
-const DEFAULT_ADJUSTMENTS: InventoryAdjustment[] = [
-  {
-    id: 'adj-1', reference: 'ADJ/2025/0001', locationId: 'loc-1', locationName: 'GLF/Stock',
-    reason: 'count', status: 'done',
-    lines: [
-      { id: 'adjl-1', productId: '1', productName: 'Cushion Cover (Punch)', productSku: '102880', theoreticalQty: 50, countedQty: 45, difference: -5, unitCost: 150, valueDifference: -750 }
-    ],
-    notes: 'Quarterly inventory count', createdBy: 'Admin', approvedBy: 'Admin', approvedAt: '2025-01-20T10:00:00Z',
-    createdAt: '2025-01-20T08:00:00Z', updatedAt: '2025-01-20T10:00:00Z'
-  }
-];
+const DEFAULT_ADJUSTMENTS: InventoryAdjustment[] = [];
 
-const DEFAULT_REORDER_RULES: ReorderRule[] = [
-  { id: 'rr-1', productId: '1', productName: 'Cushion Cover (Punch)', warehouseId: '1', warehouseName: 'Main Warehouse', minQty: 20, maxQty: 100, reorderQty: 50, leadTimeDays: 7, isActive: true, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' },
-  { id: 'rr-2', productId: '2', productName: 'Wooden Chair - Oak', warehouseId: '1', warehouseName: 'Main Warehouse', minQty: 5, maxQty: 30, reorderQty: 15, leadTimeDays: 14, isActive: true, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' },
-  { id: 'rr-3', productId: '4', productName: 'LED Table Lamp', warehouseId: '1', warehouseName: 'Main Warehouse', minQty: 10, maxQty: 50, reorderQty: 25, leadTimeDays: 10, isActive: true, lastTriggered: '2025-01-25T09:00:00Z', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-25T09:00:00Z' },
-];
+const DEFAULT_REORDER_RULES: ReorderRule[] = [];
 
 // ========== PRODUCTS CRUD ==========
 export function getProducts(): Product[] {

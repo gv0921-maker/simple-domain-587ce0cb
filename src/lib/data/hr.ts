@@ -65,50 +65,15 @@ export interface Contract {
 }
 
 // Mock data
-let employees: Employee[] = [
-  { id: 'EMP-001', employeeId: 'E001', name: 'John Smith', email: 'john.smith@company.com', phone: '+1 555-0101', departmentId: 'DEPT-001', departmentName: 'Engineering', jobTitle: 'Senior Developer', hireDate: '2021-03-15', status: 'active', workLocation: 'Office' },
-  { id: 'EMP-002', employeeId: 'E002', name: 'Sarah Johnson', email: 'sarah.j@company.com', phone: '+1 555-0102', departmentId: 'DEPT-001', departmentName: 'Engineering', jobTitle: 'Tech Lead', managerId: 'EMP-005', managerName: 'Michael Chen', hireDate: '2020-06-01', status: 'active', workLocation: 'Remote' },
-  { id: 'EMP-003', employeeId: 'E003', name: 'Mike Williams', email: 'mike.w@company.com', phone: '+1 555-0103', departmentId: 'DEPT-002', departmentName: 'Sales', jobTitle: 'Sales Manager', hireDate: '2019-11-20', status: 'active', workLocation: 'Office' },
-  { id: 'EMP-004', employeeId: 'E004', name: 'Emily Brown', email: 'emily.b@company.com', phone: '+1 555-0104', departmentId: 'DEPT-003', departmentName: 'HR', jobTitle: 'HR Specialist', hireDate: '2022-01-10', status: 'on_leave', workLocation: 'Office' },
-  { id: 'EMP-005', employeeId: 'E005', name: 'Michael Chen', email: 'michael.c@company.com', phone: '+1 555-0105', departmentId: 'DEPT-001', departmentName: 'Engineering', jobTitle: 'Engineering Manager', hireDate: '2018-05-01', status: 'active', workLocation: 'Hybrid' },
-  { id: 'EMP-006', employeeId: 'E006', name: 'Lisa Anderson', email: 'lisa.a@company.com', phone: '+1 555-0106', departmentId: 'DEPT-004', departmentName: 'Finance', jobTitle: 'Financial Analyst', hireDate: '2021-08-15', status: 'active', workLocation: 'Office' },
-  { id: 'EMP-007', employeeId: 'E007', name: 'David Lee', email: 'david.l@company.com', phone: '+1 555-0107', departmentId: 'DEPT-002', departmentName: 'Sales', jobTitle: 'Account Executive', hireDate: '2023-02-01', status: 'active', workLocation: 'Remote' },
-  { id: 'EMP-008', employeeId: 'E008', name: 'Jennifer Taylor', email: 'jennifer.t@company.com', phone: '+1 555-0108', departmentId: 'DEPT-005', departmentName: 'Marketing', jobTitle: 'Marketing Coordinator', hireDate: '2022-09-01', status: 'active', workLocation: 'Office' },
-];
+let employees: Employee[] = [];
 
-let departments: Department[] = [
-  { id: 'DEPT-001', name: 'Engineering', code: 'ENG', managerId: 'EMP-005', managerName: 'Michael Chen', employeeCount: 12, color: '#3b82f6' },
-  { id: 'DEPT-002', name: 'Sales', code: 'SAL', managerId: 'EMP-003', managerName: 'Mike Williams', employeeCount: 8, color: '#22c55e' },
-  { id: 'DEPT-003', name: 'HR', code: 'HR', employeeCount: 4, color: '#f59e0b' },
-  { id: 'DEPT-004', name: 'Finance', code: 'FIN', employeeCount: 5, color: '#8b5cf6' },
-  { id: 'DEPT-005', name: 'Marketing', code: 'MKT', employeeCount: 6, color: '#ec4899' },
-  { id: 'DEPT-006', name: 'Operations', code: 'OPS', employeeCount: 10, color: '#06b6d4' },
-];
+let departments: Department[] = [];
 
-let attendance: Attendance[] = [
-  { id: 'ATT-001', employeeId: 'EMP-001', employeeName: 'John Smith', date: '2024-01-15', checkIn: '09:00', checkOut: '18:00', workedHours: 9, status: 'present' },
-  { id: 'ATT-002', employeeId: 'EMP-002', employeeName: 'Sarah Johnson', date: '2024-01-15', checkIn: '08:45', checkOut: '17:30', workedHours: 8.75, status: 'present' },
-  { id: 'ATT-003', employeeId: 'EMP-003', employeeName: 'Mike Williams', date: '2024-01-15', checkIn: '09:30', checkOut: '18:15', workedHours: 8.75, status: 'late' },
-  { id: 'ATT-004', employeeId: 'EMP-004', employeeName: 'Emily Brown', date: '2024-01-15', status: 'absent', workedHours: 0 },
-  { id: 'ATT-005', employeeId: 'EMP-005', employeeName: 'Michael Chen', date: '2024-01-15', checkIn: '08:30', checkOut: '19:00', workedHours: 10.5, status: 'present' },
-  { id: 'ATT-006', employeeId: 'EMP-006', employeeName: 'Lisa Anderson', date: '2024-01-15', checkIn: '09:00', checkOut: '13:00', workedHours: 4, status: 'half_day' },
-  { id: 'ATT-007', employeeId: 'EMP-007', employeeName: 'David Lee', date: '2024-01-15', checkIn: '09:00', checkOut: '17:00', workedHours: 8, status: 'remote' },
-];
+let attendance: Attendance[] = [];
 
-let leaveRequests: LeaveRequest[] = [
-  { id: 'LR-001', employeeId: 'EMP-004', employeeName: 'Emily Brown', type: 'sick', startDate: '2024-01-15', endDate: '2024-01-17', days: 3, reason: 'Flu', status: 'approved', approvedBy: 'HR Manager' },
-  { id: 'LR-002', employeeId: 'EMP-001', employeeName: 'John Smith', type: 'annual', startDate: '2024-02-01', endDate: '2024-02-05', days: 5, reason: 'Family vacation', status: 'pending' },
-  { id: 'LR-003', employeeId: 'EMP-002', employeeName: 'Sarah Johnson', type: 'annual', startDate: '2024-01-22', endDate: '2024-01-24', days: 3, status: 'approved', approvedBy: 'Michael Chen' },
-  { id: 'LR-004', employeeId: 'EMP-006', employeeName: 'Lisa Anderson', type: 'unpaid', startDate: '2024-01-15', endDate: '2024-01-15', days: 0.5, reason: 'Personal appointment', status: 'approved' },
-];
+let leaveRequests: LeaveRequest[] = [];
 
-let contracts: Contract[] = [
-  { id: 'CON-001', employeeId: 'EMP-001', employeeName: 'John Smith', type: 'permanent', startDate: '2021-03-15', salary: 85000, currency: 'INR', status: 'active' },
-  { id: 'CON-002', employeeId: 'EMP-002', employeeName: 'Sarah Johnson', type: 'permanent', startDate: '2020-06-01', salary: 95000, currency: 'INR', status: 'active' },
-  { id: 'CON-003', employeeId: 'EMP-003', employeeName: 'Mike Williams', type: 'permanent', startDate: '2019-11-20', salary: 78000, currency: 'INR', status: 'active' },
-  { id: 'CON-004', employeeId: 'EMP-005', employeeName: 'Michael Chen', type: 'permanent', startDate: '2018-05-01', salary: 120000, currency: 'INR', status: 'active' },
-  { id: 'CON-005', employeeId: 'EMP-007', employeeName: 'David Lee', type: 'temporary', startDate: '2023-02-01', endDate: '2024-02-01', salary: 55000, currency: 'INR', status: 'active' },
-];
+let contracts: Contract[] = [];
 
 // CRUD operations
 export function getEmployees() {

@@ -86,119 +86,15 @@ export interface Payment {
 }
 
 // Mock data
-let accounts: Account[] = [
-  { id: 'ACC-100', code: '1000', name: 'Cash', type: 'asset', balance: 150000, isReconcilable: true, isActive: true },
-  { id: 'ACC-101', code: '1100', name: 'Accounts Receivable', type: 'asset', balance: 85000, isReconcilable: true, isActive: true },
-  { id: 'ACC-102', code: '1200', name: 'Inventory', type: 'asset', balance: 320000, isReconcilable: false, isActive: true },
-  { id: 'ACC-103', code: '1300', name: 'Prepaid Expenses', type: 'asset', balance: 12000, isReconcilable: false, isActive: true },
-  { id: 'ACC-200', code: '2000', name: 'Accounts Payable', type: 'liability', balance: 45000, isReconcilable: true, isActive: true },
-  { id: 'ACC-201', code: '2100', name: 'Accrued Liabilities', type: 'liability', balance: 18000, isReconcilable: false, isActive: true },
-  { id: 'ACC-202', code: '2200', name: 'Notes Payable', type: 'liability', balance: 100000, isReconcilable: false, isActive: true },
-  { id: 'ACC-300', code: '3000', name: 'Common Stock', type: 'equity', balance: 200000, isReconcilable: false, isActive: true },
-  { id: 'ACC-301', code: '3100', name: 'Retained Earnings', type: 'equity', balance: 150000, isReconcilable: false, isActive: true },
-  { id: 'ACC-400', code: '4000', name: 'Sales Revenue', type: 'revenue', balance: 520000, isReconcilable: false, isActive: true },
-  { id: 'ACC-401', code: '4100', name: 'Service Revenue', type: 'revenue', balance: 85000, isReconcilable: false, isActive: true },
-  { id: 'ACC-500', code: '5000', name: 'Cost of Goods Sold', type: 'expense', balance: 280000, isReconcilable: false, isActive: true },
-  { id: 'ACC-501', code: '5100', name: 'Salaries Expense', type: 'expense', balance: 120000, isReconcilable: false, isActive: true },
-  { id: 'ACC-502', code: '5200', name: 'Rent Expense', type: 'expense', balance: 36000, isReconcilable: false, isActive: true },
-  { id: 'ACC-503', code: '5300', name: 'Utilities Expense', type: 'expense', balance: 8500, isReconcilable: false, isActive: true },
-];
+let accounts: Account[] = [];
 
-let journalEntries: JournalEntry[] = [
-  {
-    id: 'JE-001',
-    name: 'JE/2024/0001',
-    date: '2024-01-15',
-    journal: 'Sales',
-    reference: 'INV-001',
-    status: 'posted',
-    lines: [
-      { id: 'JL-001', accountId: 'ACC-101', accountName: 'Accounts Receivable', debit: 11800, credit: 0 },
-      { id: 'JL-002', accountId: 'ACC-400', accountName: 'Sales Revenue', debit: 0, credit: 10000 },
-      { id: 'JL-003', accountId: 'ACC-201', accountName: 'Accrued Liabilities', debit: 0, credit: 1800 },
-    ],
-    totalDebit: 11800,
-    totalCredit: 11800,
-  },
-  {
-    id: 'JE-002',
-    name: 'JE/2024/0002',
-    date: '2024-01-18',
-    journal: 'Purchase',
-    status: 'posted',
-    lines: [
-      { id: 'JL-004', accountId: 'ACC-102', accountName: 'Inventory', debit: 5000, credit: 0 },
-      { id: 'JL-005', accountId: 'ACC-200', accountName: 'Accounts Payable', debit: 0, credit: 5000 },
-    ],
-    totalDebit: 5000,
-    totalCredit: 5000,
-  },
-];
+let journalEntries: JournalEntry[] = [];
 
-let invoices: Invoice[] = [
-  {
-    id: 'INV-001',
-    number: 'INV/2024/0001',
-    customerId: 'CUST-001',
-    customerName: 'Acme Corporation',
-    date: '2024-01-15',
-    dueDate: '2024-02-14',
-    status: 'sent',
-    lines: [
-      { id: 'IL-001', productId: 'PROD-001', productName: 'Widget A', quantity: 50, unitPrice: 100, taxRate: 18, subtotal: 5000 },
-      { id: 'IL-002', productId: 'PROD-002', productName: 'Widget B', quantity: 25, unitPrice: 200, taxRate: 18, subtotal: 5000 },
-    ],
-    subtotal: 10000,
-    tax: 1800,
-    total: 11800,
-    amountPaid: 0,
-    amountDue: 11800,
-  },
-  {
-    id: 'INV-002',
-    number: 'INV/2024/0002',
-    customerId: 'CUST-002',
-    customerName: 'Tech Solutions Ltd',
-    date: '2024-01-10',
-    dueDate: '2024-02-09',
-    status: 'paid',
-    lines: [
-      { id: 'IL-003', productId: 'PROD-003', productName: 'Service Package', quantity: 1, unitPrice: 5000, taxRate: 18, subtotal: 5000 },
-    ],
-    subtotal: 5000,
-    tax: 900,
-    total: 5900,
-    amountPaid: 5900,
-    amountDue: 0,
-  },
-  {
-    id: 'INV-003',
-    number: 'INV/2024/0003',
-    customerId: 'CUST-003',
-    customerName: 'Global Industries',
-    date: '2024-01-05',
-    dueDate: '2024-01-20',
-    status: 'overdue',
-    lines: [
-      { id: 'IL-004', productId: 'PROD-001', productName: 'Widget A', quantity: 100, unitPrice: 100, taxRate: 18, subtotal: 10000 },
-    ],
-    subtotal: 10000,
-    tax: 1800,
-    total: 11800,
-    amountPaid: 0,
-    amountDue: 11800,
-  },
-];
+let invoices: Invoice[] = [];
 
-let bills: Bill[] = [
-  { id: 'BILL-001', number: 'BILL/2024/0001', vendorId: 'VEND-001', vendorName: 'Supplier Co', date: '2024-01-12', dueDate: '2024-02-12', status: 'received', total: 8500, amountPaid: 0 },
-  { id: 'BILL-002', number: 'BILL/2024/0002', vendorId: 'VEND-002', vendorName: 'Parts Inc', date: '2024-01-08', dueDate: '2024-02-08', status: 'paid', total: 3200, amountPaid: 3200 },
-];
+let bills: Bill[] = [];
 
-let payments: Payment[] = [
-  { id: 'PAY-001', name: 'PAY/2024/0001', date: '2024-01-12', type: 'inbound', partnerId: 'CUST-002', partnerName: 'Tech Solutions Ltd', amount: 5900, method: 'bank_transfer', status: 'reconciled' },
-  { id: 'PAY-002', name: 'PAY/2024/0002', date: '2024-01-14', type: 'outbound', partnerId: 'VEND-002', partnerName: 'Parts Inc', amount: 3200, method: 'bank_transfer', status: 'posted' },
-];
+let payments: Payment[] = [];
 
 // CRUD operations
 export function getAccounts() {
