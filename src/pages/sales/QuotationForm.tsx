@@ -91,6 +91,7 @@ export default function QuotationForm() {
   const { toast } = useToast();
   const { user } = useAuth();
   const isNew = !id || id === 'new';
+  const studio = useStudioConfig('sales', 'Quotation');
   
   const [contacts] = useState(() => getContacts());
   const [products] = useState(() => getProducts());
