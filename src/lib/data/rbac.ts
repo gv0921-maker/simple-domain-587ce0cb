@@ -59,6 +59,8 @@ export const MODULES = [
   'hr',
   'projects',
   'helpdesk',
+  'discuss',
+  'email-marketing',
   'pos',
   'website',
   'settings',
@@ -79,12 +81,20 @@ const ROUTE_MODULE_PREFIXES: Array<{ prefix: string; module: ModuleName }> = [
   { prefix: '/invoicing', module: 'accounting' },
   { prefix: '/employees', module: 'hr' },
   { prefix: '/helpdesk', module: 'helpdesk' },
+  { prefix: '/discuss', module: 'discuss' },
+  { prefix: '/email-marketing', module: 'email-marketing' },
   { prefix: '/website', module: 'website' },
   { prefix: '/projects', module: 'projects' },
   { prefix: '/pos', module: 'pos' },
   { prefix: '/settings', module: 'settings' },
   { prefix: '/reports', module: 'reports' },
   { prefix: '/dashboards', module: 'reports' },
+];
+
+const ROUTE_PERMISSION_OVERRIDES: Array<{ pattern: RegExp; level: PermissionLevel }> = [
+  { pattern: /^\/sales\/orders\/(?!new$)[^/]+$/, level: 'edit' },
+  { pattern: /^\/sales\/quotations\/(?!new$)[^/]+$/, level: 'edit' },
+  { pattern: /^\/settings\/studio$/, level: 'admin' },
 ];
 
 function normalizePathname(pathname: string): string {
@@ -102,6 +112,10 @@ export function getModuleForPath(pathname: string): ModuleName | null {
 
 export function getRequiredPermissionForPath(pathname: string): PermissionLevel {
   const normalized = normalizePathname(pathname);
+
+  const explicitRule = ROUTE_PERMISSION_OVERRIDES.find(({ pattern }) => pattern.test(normalized));
+  if (explicitRule) return explicitRule.level;
+
   if (/\/new(\/|$)/.test(normalized)) return 'create';
   if (/\/edit(\/|$)/.test(normalized)) return 'edit';
   return 'view';
@@ -310,6 +324,11 @@ export function setUserRoles(userId: string, roleIds: string[]): void {
   setItem('userRoles', userRoles);
 }
 
+function isSuperAdminUser(userId: string): boolean {
+  const userRole = getUserRole(userId);
+  return Boolean(userRole?.roleIds.includes('super_admin'));
+}
+
 // Permission checking
 export function getUserPermissions(userId: string): Permission[] {
   const userRole = getUserRole(userId);
@@ -368,6 +387,8 @@ function getPermissionWeight(level: PermissionLevel): number {
 }
 
 export function hasPermission(userId: string, module: string, requiredLevel: PermissionLevel): boolean {
+  if (isSuperAdminUser(userId)) return true;
+
   const permissions = getUserPermissions(userId);
   const modulePermission = permissions.find((p) => p.module === module);
   if (!modulePermission) return false;
@@ -375,6 +396,8 @@ export function hasPermission(userId: string, module: string, requiredLevel: Per
 }
 
 export function hasModulePermission(userId: string, module: string, permission: 'import' | 'export' | 'print'): boolean {
+  if (isSuperAdminUser(userId)) return true;
+
   const permissions = getUserPermissions(userId);
   const modulePermission = permissions.find((p) => p.module === module);
   if (!modulePermission) return false;
@@ -388,6 +411,8 @@ export function hasModulePermission(userId: string, module: string, permission: 
 }
 
 export function getModuleRecordScope(userId: string, module: string): RecordScope | 'none' {
+  if (isSuperAdminUser(userId)) return 'all';
+
   const permissions = getUserPermissions(userId);
   const modulePermission = permissions.find((p) => p.module === module);
   if (!modulePermission || modulePermission.level === 'none') return 'none';
@@ -430,6 +455,8 @@ export function getUserTabPermissions(userId: string): TabPermission[] {
 }
 
 export function hasTabAccess(userId: string, moduleId: string, tabId: string): boolean {
+  if (isSuperAdminUser(userId)) return true;
+
   // First check if user has module access
   if (!hasPermission(userId, moduleId, 'view')) return false;
 
@@ -451,6 +478,10 @@ export function hasTabAccess(userId: string, moduleId: string, tabId: string): b
 }
 
 export function getAccessibleTabs(userId: string, moduleId: string): string[] {
+  if (isSuperAdminUser(userId)) {
+    return getModuleTabIds(moduleId);
+  }
+
   if (!hasPermission(userId, moduleId, 'view')) return [];
 
   const permissions = getUserPermissions(userId);
