@@ -93,52 +93,63 @@ export default function CRMPipeline() {
             <DialogDescription>Create a new opportunity in your pipeline</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-3">
-            <div className="grid gap-1.5">
-              <Label className="text-xs font-semibold">Opportunity Name *</Label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Office Design Project"
-                className="h-8 text-sm"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+            {studio.isFieldVisible('name') && (
               <div className="grid gap-1.5">
-                <Label className="text-xs font-semibold">Contact</Label>
-                <Select value={formData.contactId} onValueChange={(v) => setFormData({ ...formData, contactId: v })}>
-                  <SelectTrigger className="h-8 text-sm">
-                    <SelectValue placeholder="Select contact" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {contacts.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.firstName} {c.lastName}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label className="text-xs font-semibold">Expected Revenue</Label>
-                <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">₹</span>
-                  <Input
-                    type="number"
-                    value={formData.expectedRevenue || ''}
-                    onChange={(e) => setFormData({ ...formData, expectedRevenue: parseFloat(e.target.value) || 0 })}
-                    className="pl-6 h-8 text-sm"
-                  />
-                </div>
-              </div>
-              <div className="grid gap-1.5">
-                <Label className="text-xs font-semibold">Expected Closing</Label>
+                <Label className="text-xs font-semibold">{studio.getFieldLabel('name', 'Opportunity Name')} {studio.isFieldRequired('name', true) && '*'}</Label>
                 <Input
-                  type="date"
-                  value={formData.expectedCloseDate}
-                  onChange={(e) => setFormData({ ...formData, expectedCloseDate: e.target.value })}
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder={studio.getFieldPlaceholder('name', 'e.g., Office Design Project')}
                   className="h-8 text-sm"
+                  readOnly={studio.isFieldReadOnly('name')}
                 />
               </div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              {studio.isFieldVisible('contact') && (
+                <div className="grid gap-1.5">
+                  <Label className="text-xs font-semibold">{studio.getFieldLabel('contact', 'Contact')}</Label>
+                  <Select value={formData.contactId} onValueChange={(v) => setFormData({ ...formData, contactId: v })}>
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Select contact" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {contacts.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.firstName} {c.lastName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {studio.isFieldVisible('expectedRevenue') && (
+                <div className="grid gap-1.5">
+                  <Label className="text-xs font-semibold">{studio.getFieldLabel('expectedRevenue', 'Expected Revenue')}</Label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">₹</span>
+                    <Input
+                      type="number"
+                      value={formData.expectedRevenue || ''}
+                      onChange={(e) => setFormData({ ...formData, expectedRevenue: parseFloat(e.target.value) || 0 })}
+                      className="pl-6 h-8 text-sm"
+                      readOnly={studio.isFieldReadOnly('expectedRevenue')}
+                    />
+                  </div>
+                </div>
+              )}
+              {studio.isFieldVisible('expectedCloseDate') && (
+                <div className="grid gap-1.5">
+                  <Label className="text-xs font-semibold">{studio.getFieldLabel('expectedCloseDate', 'Expected Closing')}</Label>
+                  <Input
+                    type="date"
+                    value={formData.expectedCloseDate}
+                    onChange={(e) => setFormData({ ...formData, expectedCloseDate: e.target.value })}
+                    className="h-8 text-sm"
+                    readOnly={studio.isFieldReadOnly('expectedCloseDate')}
+                  />
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
