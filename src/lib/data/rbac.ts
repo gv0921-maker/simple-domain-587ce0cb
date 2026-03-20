@@ -1,7 +1,7 @@
 // Role-Based Access Control data management
 
 import { getItem, setItem } from '../storage';
-import { getModuleTabIds } from './moduleTabs';
+import { getModuleTabIds, getModuleTabs } from './moduleTabs';
 
 export type PermissionLevel = 'none' | 'view' | 'create' | 'edit' | 'delete' | 'admin';
 export type RecordScope = 'own' | 'department' | 'all';
@@ -67,6 +67,87 @@ export const MODULES = [
 ] as const;
 
 export type ModuleName = typeof MODULES[number];
+
+const ROUTE_MODULE_PREFIXES: Array<{ prefix: string; module: ModuleName }> = [
+  { prefix: '/inventory', module: 'inventory' },
+  { prefix: '/barcode', module: 'inventory' },
+  { prefix: '/sales', module: 'sales' },
+  { prefix: '/crm', module: 'crm' },
+  { prefix: '/manufacturing', module: 'manufacturing' },
+  { prefix: '/shop-floor', module: 'manufacturing' },
+  { prefix: '/accounting', module: 'accounting' },
+  { prefix: '/invoicing', module: 'accounting' },
+  { prefix: '/employees', module: 'hr' },
+  { prefix: '/helpdesk', module: 'helpdesk' },
+  { prefix: '/website', module: 'website' },
+  { prefix: '/projects', module: 'projects' },
+  { prefix: '/pos', module: 'pos' },
+  { prefix: '/settings', module: 'settings' },
+  { prefix: '/reports', module: 'reports' },
+  { prefix: '/dashboards', module: 'reports' },
+];
+
+function normalizePathname(pathname: string): string {
+  if (!pathname) return '/';
+  return pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+}
+
+export function getModuleForPath(pathname: string): ModuleName | null {
+  const normalized = normalizePathname(pathname);
+  const match = ROUTE_MODULE_PREFIXES.find(
+    ({ prefix }) => normalized === prefix || normalized.startsWith(`${prefix}/`)
+  );
+  return match?.module ?? null;
+}
+
+export function getRequiredPermissionForPath(pathname: string): PermissionLevel {
+  const normalized = normalizePathname(pathname);
+  if (/\/new(\/|$)/.test(normalized)) return 'create';
+  if (/\/edit(\/|$)/.test(normalized)) return 'edit';
+  return 'view';
+}
+
+function getTabFromPath(moduleId: string, pathname: string): string | null {
+  const normalized = normalizePathname(pathname);
+
+  // Route aliases for pages that map to an existing tab but do not share its base href
+  if (moduleId === 'inventory' && (normalized.startsWith('/inventory/transfers') || normalized.startsWith('/barcode'))) {
+    return 'operations';
+  }
+
+  if (moduleId === 'crm' && normalized.startsWith('/crm/opportunities')) {
+    return 'pipeline';
+  }
+
+  const tabs = getModuleTabs(moduleId);
+  if (tabs.length === 0) return null;
+
+  const matchedTab = tabs
+    .filter((tab) => {
+      const tabHref = normalizePathname(tab.href);
+      return normalized === tabHref || normalized.startsWith(`${tabHref}/`);
+    })
+    .sort((a, b) => b.href.length - a.href.length)[0];
+
+  return matchedTab?.id ?? null;
+}
+
+export function canAccessRoute(userId: string, pathname: string): boolean {
+  const normalized = normalizePathname(pathname);
+
+  if (normalized === '/') return true;
+
+  const moduleId = getModuleForPath(normalized);
+  if (!moduleId) return false;
+
+  const requiredLevel = getRequiredPermissionForPath(normalized);
+  if (!hasPermission(userId, moduleId, requiredLevel)) return false;
+
+  const tabId = getTabFromPath(moduleId, normalized);
+  if (!tabId) return true;
+
+  return hasTabAccess(userId, moduleId, tabId);
+}
 
 // Default roles
 const DEFAULT_ROLES: Role[] = [
@@ -354,18 +435,17 @@ export function hasTabAccess(userId: string, moduleId: string, tabId: string): b
 
   const tabPermissions = getUserTabPermissions(userId);
   const moduleTabPerm = tabPermissions.find((tp) => tp.moduleId === moduleId);
+  const permissions = getUserPermissions(userId);
+  const modulePerm = permissions.find((p) => p.module === moduleId);
+  const isAdmin = modulePerm?.level === 'admin';
 
-  // If no tab permissions defined for this module, all tabs are allowed (admin default)
-  if (!moduleTabPerm || moduleTabPerm.allowedTabs.length === 0) {
-    // Check if user is admin - admins get all tabs
-    const permissions = getUserPermissions(userId);
-    const modulePerm = permissions.find((p) => p.module === moduleId);
-    if (modulePerm?.level === 'admin') return true;
-    
-    // For non-admins without explicit tab permissions, check if any restrictions exist
-    if (!moduleTabPerm) return true; // No restrictions = all allowed
-    if (moduleTabPerm.allowedTabs.length === 0) return true; // Empty array = all allowed
-  }
+  if (isAdmin) return true;
+
+  // No explicit tab permissions means no tab restrictions
+  if (!moduleTabPerm) return true;
+
+  // Explicit empty list means deny all tabs for non-admin users
+  if (moduleTabPerm.allowedTabs.length === 0) return false;
 
   return moduleTabPerm.allowedTabs.includes(tabId);
 }
@@ -385,8 +465,13 @@ export function getAccessibleTabs(userId: string, moduleId: string): string[] {
   const moduleTabPerm = tabPermissions.find((tp) => tp.moduleId === moduleId);
 
   // If no restrictions, return all tabs
-  if (!moduleTabPerm || moduleTabPerm.allowedTabs.length === 0) {
+  if (!moduleTabPerm) {
     return getModuleTabIds(moduleId);
+  }
+
+  // Explicit empty allowedTabs means deny all tabs for non-admin users
+  if (moduleTabPerm.allowedTabs.length === 0) {
+    return [];
   }
 
   return moduleTabPerm.allowedTabs;
