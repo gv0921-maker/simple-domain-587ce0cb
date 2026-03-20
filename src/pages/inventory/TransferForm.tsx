@@ -41,6 +41,7 @@ import { getItem } from '@/lib/storage';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStudioConfig } from '@/hooks/useStudioConfig';
 
 interface OperationType {
   id: string;
