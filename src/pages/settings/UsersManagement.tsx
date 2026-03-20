@@ -48,13 +48,21 @@ import { useToast } from '@/hooks/use-toast';
 export default function UsersManagement() {
   const { toast } = useToast();
   const [search, setSearch] = useState('');
+  const [users, setUsers] = useState<User[]>(DEMO_USERS);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [actionUser, setActionUser] = useState<User | null>(null);
   const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [inactiveUserIds, setInactiveUserIds] = useState<string[]>([]);
   const [roles, setRoles] = useState<Role[]>(() => getRoles());
 
-  const users = DEMO_USERS.filter(
+  const filteredUsers = users.filter(
     (u) =>
       u.name.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase())
@@ -87,6 +95,78 @@ export default function UsersManagement() {
     setSelectedRoleIds((prev) =>
       prev.includes(roleId) ? prev.filter((id) => id !== roleId) : [...prev, roleId]
     );
+  };
+
+  const handleEditUser = (user: User) => {
+    setActionUser(user);
+    setEditName(user.name);
+    setEditEmail(user.email);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!actionUser) return;
+
+    const name = editName.trim();
+    const email = editEmail.trim();
+
+    if (!name || !email) {
+      toast({
+        title: 'Name and email are required',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUsers((prev) =>
+      prev.map((user) =>
+        user.id === actionUser.id
+          ? {
+              ...user,
+              name,
+              email,
+            }
+          : user
+      )
+    );
+
+    if (selectedUser?.id === actionUser.id) {
+      setSelectedUser({
+        ...selectedUser,
+        name,
+        email,
+      });
+    }
+
+    setIsEditDialogOpen(false);
+    toast({ title: `Updated ${name}` });
+  };
+
+  const handleResetPassword = (user: User) => {
+    setActionUser(user);
+    setIsResetDialogOpen(true);
+  };
+
+  const confirmResetPassword = () => {
+    if (!actionUser) return;
+
+    setIsResetDialogOpen(false);
+    toast({ title: `Password reset for ${actionUser.name}` });
+  };
+
+  const handleDeactivateUser = (user: User) => {
+    setActionUser(user);
+    setIsDeactivateDialogOpen(true);
+  };
+
+  const confirmDeactivateUser = () => {
+    if (!actionUser) return;
+
+    setInactiveUserIds((prev) =>
+      prev.includes(actionUser.id) ? prev : [...prev, actionUser.id]
+    );
+    setIsDeactivateDialogOpen(false);
+    toast({ title: `${actionUser.name} has been deactivated` });
   };
 
   return (
@@ -177,8 +257,9 @@ export default function UsersManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user, index) => {
+              {filteredUsers.map((user, index) => {
                 const userRoles = getUserRoleNames(user.id);
+                const isInactive = inactiveUserIds.includes(user.id);
 
                 return (
                   <TableRow
@@ -217,8 +298,15 @@ export default function UsersManagement() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="text-success border-success/30">
-                        Active
+                      <Badge
+                        variant="outline"
+                        className={
+                          isInactive
+                            ? 'text-muted-foreground border-border'
+                            : 'text-success border-success/30'
+                        }
+                      >
+                        {isInactive ? 'Inactive' : 'Active'}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -229,7 +317,7 @@ export default function UsersManagement() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditUser(user)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>
@@ -237,11 +325,14 @@ export default function UsersManagement() {
                             <Shield className="mr-2 h-4 w-4" />
                             Manage Roles
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleResetPassword(user)}>
                             <Key className="mr-2 h-4 w-4" />
                             Reset Password
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDeactivateUser(user)}
+                          >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Deactivate
                           </DropdownMenuItem>
@@ -293,6 +384,81 @@ export default function UsersManagement() {
               </Button>
               <Button onClick={handleSaveRoles}>
                 Save Roles
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit User Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="animate-scale-in">
+            <DialogHeader>
+              <DialogTitle>Edit User</DialogTitle>
+              <DialogDescription>
+                Update user account details.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-user-name">Full Name</Label>
+                <Input
+                  id="edit-user-name"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-user-email">Email</Label>
+                <Input
+                  id="edit-user-email"
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveEdit}>Save Changes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Reset Password Dialog */}
+        <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+          <DialogContent className="animate-scale-in">
+            <DialogHeader>
+              <DialogTitle>Reset Password</DialogTitle>
+              <DialogDescription>
+                Confirm password reset for {actionUser?.name}.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsResetDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={confirmResetPassword}>Confirm Reset</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Deactivate User Dialog */}
+        <Dialog open={isDeactivateDialogOpen} onOpenChange={setIsDeactivateDialogOpen}>
+          <DialogContent className="animate-scale-in">
+            <DialogHeader>
+              <DialogTitle>Deactivate User</DialogTitle>
+              <DialogDescription>
+                This will set {actionUser?.name} to inactive status.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDeactivateDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={confirmDeactivateUser}>
+                Deactivate
               </Button>
             </DialogFooter>
           </DialogContent>
