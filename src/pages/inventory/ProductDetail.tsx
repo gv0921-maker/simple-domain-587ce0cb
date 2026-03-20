@@ -58,6 +58,7 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const isNew = id === 'new';
+  const studio = useStudioConfig('inventory', 'Product');
 
   const [product, setProduct] = useState<Product>({
     id: '',
