@@ -135,7 +135,7 @@ export default function RolesManagement() {
 
   const isTabAllowed = (moduleId: string, tabId: string): boolean => {
     const perm = getTabPermission(moduleId);
-    // If no permission set or empty array, all tabs are allowed
+    // No explicit permission = all tabs allowed
     if (!perm || perm.allowedTabs.length === 0) {
       // Check if module is admin - admin gets all tabs
       const moduleLevel = selectedRole ? getPermissionLevel(selectedRole, moduleId) : 'none';
@@ -153,9 +153,9 @@ export default function RolesManagement() {
       const currentPerm = newPermissions[existingIdx];
       let allowedTabs = [...currentPerm.allowedTabs];
 
-      // If currently empty (all allowed), initialize with all except the toggled one
+      // Empty array means deny all; toggling a tab enables only that tab
       if (allowedTabs.length === 0) {
-        allowedTabs = allTabs.filter((t) => t !== tabId);
+        allowedTabs = [tabId];
       } else if (allowedTabs.includes(tabId)) {
         // Remove tab
         allowedTabs = allowedTabs.filter((t) => t !== tabId);
@@ -164,14 +164,14 @@ export default function RolesManagement() {
         allowedTabs.push(tabId);
       }
 
-      // If all tabs are allowed, clear the array (means all allowed)
+      // If all tabs are explicitly allowed, remove restriction entry (no tab restrictions)
       if (allowedTabs.length === allTabs.length) {
-        allowedTabs = [];
+        newPermissions = newPermissions.filter((tp) => tp.moduleId !== moduleId);
+      } else {
+        newPermissions[existingIdx] = { ...currentPerm, allowedTabs };
       }
-
-      newPermissions[existingIdx] = { ...currentPerm, allowedTabs };
     } else {
-      // Create new permission with all tabs except toggled one
+      // No existing rule means all tabs are currently allowed; toggling removes this one tab
       newPermissions.push({
         moduleId,
         allowedTabs: allTabs.filter((t) => t !== tabId),
@@ -183,19 +183,18 @@ export default function RolesManagement() {
   };
 
   const toggleAllTabs = (moduleId: string, allow: boolean) => {
-    const allTabs = getModuleTabIds(moduleId);
     let newPermissions = [...editingTabPermissions];
     const existingIdx = newPermissions.findIndex((tp) => tp.moduleId === moduleId);
 
     if (allow) {
-      // Allow all - set empty array or remove permission
+      // Allow all tabs by removing explicit restriction entry
       if (existingIdx >= 0) {
-        newPermissions[existingIdx] = { moduleId, allowedTabs: [] };
+        newPermissions = newPermissions.filter((tp) => tp.moduleId !== moduleId);
       }
     } else {
-      // Deny all
+      // Deny all tabs for non-admin users
       if (existingIdx >= 0) {
-        newPermissions[existingIdx] = { moduleId, allowedTabs: [] }; // Empty = admin only
+        newPermissions[existingIdx] = { moduleId, allowedTabs: [] };
       } else {
         newPermissions.push({ moduleId, allowedTabs: [] });
       }

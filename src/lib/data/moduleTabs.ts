@@ -140,6 +140,7 @@ export const MODULE_TABS: ModuleTabsConfig[] = [
       { id: 'users', label: 'Users', href: '/settings/users' },
       { id: 'roles', label: 'Roles', href: '/settings/roles' },
       { id: 'customization', label: 'Customization', href: '/settings/customization' },
+      { id: 'studio', label: 'Studio', href: '/settings/studio' },
       { id: 'audit', label: 'Audit Logs', href: '/settings/audit' },
       { id: 'backups', label: 'Backups', href: '/settings/backups' },
     ],
