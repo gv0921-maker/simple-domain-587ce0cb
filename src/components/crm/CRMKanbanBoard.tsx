@@ -379,7 +379,7 @@ export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange
     (oppId: string, stageId: string, stage: OpportunityStage) => {
       if (!canEditOpportunities) return;
       updateOpportunityStage(oppId, stageId, stage);
-      setOpportunities(getOpportunities());
+      setAllOpportunities(getOpportunities());
       const stageName = pipeline.stages.find((s) => s.id === stageId)?.name;
       toast({ title: `Moved to ${stageName}` });
     },
@@ -391,7 +391,7 @@ export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange
       const opp = opportunities.find(o => o.id === oppId);
       if (opp) {
         saveOpportunity({ ...opp, priority });
-        setOpportunities(getOpportunities());
+        setAllOpportunities(getOpportunities());
       }
     },
     [opportunities]
