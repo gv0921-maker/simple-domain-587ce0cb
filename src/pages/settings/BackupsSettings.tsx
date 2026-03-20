@@ -57,48 +57,7 @@ interface Backup {
   status: 'completed' | 'failed' | 'in_progress';
 }
 
-const DEMO_BACKUPS: Backup[] = [
-  {
-    id: '1',
-    name: 'backup_2026-01-31_auto',
-    createdAt: new Date().toISOString(),
-    size: '24.5 MB',
-    type: 'automatic',
-    status: 'completed',
-  },
-  {
-    id: '2',
-    name: 'backup_2026-01-30_auto',
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    size: '24.3 MB',
-    type: 'automatic',
-    status: 'completed',
-  },
-  {
-    id: '3',
-    name: 'backup_2026-01-28_manual',
-    createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-    size: '24.1 MB',
-    type: 'manual',
-    status: 'completed',
-  },
-  {
-    id: '4',
-    name: 'backup_2026-01-25_auto',
-    createdAt: new Date(Date.now() - 6 * 86400000).toISOString(),
-    size: '23.8 MB',
-    type: 'automatic',
-    status: 'completed',
-  },
-  {
-    id: '5',
-    name: 'backup_2026-01-20_auto',
-    createdAt: new Date(Date.now() - 11 * 86400000).toISOString(),
-    size: '23.2 MB',
-    type: 'automatic',
-    status: 'failed',
-  },
-];
+const DEMO_BACKUPS: Backup[] = [];
 
 export default function BackupsSettings() {
   const { toast } = useToast();

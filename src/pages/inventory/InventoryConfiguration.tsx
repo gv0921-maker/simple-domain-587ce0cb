@@ -82,12 +82,7 @@ interface ReorderRule {
   isActive: boolean;
 }
 
-const DEFAULT_CATEGORIES: Category[] = [
-  { id: '1', name: 'Furniture', productCount: 2 },
-  { id: '2', name: 'Accessories', productCount: 1 },
-  { id: '3', name: 'Lighting', productCount: 1 },
-  { id: '4', name: 'Electronics', productCount: 0 },
-];
+const DEFAULT_CATEGORIES: Category[] = [];
 
 const DEFAULT_OPERATION_TYPES: OperationType[] = [
   { id: '1', name: 'Receipts', code: 'IN', type: 'incoming', warehouseId: '1', sequence: 1, isActive: true },
@@ -97,8 +92,6 @@ const DEFAULT_OPERATION_TYPES: OperationType[] = [
 ];
 
 const DEFAULT_REORDER_RULES: ReorderRule[] = [
-  { id: '1', productId: '1', productName: 'Cushion Cover (Punch)', warehouseId: '1', warehouseName: 'Main Warehouse', minQty: 20, maxQty: 100, triggerQty: 25, isActive: true },
-  { id: '2', productId: '4', productName: 'LED Table Lamp', warehouseId: '1', warehouseName: 'Main Warehouse', minQty: 10, maxQty: 50, triggerQty: 15, isActive: true },
 ];
 
 export default function InventoryConfiguration() {
