@@ -1,5 +1,6 @@
 // CRM Leads List Page with Kanban view
 import { useState, useMemo } from 'react';
+import { useStudioConfig } from '@/hooks/useStudioConfig';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
