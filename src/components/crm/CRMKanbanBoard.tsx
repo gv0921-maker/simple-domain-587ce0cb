@@ -436,10 +436,11 @@ export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange
   );
 
   const handleQuickCreate = useCallback(
-    (stageId: string, stage: OpportunityStage) => {
-      onNewOpportunity?.();
+    (_stageId: string, _stage: OpportunityStage) => {
+      // Refresh opportunities after quick-create saved in KanbanColumn
+      setAllOpportunities(getOpportunities());
     },
-    [onNewOpportunity]
+    []
   );
 
   return (
