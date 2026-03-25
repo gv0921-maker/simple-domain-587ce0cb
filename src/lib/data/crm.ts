@@ -420,13 +420,25 @@ export function convertLeadToOpportunity(leadId: string, opportunityData?: Parti
   const lead = getLead(leadId);
   if (!lead) return undefined;
   
+  const priorityMap: Record<string, 0 | 1 | 2 | 3> = {
+    low: 0, medium: 1, high: 2, urgent: 3,
+  };
+
   const opportunity = saveOpportunity({
     name: lead.title,
+    contactId: lead.contactId,
     contactName: lead.contactName,
+    companyId: lead.companyId,
     companyName: lead.companyName,
+    email: lead.email,
+    phone: lead.phone,
     expectedRevenue: lead.expectedRevenue,
     probability: lead.probability,
+    priority: priorityMap[lead.priority] ?? 1,
+    assignedTo: lead.assignedTo,
+    teamId: lead.teamId,
     tags: lead.tags,
+    notes: lead.notes,
     ...opportunityData,
   });
   
