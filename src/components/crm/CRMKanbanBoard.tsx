@@ -467,7 +467,7 @@ export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange
             <div className="relative flex items-center border border-border rounded bg-card overflow-hidden">
               <Search className="h-4 w-4 text-muted-foreground ml-2.5" />
               <input
-                placeholder=""
+                placeholder="Search pipeline..."
                 className="h-8 w-full text-sm bg-transparent border-0 outline-none px-2 placeholder:text-muted-foreground"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}

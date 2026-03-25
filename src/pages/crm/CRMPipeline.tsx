@@ -66,9 +66,8 @@ export default function CRMPipeline() {
       expectedRevenue: 0,
       expectedCloseDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     });
-    // Force page re-render
-    window.location.reload();
-  };
+    // State is managed by KanbanBoard which refreshes on quick-create
+    setIsNewDialogOpen(false);
 
   return (
     <AppLayout title="CRM" moduleNav={CRM_NAV}>
