@@ -168,11 +168,26 @@ function guessFieldMapping(header: string, recordType: RecordType): string {
     if (h.includes('last') && h.includes('name')) return 'lastName';
     if (h === 'name' || h === 'full name' || h === 'contact name') return 'firstName';
     if (h.includes('email')) return 'email';
+    if (h === 'mobile' || h.includes('mobile')) return 'mobile';
     if (h.includes('phone') || h.includes('tel')) return 'phone';
-    if (h.includes('company') || h.includes('organization')) return 'companyName';
-    if (h.includes('title') || h.includes('position')) return 'jobTitle';
+    if (h === 'company_type' || h === 'company type') return 'companyType';
+    if (h === 'company_name' || h.includes('company') || h.includes('organization')) return 'companyName';
+    if (h.includes('title') || h.includes('position') || h === 'job position') return 'jobTitle';
     if (h.includes('department') || h.includes('dept')) return 'department';
-    if (h.includes('note')) return 'notes';
+    if (h.includes('website') || h.includes('url')) return 'website';
+    if (h.includes('gstin') || h.includes('gst') || h.includes('tax id')) return 'gstin';
+    if (h === 'type' || h === 'contact type') return 'type';
+    if (h === 'street' || h === 'address' || h === 'street1') return 'street';
+    if (h === 'street2' || h === 'address 2' || h === 'address2') return 'street2';
+    if (h === 'city') return 'city';
+    if (h === 'state' || h === 'province' || h === 'region') return 'state';
+    if (h === 'zip' || h === 'zip code' || h === 'postal code' || h === 'postalcode' || h === 'postal_code') return 'postalCode';
+    if (h === 'country') return 'country';
+    if (h.includes('tag')) return 'tags';
+    if (h.includes('note') || h === 'internal notes' || h === 'comment') return 'notes';
+    if (h === 'salesperson' || h === 'assigned to' || h === 'assigned_to') return 'assignedTo';
+    if (h === 'score') return 'score';
+    if (h === 'status') return 'status';
   }
 
   return 'skip';
