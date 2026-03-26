@@ -34,7 +34,7 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { getSubscriptions, saveSubscription } from '@/lib/data/sales/storage';
-import type { Subscription, SubscriptionStatus } from '@/lib/data/sales/types';
+import type { Subscription, SubscriptionStatus, BillingCycle } from '@/lib/data/sales/types';
 
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';
@@ -57,7 +57,7 @@ const BILLING_CYCLE_CONFIG: Record<BillingCycle, { label: string; months: number
 export default function SubscriptionsList() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(() => getSubscriptions());
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<SubscriptionStatus | 'all'>('all');
