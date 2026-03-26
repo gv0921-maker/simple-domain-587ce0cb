@@ -1,19 +1,15 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ACCOUNTING_NAV } from '@/lib/navigation/accounting';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getAccounts, createAccount, updateAccount, Account } from '@/lib/data/accounting';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getAccounts, type Account } from '@/lib/data/accounting';
 import { Plus, Search, Edit, Wallet, TrendingUp, TrendingDown, Building2, DollarSign } from 'lucide-react';
-import { toast } from 'sonner';
 
 const typeIcons: Record<string, React.ReactNode> = {
   asset: <Wallet className="h-4 w-4 text-info" />,
@@ -24,19 +20,10 @@ const typeIcons: Record<string, React.ReactNode> = {
 };
 
 export default function ChartOfAccounts() {
-  const [accounts, setAccounts] = useState(getAccounts());
+  const navigate = useNavigate();
+  const [accounts] = useState(getAccounts());
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('all');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
-
-  const [formData, setFormData] = useState({
-    code: '',
-    name: '',
-    type: 'asset' as Account['type'],
-    isReconcilable: false,
-    isActive: true,
-  });
 
   const filteredAccounts = accounts.filter(acc => {
     const matchesSearch = acc.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -44,46 +31,6 @@ export default function ChartOfAccounts() {
     const matchesTab = activeTab === 'all' || acc.type === activeTab;
     return matchesSearch && matchesTab;
   });
-
-  const handleOpenDialog = (account?: Account) => {
-    if (account) {
-      setEditingAccount(account);
-      setFormData({
-        code: account.code,
-        name: account.name,
-        type: account.type,
-        isReconcilable: account.isReconcilable,
-        isActive: account.isActive,
-      });
-    } else {
-      setEditingAccount(null);
-      setFormData({
-        code: '',
-        name: '',
-        type: 'asset',
-        isReconcilable: false,
-        isActive: true,
-      });
-    }
-    setDialogOpen(true);
-  };
-
-  const handleSave = () => {
-    if (!formData.code || !formData.name) {
-      toast.error('Please fill in required fields');
-      return;
-    }
-
-    if (editingAccount) {
-      updateAccount(editingAccount.id, formData);
-      toast.success('Account updated');
-    } else {
-      createAccount(formData);
-      toast.success('Account created');
-    }
-    setAccounts(getAccounts());
-    setDialogOpen(false);
-  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
@@ -102,13 +49,12 @@ export default function ChartOfAccounts() {
       <div className="p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Chart of Accounts</h1>
-          <Button onClick={() => handleOpenDialog()}>
+          <Button onClick={() => navigate('/accounting/chart/new')}>
             <Plus className="h-4 w-4 mr-2" />
             New Account
           </Button>
         </div>
 
-        {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {Object.entries(totals).map(([type, total]) => (
             <Card key={type}>
@@ -127,7 +73,7 @@ export default function ChartOfAccounts() {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder=""
+              placeholder="Search accounts..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -163,7 +109,7 @@ export default function ChartOfAccounts() {
                 </TableHeader>
                 <TableBody>
                   {filteredAccounts.map((account) => (
-                    <TableRow key={account.id}>
+                    <TableRow key={account.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/accounting/chart/${account.id}/edit`)}>
                       <TableCell className="font-mono">{account.code}</TableCell>
                       <TableCell className="font-medium">{account.name}</TableCell>
                       <TableCell>
@@ -188,7 +134,7 @@ export default function ChartOfAccounts() {
                         </Badge>
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpenDialog(account); }}>
+                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); navigate(`/accounting/chart/${account.id}/edit`); }}>
                           <Edit className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -200,70 +146,6 @@ export default function ChartOfAccounts() {
           </CardContent>
         </Card>
       </div>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingAccount ? 'Edit Account' : 'New Account'}</DialogTitle>
-            <DialogDescription>
-              {editingAccount ? 'Update account details' : 'Create a new ledger account'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Account Code</Label>
-                <Input
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  placeholder=""
-                />
-              </div>
-              <div>
-                <Label>Account Type</Label>
-                <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v as Account['type'] })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="asset">Asset</SelectItem>
-                    <SelectItem value="liability">Liability</SelectItem>
-                    <SelectItem value="equity">Equity</SelectItem>
-                    <SelectItem value="revenue">Revenue</SelectItem>
-                    <SelectItem value="expense">Expense</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div>
-              <Label>Account Name</Label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder=""
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label>Reconcilable</Label>
-              <Switch
-                checked={formData.isReconcilable}
-                onCheckedChange={(checked) => setFormData({ ...formData, isReconcilable: checked })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label>Active</Label>
-              <Switch
-                checked={formData.isActive}
-                onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave}>{editingAccount ? 'Update' : 'Create'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </AppLayout>
   );
 }
