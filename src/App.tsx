@@ -26,6 +26,7 @@ import InventoryConfiguration from "@/pages/inventory/InventoryConfiguration";
 import InventoryReporting from "@/pages/inventory/InventoryReporting";
 import InventoryAdjustments from "@/pages/inventory/InventoryAdjustments";
 import ReorderRules from "@/pages/inventory/ReorderRules";
+import ReorderRuleForm from "@/pages/inventory/ReorderRuleForm";
 import BarcodeOperations from "@/pages/inventory/BarcodeOperations";
 import BarcodeLabels from "@/pages/inventory/BarcodeLabels";
 import ProductScanLookup from "@/pages/inventory/ProductScanLookup";
@@ -40,6 +41,7 @@ import QuotationForm from "@/pages/sales/QuotationForm";
 import SalesOrdersList from "@/pages/sales/SalesOrdersListNew";
 import SalesOrderForm from "@/pages/sales/SalesOrderForm";
 import SubscriptionsList from "@/pages/sales/SubscriptionsList";
+import SubscriptionForm from "@/pages/sales/SubscriptionForm";
 import PricelistsPage from "@/pages/sales/PricelistsPage";
 import PricelistForm from "@/pages/sales/PricelistForm";
 import SalesReports from "@/pages/sales/SalesReports";
@@ -63,6 +65,7 @@ import CRMLeadsList from "@/pages/crm/CRMLeadsList";
 import LeadDetail from "@/pages/crm/LeadDetail";
 import LeadForm from "@/pages/crm/LeadForm";
 import ContactForm from "@/pages/crm/ContactForm";
+import OpportunityForm from "@/pages/crm/OpportunityForm";
 import OpportunityDetail from "@/pages/crm/OpportunityDetail";
 
 // Accounting pages
