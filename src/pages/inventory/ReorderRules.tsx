@@ -3,10 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
 import {
   Table,
   TableBody,
@@ -15,21 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,38 +32,20 @@ import {
 } from 'lucide-react';
 import { 
   getReorderRules, 
-  saveReorderRule,
   deleteReorderRule,
   checkReorderRules,
-  getProducts,
-  getWarehouses,
 } from '@/lib/data/inventory/storage';
 import type { ReorderRule } from '@/lib/data/inventory/types';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+
 
 export default function ReorderRules() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [rules, setRules] = useState<ReorderRule[]>(getReorderRules());
   const [search, setSearch] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingRule, setEditingRule] = useState<ReorderRule | null>(null);
-  
-  const products = getProducts();
-  const warehouses = getWarehouses();
-
-  const [formData, setFormData] = useState({
-    productId: '',
-    warehouseId: '',
-    minQty: 10,
-    maxQty: 100,
-    reorderQty: 50,
-    leadTimeDays: 7,
-    isActive: true,
-  });
 
   const filteredRules = useMemo(() => {
     return rules.filter((rule) =>
@@ -97,66 +62,6 @@ export default function ReorderRules() {
     triggered: triggeredRules.length,
   }), [rules, triggeredRules]);
 
-  const handleOpenDialog = (rule?: ReorderRule) => {
-    if (rule) {
-      setEditingRule(rule);
-      setFormData({
-        productId: rule.productId,
-        warehouseId: rule.warehouseId,
-        minQty: rule.minQty,
-        maxQty: rule.maxQty,
-        reorderQty: rule.reorderQty,
-        leadTimeDays: rule.leadTimeDays,
-        isActive: rule.isActive,
-      });
-    } else {
-      setEditingRule(null);
-      setFormData({
-        productId: '',
-        warehouseId: warehouses[0]?.id || '',
-        minQty: 10,
-        maxQty: 100,
-        reorderQty: 50,
-        leadTimeDays: 7,
-        isActive: true,
-      });
-    }
-    setIsDialogOpen(true);
-  };
-
-  const handleSave = () => {
-    const product = products.find(p => p.id === formData.productId);
-    const warehouse = warehouses.find(w => w.id === formData.warehouseId);
-    
-    if (!product || !warehouse) {
-      toast({ title: 'Please select product and warehouse', variant: 'destructive' });
-      return;
-    }
-
-    const rule: ReorderRule = {
-      id: editingRule?.id || '',
-      productId: formData.productId,
-      productName: product.name,
-      warehouseId: formData.warehouseId,
-      warehouseName: warehouse.name,
-      minQty: formData.minQty,
-      maxQty: formData.maxQty,
-      reorderQty: formData.reorderQty,
-      leadTimeDays: formData.leadTimeDays,
-      isActive: formData.isActive,
-      lastTriggered: editingRule?.lastTriggered,
-      createdAt: editingRule?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    saveReorderRule(rule);
-    setRules(getReorderRules());
-    setIsDialogOpen(false);
-    toast({
-      title: editingRule ? 'Rule Updated' : 'Rule Created',
-      description: `Reorder rule for ${product.name} has been saved.`,
-    });
-  };
 
   const handleDelete = (id: string) => {
     deleteReorderRule(id);
@@ -194,7 +99,7 @@ export default function ReorderRules() {
               <RefreshCw className="h-4 w-4" />
               Check Now
             </Button>
-            <Button onClick={() => handleOpenDialog()} className="gap-2">
+            <Button onClick={() => navigate('/inventory/reorder-rules/new')} className="gap-2">
               <Plus className="h-4 w-4" />
               New Rule
             </Button>
@@ -340,7 +245,7 @@ export default function ReorderRules() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleOpenDialog(rule)}>
+                            <DropdownMenuItem onClick={() => navigate(`/inventory/reorder-rules/${rule.id}/edit`)}>
                               <Pencil className="h-4 w-4 mr-2" />
                               Edit
                             </DropdownMenuItem>
@@ -362,96 +267,6 @@ export default function ReorderRules() {
           </Table>
         </Card>
 
-        {/* Edit Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>{editingRule ? 'Edit Reorder Rule' : 'New Reorder Rule'}</DialogTitle>
-              <DialogDescription>
-                Configure automatic stock replenishment for a product
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label>Product</Label>
-                <Select value={formData.productId} onValueChange={(v) => setFormData({ ...formData, productId: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select product" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products.filter(p => p.trackInventory).map((product) => (
-                      <SelectItem key={product.id} value={product.id}>
-                        {product.name} ({product.sku})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label>Warehouse</Label>
-                <Select value={formData.warehouseId} onValueChange={(v) => setFormData({ ...formData, warehouseId: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select warehouse" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses.map((wh) => (
-                      <SelectItem key={wh.id} value={wh.id}>
-                        {wh.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label>Min Quantity</Label>
-                  <Input
-                    type="number"
-                    value={formData.minQty}
-                    onChange={(e) => setFormData({ ...formData, minQty: parseInt(e.target.value) || 0 })}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Max Quantity</Label>
-                  <Input
-                    type="number"
-                    value={formData.maxQty}
-                    onChange={(e) => setFormData({ ...formData, maxQty: parseInt(e.target.value) || 0 })}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label>Reorder Quantity</Label>
-                  <Input
-                    type="number"
-                    value={formData.reorderQty}
-                    onChange={(e) => setFormData({ ...formData, reorderQty: parseInt(e.target.value) || 0 })}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Lead Time (days)</Label>
-                  <Input
-                    type="number"
-                    value={formData.leadTimeDays}
-                    onChange={(e) => setFormData({ ...formData, leadTimeDays: parseInt(e.target.value) || 0 })}
-                  />
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <Label>Active</Label>
-                <Switch
-                  checked={formData.isActive}
-                  onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave}>{editingRule ? 'Update' : 'Create'}</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     </AppLayout>
   );

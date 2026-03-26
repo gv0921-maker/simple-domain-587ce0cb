@@ -26,6 +26,7 @@ import InventoryConfiguration from "@/pages/inventory/InventoryConfiguration";
 import InventoryReporting from "@/pages/inventory/InventoryReporting";
 import InventoryAdjustments from "@/pages/inventory/InventoryAdjustments";
 import ReorderRules from "@/pages/inventory/ReorderRules";
+import ReorderRuleForm from "@/pages/inventory/ReorderRuleForm";
 import BarcodeOperations from "@/pages/inventory/BarcodeOperations";
 import BarcodeLabels from "@/pages/inventory/BarcodeLabels";
 import ProductScanLookup from "@/pages/inventory/ProductScanLookup";
@@ -40,6 +41,7 @@ import QuotationForm from "@/pages/sales/QuotationForm";
 import SalesOrdersList from "@/pages/sales/SalesOrdersListNew";
 import SalesOrderForm from "@/pages/sales/SalesOrderForm";
 import SubscriptionsList from "@/pages/sales/SubscriptionsList";
+import SubscriptionForm from "@/pages/sales/SubscriptionForm";
 import PricelistsPage from "@/pages/sales/PricelistsPage";
 import PricelistForm from "@/pages/sales/PricelistForm";
 import SalesReports from "@/pages/sales/SalesReports";
@@ -63,6 +65,7 @@ import CRMLeadsList from "@/pages/crm/CRMLeadsList";
 import LeadDetail from "@/pages/crm/LeadDetail";
 import LeadForm from "@/pages/crm/LeadForm";
 import ContactForm from "@/pages/crm/ContactForm";
+import OpportunityForm from "@/pages/crm/OpportunityForm";
 import OpportunityDetail from "@/pages/crm/OpportunityDetail";
 
 // Accounting pages
@@ -119,6 +122,8 @@ const App = () => (
             <Route path="/inventory/configuration" element={<ProtectedRoute><InventoryConfiguration /></ProtectedRoute>} />
             <Route path="/inventory/adjustments" element={<ProtectedRoute><InventoryAdjustments /></ProtectedRoute>} />
             <Route path="/inventory/reorder-rules" element={<ProtectedRoute><ReorderRules /></ProtectedRoute>} />
+            <Route path="/inventory/reorder-rules/new" element={<ProtectedRoute><ReorderRuleForm /></ProtectedRoute>} />
+            <Route path="/inventory/reorder-rules/:id/edit" element={<ProtectedRoute><ReorderRuleForm /></ProtectedRoute>} />
             <Route path="/inventory/stock-dashboard" element={<ProtectedRoute><StockDashboard /></ProtectedRoute>} />
 
             {/* Barcode module */}
@@ -136,6 +141,8 @@ const App = () => (
             <Route path="/sales/orders/:id" element={<ProtectedRoute><SalesOrderForm /></ProtectedRoute>} />
             <Route path="/sales/orders/:id/edit" element={<ProtectedRoute><SalesOrderForm /></ProtectedRoute>} />
             <Route path="/sales/subscriptions" element={<ProtectedRoute><SubscriptionsList /></ProtectedRoute>} />
+            <Route path="/sales/subscriptions/new" element={<ProtectedRoute><SubscriptionForm /></ProtectedRoute>} />
+            <Route path="/sales/subscriptions/:id/edit" element={<ProtectedRoute><SubscriptionForm /></ProtectedRoute>} />
             <Route path="/sales/pricelists" element={<ProtectedRoute><PricelistsPage /></ProtectedRoute>} />
             <Route path="/sales/pricelists/new" element={<ProtectedRoute><PricelistForm /></ProtectedRoute>} />
             <Route path="/sales/pricelists/:id/edit" element={<ProtectedRoute><PricelistForm /></ProtectedRoute>} />
@@ -169,6 +176,7 @@ const App = () => (
             <Route path="/crm/leads/new" element={<ProtectedRoute><LeadForm /></ProtectedRoute>} />
             <Route path="/crm/leads/:id" element={<ProtectedRoute><LeadDetail /></ProtectedRoute>} />
             <Route path="/crm/leads/:id/edit" element={<ProtectedRoute><LeadForm /></ProtectedRoute>} />
+            <Route path="/crm/opportunities/new" element={<ProtectedRoute><OpportunityForm /></ProtectedRoute>} />
             <Route path="/crm/opportunities/:id" element={<ProtectedRoute><OpportunityDetail /></ProtectedRoute>} />
             <Route path="/crm/contacts" element={<ProtectedRoute><CRMContactsList /></ProtectedRoute>} />
             <Route path="/crm/contacts/new" element={<ProtectedRoute><ContactForm /></ProtectedRoute>} />
