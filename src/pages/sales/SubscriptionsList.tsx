@@ -21,23 +21,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Search,
   Plus,
   MoreHorizontal,
@@ -50,14 +33,12 @@ import {
   Eye,
   DollarSign,
 } from 'lucide-react';
-import { getContacts } from '@/lib/data/sales';
 import { getSubscriptions, saveSubscription } from '@/lib/data/sales/storage';
-import type { Subscription, SubscriptionStatus, BillingCycle } from '@/lib/data/sales/types';
-import { getProducts } from '@/lib/data/inventory';
+import type { Subscription, SubscriptionStatus } from '@/lib/data/sales/types';
+
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { format, parseISO, addMonths, addQuarters, addYears } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const STATUS_CONFIG: Record<SubscriptionStatus, { label: string; className: string }> = {
@@ -78,21 +59,8 @@ export default function SubscriptionsList() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(() => getSubscriptions());
-  const [contacts] = useState(() => getContacts());
-  const [products] = useState(() => getProducts());
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<SubscriptionStatus | 'all'>('all');
-  
-  // Dialog state
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingSub, setEditingSub] = useState<Subscription | null>(null);
-  const [formData, setFormData] = useState({
-    customerId: '',
-    billingCycle: 'monthly' as BillingCycle,
-    productId: '',
-    quantity: 1,
-    unitPrice: 0,
-  });
 
   const filteredSubscriptions = useMemo(() => {
     return subscriptions.filter((s) => {
@@ -126,84 +94,6 @@ export default function SubscriptionsList() {
       }, 0),
   }), [subscriptions]);
 
-  const handleOpenDialog = useCallback((sub?: Subscription) => {
-    if (sub) {
-      setEditingSub(sub);
-      setFormData({
-        customerId: sub.customerId,
-        billingCycle: sub.billingCycle,
-        productId: sub.lines[0]?.productId || '',
-        quantity: sub.lines[0]?.quantity || 1,
-        unitPrice: sub.lines[0]?.unitPrice || 0,
-      });
-    } else {
-      setEditingSub(null);
-      setFormData({
-        customerId: '',
-        billingCycle: 'monthly',
-        productId: '',
-        quantity: 1,
-        unitPrice: 0,
-      });
-    }
-    setIsDialogOpen(true);
-  }, []);
-
-  const handleSave = useCallback(() => {
-    if (!formData.customerId || !formData.productId) {
-      toast({ title: 'Please fill all required fields', variant: 'destructive' });
-      return;
-    }
-
-    const contact = contacts.find((c) => c.id === formData.customerId);
-    const product = products.find((p) => p.id === formData.productId);
-    if (!contact || !product) return;
-
-    const subtotal = formData.unitPrice * formData.quantity;
-    const taxAmount = subtotal * 0.18;
-
-    const getNextBillingDate = (cycle: BillingCycle, fromDate: Date) => {
-      switch (cycle) {
-        case 'monthly': return addMonths(fromDate, 1);
-        case 'quarterly': return addQuarters(fromDate, 1);
-        case 'yearly': return addYears(fromDate, 1);
-      }
-    };
-
-    const now = new Date();
-    const subData: Subscription = {
-      id: editingSub?.id || crypto.randomUUID(),
-      reference: editingSub?.reference || `SUB-${now.getFullYear()}-${String(subscriptions.length + 1).padStart(4, '0')}`,
-      customerId: formData.customerId,
-      customerName: contact.company ? `${contact.name} - ${contact.company}` : contact.name,
-      status: editingSub?.status || 'draft',
-      billingCycle: formData.billingCycle,
-      startDate: editingSub?.startDate || now.toISOString().split('T')[0],
-      nextBillingDate: editingSub?.nextBillingDate || getNextBillingDate(formData.billingCycle, now).toISOString().split('T')[0],
-      lines: [{
-        id: crypto.randomUUID(),
-        productId: formData.productId,
-        productName: product.name,
-        quantity: formData.quantity,
-        unitPrice: formData.unitPrice,
-        discount: 0,
-      }],
-      subtotal,
-      taxAmount,
-      total: subtotal + taxAmount,
-      currency: 'INR',
-      orderHistory: editingSub?.orderHistory || [],
-      createdBy: editingSub?.createdBy || user?.name || 'System',
-      createdAt: editingSub?.createdAt || now.toISOString(),
-      updatedAt: now.toISOString(),
-    };
-
-    saveSubscription(subData);
-    setSubscriptions(getSubscriptions());
-    setIsDialogOpen(false);
-    toast({ title: editingSub ? 'Subscription updated' : 'Subscription created' });
-  }, [formData, contacts, products, editingSub, subscriptions.length, user, toast]);
-
   const handleUpdateStatus = useCallback((id: string, status: SubscriptionStatus) => {
     const sub = subscriptions.find((s) => s.id === id);
     if (!sub) return;
@@ -212,18 +102,6 @@ export default function SubscriptionsList() {
     setSubscriptions(getSubscriptions());
     toast({ title: `Subscription ${status}` });
   }, [subscriptions, toast]);
-
-  const handleProductChange = useCallback((productId: string) => {
-    const product = products.find((p) => p.id === productId);
-    if (product) {
-      setFormData((prev) => ({
-        ...prev,
-        productId,
-        unitPrice: product.salePrice,
-      }));
-    }
-  }, [products]);
-
   return (
     <AppLayout title="Sales" moduleNav={SALES_NAV}>
       <div className="p-6 space-y-6">
@@ -233,7 +111,7 @@ export default function SubscriptionsList() {
             <h1 className="text-2xl font-semibold text-foreground">Subscriptions</h1>
             <p className="text-muted-foreground">Manage recurring billing and services</p>
           </div>
-          <Button onClick={() => handleOpenDialog()} className="gap-2">
+          <Button onClick={() => navigate('/sales/subscriptions/new')} className="gap-2">
             <Plus className="h-4 w-4" />
             New Subscription
           </Button>
@@ -321,7 +199,7 @@ export default function SubscriptionsList() {
                   <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                     <RefreshCw className="h-12 w-12 mx-auto mb-4 opacity-20" />
                     <p>No subscriptions found</p>
-                    <Button variant="link" onClick={() => handleOpenDialog()}>
+                    <Button variant="link" onClick={() => navigate('/sales/subscriptions/new')}>
                       Create your first subscription
                     </Button>
                   </TableCell>
@@ -332,7 +210,7 @@ export default function SubscriptionsList() {
                     key={sub.id}
                     className="animate-fade-in cursor-pointer hover:bg-muted/50"
                     style={{ animationDelay: `${index * 30}ms` }}
-                    onClick={() => handleOpenDialog(sub)}
+                    onClick={() => navigate(`/sales/subscriptions/${sub.id}/edit`)}
                   >
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
@@ -371,7 +249,7 @@ export default function SubscriptionsList() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenDialog(sub); }}>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/sales/subscriptions/${sub.id}/edit`); }}>
                             <Eye className="h-4 w-4 mr-2" />
                             View/Edit
                           </DropdownMenuItem>
