@@ -57,6 +57,7 @@ interface FieldDef {
 }
 
 const CONTACT_FIELDS: FieldDef[] = [
+  { value: 'id', label: 'Unique ID' },
   { value: 'firstName', label: 'First Name' },
   { value: 'lastName', label: 'Last Name' },
   { value: 'email', label: 'Email' },
@@ -164,6 +165,7 @@ function guessFieldMapping(header: string, recordType: RecordType): string {
 
   // Contact-specific
   if (recordType === 'contacts') {
+    if (h === 'id' || h === 'contact id' || h === 'contact_id' || h === 'external id' || h === 'external_id' || h === 'unique id' || h === 'record id') return 'id';
     if (h.includes('first') && h.includes('name')) return 'firstName';
     if (h.includes('last') && h.includes('name')) return 'lastName';
     if (h === 'name' || h === 'full name' || h === 'contact name') return 'firstName';
