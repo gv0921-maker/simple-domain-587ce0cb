@@ -877,7 +877,7 @@ export function importContacts(data: Partial<Contact>[]): ImportResult {
         ...(rowType === 'company' || rowType === 'individual' ? { type: rowType as ContactType } : {}),
         ...(address ? { addresses: [address] } : Array.isArray(row.addresses) && row.addresses.length > 0 ? { addresses: row.addresses } : {}),
         ...(rowTags.length > 0 ? { tags: rowTags } : {}),
-        ...(row.score !== undefined && row.score !== null && row.score !== ''
+        ...(row.score !== undefined && row.score !== null
           ? { score: Number(row.score) || 0 }
           : {}),
         ...((row as any).assignedTo ? { assignedTo: String((row as any).assignedTo).trim() } : {}),
