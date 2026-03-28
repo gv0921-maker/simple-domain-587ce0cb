@@ -825,26 +825,35 @@ export interface ImportResult {
 
 export function importContacts(data: Partial<Contact>[]): ImportResult {
   const result: ImportResult = { success: 0, failed: 0, duplicates: 0, errors: [] };
-  
-  // Reload contacts once for matching
+
   let contacts = getContacts();
 
   data.forEach((row, index) => {
     try {
-      // No required fields — accept any row with at least a name or email
-      const firstName = row.firstName || '';
-      const lastName = row.lastName || '';
-      const email = row.email || '';
-      const phone = row.phone || '';
+      const rowId = typeof row.id === 'string' ? row.id.trim() : '';
+      const firstName = String(row.firstName || '').trim();
+      const lastName = String(row.lastName || '').trim();
+      const email = String(row.email || '').trim();
+      const phone = String(row.phone || '').trim();
 
-      if (!firstName && !lastName && !email) {
-        result.failed++;
-        result.errors.push(`Row ${index + 2}: At least a name or email is needed`);
+      const hasAnyValue = Object.values(row).some((value) => {
+        if (Array.isArray(value)) return value.length > 0;
+        return value !== undefined && value !== null && value !== '';
+      });
+
+      if (!hasAnyValue) {
         return;
       }
 
-      // Build address if any address field is present
-      const address: Address | undefined = (row as any).street || (row as any).city || (row as any).state || (row as any).postalCode || (row as any).country || (row as any).street2
+      const rowType = String((row as any).type || '').toLowerCase().trim();
+      const rowStatus = String((row as any).status || '').toLowerCase().trim();
+      const rowTags = Array.isArray((row as any).tags)
+        ? (row as any).tags.map((tag: unknown) => String(tag).trim()).filter(Boolean)
+        : typeof (row as any).tags === 'string'
+          ? String((row as any).tags).split(',').map(tag => tag.trim()).filter(Boolean)
+          : [];
+
+      const address: Address | undefined = (row as any).street || (row as any).street2 || (row as any).city || (row as any).state || (row as any).postalCode || (row as any).country
         ? {
             street: (row as any).street,
             street2: (row as any).street2,
@@ -852,72 +861,95 @@ export function importContacts(data: Partial<Contact>[]): ImportResult {
             state: (row as any).state,
             postalCode: (row as any).postalCode,
             country: (row as any).country,
-            type: 'both' as const,
+            type: 'both',
           }
         : undefined;
 
       const contactData: Partial<Contact> = {
         ...row,
-        firstName,
-        lastName,
-        email,
-        phone,
-        website: (row as any).website,
-        gstin: (row as any).gstin,
-        type: ((row as any).type === 'company' ? 'company' : 'individual') as ContactType,
-        addresses: address ? [address] : row.addresses || [],
-        score: typeof (row as any).score === 'number' ? (row as any).score : (row.score ?? 0),
-        assignedTo: (row as any).assignedTo || row.assignedTo,
-        status: ((row as any).status === 'archived' ? 'archived' : 'active') as ContactStatus,
+        ...(rowId ? { id: rowId } : {}),
+        ...(firstName ? { firstName } : {}),
+        ...(lastName ? { lastName } : {}),
+        ...(email ? { email } : {}),
+        ...(phone ? { phone } : {}),
+        ...((row as any).website ? { website: String((row as any).website).trim() } : {}),
+        ...((row as any).gstin ? { gstin: String((row as any).gstin).trim() } : {}),
+        ...(rowType === 'company' || rowType === 'individual' ? { type: rowType as ContactType } : {}),
+        ...(address ? { addresses: [address] } : Array.isArray(row.addresses) && row.addresses.length > 0 ? { addresses: row.addresses } : {}),
+        ...(rowTags.length > 0 ? { tags: rowTags } : {}),
+        ...(row.score !== undefined && row.score !== null
+          ? { score: Number(row.score) || 0 }
+          : {}),
+        ...((row as any).assignedTo ? { assignedTo: String((row as any).assignedTo).trim() } : {}),
+        ...(rowStatus === 'active' || rowStatus === 'archived' ? { status: rowStatus as ContactStatus } : {}),
       };
 
-      // Try to find existing contact by email (primary) or by exact name match
       let existingContact: Contact | undefined;
-      if (email) {
-        existingContact = contacts.find(c => c.email && c.email.toLowerCase() === email.toLowerCase());
+      if (rowId) {
+        existingContact = contacts.find((c) => c.id === rowId);
+      }
+      if (!existingContact && email) {
+        existingContact = contacts.find((c) => c.email && c.email.toLowerCase() === email.toLowerCase());
       }
       if (!existingContact && firstName) {
-        existingContact = contacts.find(c =>
-          c.firstName.toLowerCase() === firstName.toLowerCase() &&
-          c.lastName.toLowerCase() === (lastName || '').toLowerCase()
+        existingContact = contacts.find(
+          (c) => c.firstName.toLowerCase() === firstName.toLowerCase() && c.lastName.toLowerCase() === lastName.toLowerCase()
         );
       }
 
       if (existingContact) {
-        // Update existing contact — merge non-empty imported fields
         const merged: Partial<Contact> = { id: existingContact.id };
+
         for (const [key, value] of Object.entries(contactData)) {
           if (key === 'id') continue;
-          if (value !== undefined && value !== '' && value !== null) {
+          if (value !== undefined && value !== null && value !== '') {
             (merged as any)[key] = value;
           }
         }
-        // Merge tags
-        if (contactData.tags && contactData.tags.length > 0) {
-          const existingTags = existingContact.tags || [];
-          merged.tags = [...new Set([...existingTags, ...contactData.tags])];
+
+        if (Array.isArray(contactData.tags) && contactData.tags.length > 0) {
+          merged.tags = [...new Set([...(existingContact.tags || []), ...contactData.tags])];
         }
-        // Merge addresses
+
         if (address) {
-          merged.addresses = existingContact.addresses?.length
-            ? [...existingContact.addresses.filter(a => a.street !== address.street || a.city !== address.city), address]
-            : [address];
+          const existingAddresses = existingContact.addresses || [];
+          const alreadyExists = existingAddresses.some(
+            (a) =>
+              (a.street || '') === (address.street || '') &&
+              (a.street2 || '') === (address.street2 || '') &&
+              (a.city || '') === (address.city || '') &&
+              (a.state || '') === (address.state || '') &&
+              (a.postalCode || '') === (address.postalCode || '') &&
+              (a.country || '') === (address.country || '')
+          );
+
+          merged.addresses = alreadyExists ? existingAddresses : [...existingAddresses, address];
         }
-        saveContact(merged);
+
+        const updated = saveContact(merged);
+        contacts = contacts.map((c) => (c.id === updated.id ? updated : c));
         result.duplicates++;
         result.success++;
-      } else {
-        // Create new contact
-        const saved = saveContact(contactData);
-        contacts.push(saved); // keep in-memory list updated for subsequent duplicate checks
-        result.success++;
+        return;
       }
+
+      const hasIdentity = Boolean(
+        rowId || firstName || lastName || email || phone || String((row as any).companyName || '').trim()
+      );
+
+      if (!hasIdentity) {
+        return;
+      }
+
+      const saved = saveContact(contactData);
+      contacts.push(saved);
+      result.success++;
     } catch (e) {
       result.failed++;
       result.errors.push(`Row ${index + 2}: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
   });
-  
+
   return result;
 }
 
