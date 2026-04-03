@@ -5,7 +5,6 @@ import { MODULE_ICONS } from '@/components/icons/ModuleIcons';
 interface ModuleCardProps {
   id: string;
   name: string;
-  description?: string;
   href: string;
 }
 
