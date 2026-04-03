@@ -40,7 +40,6 @@ export default function HomePage() {
                 <ModuleCard
                   id={module.id}
                   name={module.name}
-                  description={module.description}
                   href={module.href}
                 />
               </div>
