@@ -346,30 +346,48 @@ export function CRMImportDialog({ open, onOpenChange, onImportComplete, defaultR
       return record;
     });
 
-    // Simulate progress
-    for (let i = 0; i <= 80; i += 10) {
-      setImportProgress(i);
-      await new Promise((r) => setTimeout(r, 80));
-    }
+    // Process in batches for large datasets (10000+) to keep UI responsive
+    const BATCH_SIZE = 2000;
+    const totalRecords = records.length;
+    const combinedResult: ImportResult = { success: 0, failed: 0, duplicates: 0, errors: [] };
 
-    let result: ImportResult;
-    switch (recordType) {
-      case 'contacts':
-        result = importContacts(records);
-        break;
-      case 'leads':
-        result = importLeads(records);
-        break;
-      case 'opportunities':
-        result = importOpportunities(records);
-        break;
+    if (totalRecords <= BATCH_SIZE) {
+      setImportProgress(50);
+      await new Promise((r) => setTimeout(r, 0));
+
+      let result: ImportResult;
+      switch (recordType) {
+        case 'contacts': result = importContacts(records); break;
+        case 'leads': result = importLeads(records); break;
+        case 'opportunities': result = importOpportunities(records); break;
+      }
+      Object.assign(combinedResult, result);
+    } else {
+      for (let i = 0; i < totalRecords; i += BATCH_SIZE) {
+        const batch = records.slice(i, i + BATCH_SIZE);
+        const progress = Math.round(((i + batch.length) / totalRecords) * 95);
+        setImportProgress(progress);
+        // Yield to UI thread between batches
+        await new Promise((r) => setTimeout(r, 0));
+
+        let result: ImportResult;
+        switch (recordType) {
+          case 'contacts': result = importContacts(batch); break;
+          case 'leads': result = importLeads(batch); break;
+          case 'opportunities': result = importOpportunities(batch); break;
+        }
+        combinedResult.success += result.success;
+        combinedResult.failed += result.failed;
+        combinedResult.duplicates += result.duplicates;
+        combinedResult.errors.push(...result.errors.slice(0, 50));
+      }
     }
 
     setImportProgress(100);
-    setImportResult(result);
+    setImportResult(combinedResult);
     setStep('result');
 
-    if (result.success > 0) {
+    if (combinedResult.success > 0) {
       onImportComplete?.();
     }
   };
