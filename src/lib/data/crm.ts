@@ -828,6 +828,17 @@ export function importContacts(data: Partial<Contact>[]): ImportResult {
 
   let contacts = getContacts();
 
+  // Build lookup indexes for O(1) matching instead of O(n) per row
+  const idIndex = new Map<string, number>();
+  const emailIndex = new Map<string, number>();
+  const nameIndex = new Map<string, number>();
+  contacts.forEach((c, i) => {
+    if (c.id) idIndex.set(c.id, i);
+    if (c.email) emailIndex.set(c.email.toLowerCase(), i);
+    const nameKey = `${c.firstName.toLowerCase()}|${c.lastName.toLowerCase()}`;
+    if (c.firstName) nameIndex.set(nameKey, i);
+  });
+
   data.forEach((row, index) => {
     try {
       const rowId = typeof row.id === 'string' ? row.id.trim() : '';
@@ -884,18 +895,15 @@ export function importContacts(data: Partial<Contact>[]): ImportResult {
         ...(rowStatus === 'active' || rowStatus === 'archived' ? { status: rowStatus as ContactStatus } : {}),
       };
 
-      let existingContact: Contact | undefined;
-      if (rowId) {
-        existingContact = contacts.find((c) => c.id === rowId);
+      // Use indexed lookups for O(1) matching
+      let existingIdx: number | undefined;
+      if (rowId) existingIdx = idIndex.get(rowId);
+      if (existingIdx === undefined && email) existingIdx = emailIndex.get(email.toLowerCase());
+      if (existingIdx === undefined && firstName) {
+        existingIdx = nameIndex.get(`${firstName.toLowerCase()}|${lastName.toLowerCase()}`);
       }
-      if (!existingContact && email) {
-        existingContact = contacts.find((c) => c.email && c.email.toLowerCase() === email.toLowerCase());
-      }
-      if (!existingContact && firstName) {
-        existingContact = contacts.find(
-          (c) => c.firstName.toLowerCase() === firstName.toLowerCase() && c.lastName.toLowerCase() === lastName.toLowerCase()
-        );
-      }
+
+      const existingContact = existingIdx !== undefined ? contacts[existingIdx] : undefined;
 
       if (existingContact) {
         const merged: Partial<Contact> = { id: existingContact.id };
@@ -922,12 +930,14 @@ export function importContacts(data: Partial<Contact>[]): ImportResult {
               (a.postalCode || '') === (address.postalCode || '') &&
               (a.country || '') === (address.country || '')
           );
-
           merged.addresses = alreadyExists ? existingAddresses : [...existingAddresses, address];
         }
 
         const updated = saveContact(merged);
-        contacts = contacts.map((c) => (c.id === updated.id ? updated : c));
+        contacts[existingIdx!] = updated;
+        // Update indexes with new data
+        if (updated.email) emailIndex.set(updated.email.toLowerCase(), existingIdx!);
+        if (updated.firstName) nameIndex.set(`${updated.firstName.toLowerCase()}|${updated.lastName.toLowerCase()}`, existingIdx!);
         result.duplicates++;
         result.success++;
         return;
@@ -942,7 +952,12 @@ export function importContacts(data: Partial<Contact>[]): ImportResult {
       }
 
       const saved = saveContact(contactData);
+      const newIdx = contacts.length;
       contacts.push(saved);
+      // Update indexes for new contact
+      if (saved.id) idIndex.set(saved.id, newIdx);
+      if (saved.email) emailIndex.set(saved.email.toLowerCase(), newIdx);
+      if (saved.firstName) nameIndex.set(`${saved.firstName.toLowerCase()}|${saved.lastName.toLowerCase()}`, newIdx);
       result.success++;
     } catch (e) {
       result.failed++;
