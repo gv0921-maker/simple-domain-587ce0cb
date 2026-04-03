@@ -8,25 +8,20 @@ interface ModuleCardProps {
   href: string;
 }
 
-export function ModuleCard({ id, name, description, href }: ModuleCardProps) {
+export function ModuleCard({ id, name, href }: ModuleCardProps) {
   const CustomIcon = MODULE_ICONS[id];
 
   return (
     <Link to={href}>
       <Card className="p-3 flex flex-col items-center justify-center gap-2 card-hover hover:shadow-lg cursor-pointer group bg-card border-border/40 aspect-square">
-        <div className="w-10 h-10 rounded-lg flex items-center justify-center transition-transform duration-200 group-hover:scale-105 shrink-0 overflow-hidden">
+        <div className="w-16 h-16 rounded-lg flex items-center justify-center transition-transform duration-200 group-hover:scale-110 shrink-0 overflow-hidden">
           {CustomIcon ? (
             <CustomIcon />
           ) : (
             <div className="w-full h-full bg-muted rounded-lg" />
           )}
         </div>
-        <div className="flex flex-col items-center min-w-0 text-center">
-          <span className="text-sm font-semibold text-foreground truncate">{name}</span>
-          {description && (
-            <span className="text-xs text-muted-foreground line-clamp-2">{description}</span>
-          )}
-        </div>
+        <span className="text-xs font-semibold text-foreground text-center truncate w-full">{name}</span>
       </Card>
     </Link>
   );
