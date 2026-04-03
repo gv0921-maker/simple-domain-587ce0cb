@@ -13,15 +13,15 @@ export function ModuleCard({ id, name, href }: ModuleCardProps) {
 
   return (
     <Link to={href}>
-      <Card className="p-3 flex flex-col items-center justify-center gap-2 card-hover hover:shadow-lg cursor-pointer group bg-card border-border/40 aspect-square">
-        <div className="w-16 h-16 rounded-lg flex items-center justify-center transition-transform duration-200 group-hover:scale-110 shrink-0 overflow-hidden">
+      <Card className="p-2 flex flex-col items-center justify-center gap-1.5 card-hover hover:shadow-lg cursor-pointer group bg-card border-border/40 aspect-square">
+        <div className="w-12 h-12 rounded-lg flex items-center justify-center transition-transform duration-200 group-hover:scale-110 shrink-0 overflow-hidden">
           {CustomIcon ? (
             <CustomIcon />
           ) : (
             <div className="w-full h-full bg-muted rounded-lg" />
           )}
         </div>
-        <span className="text-xs font-semibold text-foreground text-center truncate w-full">{name}</span>
+        <span className="text-[11px] font-semibold text-foreground text-center truncate w-full">{name}</span>
       </Card>
     </Link>
   );
