@@ -14,18 +14,18 @@ export function ModuleCard({ id, name, description, href }: ModuleCardProps) {
 
   return (
     <Link to={href}>
-      <Card className="p-4 flex items-center gap-4 card-hover hover:shadow-lg cursor-pointer group bg-card border-border/40 min-h-[72px]">
-        <div className="w-12 h-12 rounded-lg flex items-center justify-center transition-transform duration-200 group-hover:scale-105 shrink-0 overflow-hidden">
+      <Card className="p-5 flex flex-col items-center justify-center gap-3 card-hover hover:shadow-lg cursor-pointer group bg-card border-border/40 aspect-square">
+        <div className="w-14 h-14 rounded-lg flex items-center justify-center transition-transform duration-200 group-hover:scale-105 shrink-0 overflow-hidden">
           {CustomIcon ? (
             <CustomIcon />
           ) : (
             <div className="w-full h-full bg-muted rounded-lg" />
           )}
         </div>
-        <div className="flex flex-col min-w-0">
+        <div className="flex flex-col items-center min-w-0 text-center">
           <span className="text-sm font-semibold text-foreground truncate">{name}</span>
           {description && (
-            <span className="text-xs text-muted-foreground truncate">{description}</span>
+            <span className="text-xs text-muted-foreground line-clamp-2">{description}</span>
           )}
         </div>
       </Card>
