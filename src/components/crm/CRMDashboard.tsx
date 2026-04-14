@@ -251,7 +251,7 @@ export function CRMDashboard() {
               <PieChart className="h-5 w-5" />
               Leads by Source
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/crm/leads')}>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/crm')}>
               View All
             </Button>
           </CardHeader>
@@ -326,7 +326,7 @@ export function CRMDashboard() {
         <Card className="animate-fade-in">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">New Leads</CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/crm/leads')}>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/crm')}>
               View All
             </Button>
           </CardHeader>
@@ -408,9 +408,9 @@ export function CRMDashboard() {
               Sales Pipeline
               <ArrowRight className="h-4 w-4 ml-auto" />
             </Button>
-            <Button variant="outline" className="justify-start gap-2" onClick={() => navigate('/crm/pipeline')}>
+            <Button variant="outline" className="justify-start gap-2" onClick={() => navigate('/crm')}>
               <TrendingUp className="h-4 w-4" />
-              Sales Pipeline
+              View Pipeline
               <ArrowRight className="h-4 w-4 ml-auto" />
             </Button>
           </div>
