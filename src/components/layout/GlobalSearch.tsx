@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Search,
   User,
-  Target,
+  
   TrendingUp,
   Package,
   ShoppingCart,
