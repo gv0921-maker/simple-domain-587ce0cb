@@ -39,16 +39,6 @@ export function GlobalSearch() {
     const q = query.toLowerCase();
     const items: SearchResult[] = [];
 
-    // CRM Leads
-    try {
-      getLeads().filter(l =>
-        l.title.toLowerCase().includes(q) ||
-        l.contactName.toLowerCase().includes(q) ||
-        l.email.toLowerCase().includes(q)
-      ).slice(0, 3).forEach(l => {
-        items.push({ id: l.id, title: l.title, subtitle: l.contactName, module: 'CRM Lead', icon: Target, href: `/crm/leads/${l.id}` });
-      });
-    } catch {}
 
     // CRM Contacts
     try {
