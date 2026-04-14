@@ -1,5 +1,5 @@
 // Odoo-style CRM Kanban Board — pixel-perfect replica from reference screenshots
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
