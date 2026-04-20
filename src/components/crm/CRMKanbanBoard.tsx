@@ -1,5 +1,5 @@
 // Odoo-style CRM Kanban Board — pixel-perfect replica from reference screenshots
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -506,6 +506,64 @@ export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange
       setAllOpportunities(getOpportunities());
     },
     []
+  );
+
+  // ============== Keyboard navigation ==============
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  const registerCardRef = useCallback((oppId: string, el: HTMLDivElement | null) => {
+    if (el) cardRefs.current.set(oppId, el);
+    else cardRefs.current.delete(oppId);
+  }, []);
+
+  const focusCard = useCallback((oppId: string | null) => {
+    setFocusedId(oppId);
+    if (oppId) {
+      // Defer focus to next frame so DOM updates settle
+      requestAnimationFrame(() => {
+        cardRefs.current.get(oppId)?.focus();
+      });
+    }
+  }, []);
+
+  const stageMap: Record<string, OpportunityStage> = {
+    new: 'new', qualified: 'qualified', proposition: 'proposition', won: 'won', lost: 'lost' as OpportunityStage,
+  };
+
+  const handleKeyboardMove = useCallback(
+    (oppId: string, dir: 'left' | 'right' | 'up' | 'down') => {
+      const opp = allOpportunities.find(o => o.id === oppId);
+      if (!opp) return;
+      const stageIdx = activeStages.findIndex(s => s.id === opp.stageId);
+      if (stageIdx === -1) return;
+      const currentColumn = opportunitiesByStage[opp.stageId] || [];
+      const cardIdx = currentColumn.findIndex(o => o.id === oppId);
+
+      // Up/Down — move focus within column
+      if (dir === 'up' || dir === 'down') {
+        const nextIdx = dir === 'up' ? cardIdx - 1 : cardIdx + 1;
+        const target = currentColumn[nextIdx];
+        if (target) focusCard(target.id);
+        return;
+      }
+
+      // Left/Right — move card to adjacent stage (requires edit permission)
+      if (!canEditOpportunities) {
+        toast({ title: 'You don\'t have permission to move opportunities', variant: 'destructive' });
+        return;
+      }
+      const nextStageIdx = dir === 'left' ? stageIdx - 1 : stageIdx + 1;
+      const nextStage = activeStages[nextStageIdx];
+      if (!nextStage) return;
+      const nextStageType = stageMap[nextStage.id] || 'new';
+      updateOpportunityStage(oppId, nextStage.id, nextStageType);
+      setAllOpportunities(getOpportunities());
+      toast({ title: `Moved to ${nextStage.name}` });
+      // Re-focus the same card after re-render
+      focusCard(oppId);
+    },
+    [allOpportunities, activeStages, opportunitiesByStage, canEditOpportunities, focusCard, toast]
   );
 
   return (
