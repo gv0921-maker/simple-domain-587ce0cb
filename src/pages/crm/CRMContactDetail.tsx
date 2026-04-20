@@ -18,7 +18,7 @@ import {
   ShoppingCart,
   FileText,
 } from 'lucide-react';
-import { getContact, getLeads, getOpportunities, type Contact } from '@/lib/data/crm';
+import { getContact, getContacts, getLeads, getOpportunities, type Contact } from '@/lib/data/crm';
 import { CRM_NAV } from '@/lib/navigation/crm';
 import { format, parseISO } from 'date-fns';
 
@@ -26,6 +26,9 @@ export default function CRMContactDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const contact = id ? getContact(id) : undefined;
+  const allContacts = getContacts();
+  const parentContact = contact?.parentContactId ? allContacts.find(c => c.id === contact.parentContactId) : undefined;
+  const childContacts = id ? allContacts.filter(c => c.parentContactId === id) : [];
 
   // Find linked leads for this contact
   const linkedLeads = getLeads().filter(
@@ -93,6 +96,69 @@ export default function CRMContactDetail() {
                   />
                 </div>
 
+                {/* Additional emails / phones */}
+                {(contact.emails?.length || contact.phones?.length) ? (
+                  <>
+                    <Separator />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {contact.emails && contact.emails.length > 0 && (
+                        <div>
+                          <p className="text-sm font-medium mb-1">Additional Emails</p>
+                          {contact.emails.map((e, i) => (
+                            <p key={i} className="text-sm text-muted-foreground">
+                              {e.email} <Badge variant="outline" className="text-xs ml-1">{e.type}</Badge>
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                      {contact.phones && contact.phones.length > 0 && (
+                        <div>
+                          <p className="text-sm font-medium mb-1">Additional Phones</p>
+                          {contact.phones.map((p, i) => (
+                            <p key={i} className="text-sm text-muted-foreground">
+                              {p.phone} <Badge variant="outline" className="text-xs ml-1">{p.type}</Badge>
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : null}
+
+                {/* Parent / Subsidiaries */}
+                {(parentContact || childContacts.length > 0) && (
+                  <>
+                    <Separator />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {parentContact && (
+                        <div>
+                          <p className="text-sm font-medium mb-1">Parent</p>
+                          <button
+                            onClick={() => navigate(`/crm/contacts/${parentContact.id}`)}
+                            className="text-sm text-primary hover:underline"
+                          >
+                            {parentContact.firstName} {parentContact.lastName}
+                            {parentContact.companyName ? ` — ${parentContact.companyName}` : ''}
+                          </button>
+                        </div>
+                      )}
+                      {childContacts.length > 0 && (
+                        <div>
+                          <p className="text-sm font-medium mb-1">Subsidiaries / Child Contacts</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {childContacts.map(c => (
+                              <Badge key={c.id} variant="outline" className="cursor-pointer hover:bg-muted"
+                                onClick={() => navigate(`/crm/contacts/${c.id}`)}>
+                                {c.firstName} {c.lastName}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
                 {contact.addresses.length > 0 && (
                   <>
                     <Separator />
@@ -100,12 +166,30 @@ export default function CRMContactDetail() {
                       <p className="text-sm font-medium mb-2">Addresses</p>
                       {contact.addresses.map((addr, i) => (
                         <p key={i} className="text-sm text-muted-foreground">
-                          {[addr.street, addr.city, addr.state, addr.postalCode, addr.country]
+                          {[addr.street, addr.street2, addr.city, addr.state, addr.postalCode, addr.country]
                             .filter(Boolean)
                             .join(', ')}{' '}
                           <Badge variant="outline" className="text-xs ml-1 capitalize">{addr.type}</Badge>
                         </p>
                       ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Custom fields */}
+                {contact.customFields && contact.customFields.length > 0 && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-sm font-medium mb-2">Custom Fields</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {contact.customFields.map((cf, i) => (
+                          <div key={i} className="text-sm">
+                            <span className="text-muted-foreground">{cf.label}:</span>{' '}
+                            <span className="text-foreground">{cf.value}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </>
                 )}
@@ -127,7 +211,10 @@ export default function CRMContactDetail() {
                     <Separator />
                     <div>
                       <p className="text-sm font-medium mb-1">Notes</p>
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{contact.notes}</p>
+                      <div
+                        className="text-sm text-muted-foreground prose prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-primary [&_a]:underline [&_strong]:font-semibold [&_b]:font-semibold"
+                        dangerouslySetInnerHTML={{ __html: contact.notes }}
+                      />
                     </div>
                   </>
                 )}
