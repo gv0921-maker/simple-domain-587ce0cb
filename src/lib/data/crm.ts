@@ -42,6 +42,12 @@ export interface Company {
   updatedAt: string;
 }
 
+export interface CustomField {
+  key: string;
+  label: string;
+  value: string;
+}
+
 export interface Contact {
   id: string;
   type: ContactType;
@@ -63,6 +69,8 @@ export interface Contact {
   assignedTo?: string;
   status: ContactStatus;
   score: number;
+  parentContactId?: string;
+  customFields?: CustomField[];
   createdAt: string;
   updatedAt: string;
 }
@@ -325,13 +333,26 @@ export function deleteContact(id: string): void {
   setItem('crm_contacts', contacts);
 }
 
-// Check for duplicate contacts
-export function findDuplicateContacts(email: string, phone?: string): Contact[] {
+// Check for duplicate contacts (matches on email OR any phone — primary or secondary)
+export function findDuplicateContacts(email: string, phone?: string, excludeId?: string): Contact[] {
   const contacts = getContacts();
-  return contacts.filter(c => 
-    c.email.toLowerCase() === email.toLowerCase() ||
-    (phone && c.phone === phone)
-  );
+  const normalizePhone = (p?: string) => (p || '').replace(/[^\d+]/g, '');
+  const targetPhone = normalizePhone(phone);
+  const targetEmail = (email || '').toLowerCase().trim();
+  return contacts.filter(c => {
+    if (excludeId && c.id === excludeId) return false;
+    // Email match (primary or any secondary)
+    if (targetEmail) {
+      if (c.email?.toLowerCase() === targetEmail) return true;
+      if (c.emails?.some(e => e.email.toLowerCase() === targetEmail)) return true;
+    }
+    // Phone match (primary or any secondary, normalized)
+    if (targetPhone) {
+      if (normalizePhone(c.phone) === targetPhone) return true;
+      if (c.phones?.some(p => normalizePhone(p.phone) === targetPhone)) return true;
+    }
+    return false;
+  });
 }
 
 // Leads
