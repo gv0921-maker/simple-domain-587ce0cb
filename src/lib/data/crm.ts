@@ -850,12 +850,20 @@ export function importContacts(data: Partial<Contact>[]): ImportResult {
   let contacts = getContacts();
 
   // Build lookup indexes for O(1) matching instead of O(n) per row
+  const normalizePhone = (p?: string) => (p || '').replace(/[^\d+]/g, '');
   const idIndex = new Map<string, number>();
   const emailIndex = new Map<string, number>();
+  const phoneIndex = new Map<string, number>();
   const nameIndex = new Map<string, number>();
   contacts.forEach((c, i) => {
     if (c.id) idIndex.set(c.id, i);
     if (c.email) emailIndex.set(c.email.toLowerCase(), i);
+    const np = normalizePhone(c.phone);
+    if (np) phoneIndex.set(np, i);
+    c.phones?.forEach(p => {
+      const k = normalizePhone(p.phone);
+      if (k) phoneIndex.set(k, i);
+    });
     const nameKey = `${c.firstName.toLowerCase()}|${c.lastName.toLowerCase()}`;
     if (c.firstName) nameIndex.set(nameKey, i);
   });
