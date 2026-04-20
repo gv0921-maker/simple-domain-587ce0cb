@@ -928,6 +928,10 @@ export function importContacts(data: Partial<Contact>[]): ImportResult {
       let existingIdx: number | undefined;
       if (rowId) existingIdx = idIndex.get(rowId);
       if (existingIdx === undefined && email) existingIdx = emailIndex.get(email.toLowerCase());
+      if (existingIdx === undefined && phone) {
+        const np = normalizePhone(phone);
+        if (np) existingIdx = phoneIndex.get(np);
+      }
       if (existingIdx === undefined && firstName) {
         existingIdx = nameIndex.get(`${firstName.toLowerCase()}|${lastName.toLowerCase()}`);
       }
