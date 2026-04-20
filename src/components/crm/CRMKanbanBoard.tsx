@@ -53,6 +53,7 @@ import { useCRMPermissions } from '@/hooks/useCRMPermissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { CRMSearchDropdown, useFilteredOpportunities, type ActiveFilters, EMPTY_FILTERS } from '@/components/crm/CRMSearchDropdown';
+import { displayRevenue } from '@/lib/crm/fieldMask';
 
 // Star rating (Odoo-style — golden stars)
 export function StarRating({ value, onChange, readonly = false }: { value: number; onChange?: (v: number) => void; readonly?: boolean }) {
