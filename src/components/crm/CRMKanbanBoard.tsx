@@ -345,6 +345,7 @@ function KanbanColumn({
             onFocus={() => onCardFocus(opp.id)}
             onKeyboardMove={(dir) => onKeyboardMove(opp.id, dir)}
             cardRef={(el) => registerCardRef(opp.id, el)}
+            userId={userId}
           />
         ))}
 
@@ -633,6 +634,7 @@ export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange
               onCardFocus={(id) => setFocusedId(id)}
               onKeyboardMove={handleKeyboardMove}
               registerCardRef={registerCardRef}
+              userId={user?.id}
             />
           ))}
         </div>
