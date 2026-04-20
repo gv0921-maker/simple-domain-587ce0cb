@@ -118,13 +118,47 @@ function RevenueBar({ opportunities }: { opportunities: Opportunity[] }) {
 }
 
 // Kanban card — exact Odoo style from screenshot
-function KanbanCard({ opportunity, onPriorityChange }: { opportunity: Opportunity; onPriorityChange: (p: 0 | 1 | 2 | 3) => void }) {
+function KanbanCard({
+  opportunity,
+  onPriorityChange,
+  isFocused,
+  onFocus,
+  onKeyboardMove,
+  cardRef,
+}: {
+  opportunity: Opportunity;
+  onPriorityChange: (p: 0 | 1 | 2 | 3) => void;
+  isFocused: boolean;
+  onFocus: () => void;
+  onKeyboardMove: (dir: 'left' | 'right' | 'up' | 'down') => void;
+  cardRef?: (el: HTMLDivElement | null) => void;
+}) {
   const navigate = useNavigate();
 
   return (
     <div
-      className="bg-card border border-border rounded px-3 py-2.5 cursor-pointer hover:shadow-md transition-shadow group"
+      ref={cardRef}
+      tabIndex={0}
+      role="button"
+      aria-label={`Opportunity ${opportunity.name}. Use arrow keys to navigate, Alt+arrow to move between stages, Enter to open.`}
+      className={cn(
+        'bg-card border border-border rounded px-3 py-2.5 cursor-pointer hover:shadow-md transition-shadow group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+        isFocused && 'ring-2 ring-primary ring-offset-1'
+      )}
       onClick={() => navigate(`/crm/opportunities/${opportunity.id}`)}
+      onFocus={onFocus}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          navigate(`/crm/opportunities/${opportunity.id}`);
+          return;
+        }
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          const dir = e.key.replace('Arrow', '').toLowerCase() as 'left' | 'right' | 'up' | 'down';
+          onKeyboardMove(dir);
+        }
+      }}
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData('text/plain', opportunity.id);
