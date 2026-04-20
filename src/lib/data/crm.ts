@@ -42,6 +42,12 @@ export interface Company {
   updatedAt: string;
 }
 
+export interface CustomField {
+  key: string;
+  label: string;
+  value: string;
+}
+
 export interface Contact {
   id: string;
   type: ContactType;
@@ -63,6 +69,8 @@ export interface Contact {
   assignedTo?: string;
   status: ContactStatus;
   score: number;
+  parentContactId?: string;
+  customFields?: CustomField[];
   createdAt: string;
   updatedAt: string;
 }
@@ -325,13 +333,26 @@ export function deleteContact(id: string): void {
   setItem('crm_contacts', contacts);
 }
 
-// Check for duplicate contacts
-export function findDuplicateContacts(email: string, phone?: string): Contact[] {
+// Check for duplicate contacts (matches on email OR any phone — primary or secondary)
+export function findDuplicateContacts(email: string, phone?: string, excludeId?: string): Contact[] {
   const contacts = getContacts();
-  return contacts.filter(c => 
-    c.email.toLowerCase() === email.toLowerCase() ||
-    (phone && c.phone === phone)
-  );
+  const normalizePhone = (p?: string) => (p || '').replace(/[^\d+]/g, '');
+  const targetPhone = normalizePhone(phone);
+  const targetEmail = (email || '').toLowerCase().trim();
+  return contacts.filter(c => {
+    if (excludeId && c.id === excludeId) return false;
+    // Email match (primary or any secondary)
+    if (targetEmail) {
+      if (c.email?.toLowerCase() === targetEmail) return true;
+      if (c.emails?.some(e => e.email.toLowerCase() === targetEmail)) return true;
+    }
+    // Phone match (primary or any secondary, normalized)
+    if (targetPhone) {
+      if (normalizePhone(c.phone) === targetPhone) return true;
+      if (c.phones?.some(p => normalizePhone(p.phone) === targetPhone)) return true;
+    }
+    return false;
+  });
 }
 
 // Leads
@@ -829,12 +850,20 @@ export function importContacts(data: Partial<Contact>[]): ImportResult {
   let contacts = getContacts();
 
   // Build lookup indexes for O(1) matching instead of O(n) per row
+  const normalizePhone = (p?: string) => (p || '').replace(/[^\d+]/g, '');
   const idIndex = new Map<string, number>();
   const emailIndex = new Map<string, number>();
+  const phoneIndex = new Map<string, number>();
   const nameIndex = new Map<string, number>();
   contacts.forEach((c, i) => {
     if (c.id) idIndex.set(c.id, i);
     if (c.email) emailIndex.set(c.email.toLowerCase(), i);
+    const np = normalizePhone(c.phone);
+    if (np) phoneIndex.set(np, i);
+    c.phones?.forEach(p => {
+      const k = normalizePhone(p.phone);
+      if (k) phoneIndex.set(k, i);
+    });
     const nameKey = `${c.firstName.toLowerCase()}|${c.lastName.toLowerCase()}`;
     if (c.firstName) nameIndex.set(nameKey, i);
   });
@@ -899,6 +928,10 @@ export function importContacts(data: Partial<Contact>[]): ImportResult {
       let existingIdx: number | undefined;
       if (rowId) existingIdx = idIndex.get(rowId);
       if (existingIdx === undefined && email) existingIdx = emailIndex.get(email.toLowerCase());
+      if (existingIdx === undefined && phone) {
+        const np = normalizePhone(phone);
+        if (np) existingIdx = phoneIndex.get(np);
+      }
       if (existingIdx === undefined && firstName) {
         existingIdx = nameIndex.get(`${firstName.toLowerCase()}|${lastName.toLowerCase()}`);
       }
