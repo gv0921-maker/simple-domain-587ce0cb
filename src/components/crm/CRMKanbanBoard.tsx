@@ -126,6 +126,7 @@ function KanbanCard({
   onFocus,
   onKeyboardMove,
   cardRef,
+  userId,
 }: {
   opportunity: Opportunity;
   onPriorityChange: (p: 0 | 1 | 2 | 3) => void;
@@ -133,6 +134,7 @@ function KanbanCard({
   onFocus: () => void;
   onKeyboardMove: (dir: 'left' | 'right' | 'up' | 'down') => void;
   cardRef?: (el: HTMLDivElement | null) => void;
+  userId?: string;
 }) {
   const navigate = useNavigate();
 
@@ -173,7 +175,7 @@ function KanbanCard({
 
       {/* Revenue */}
       <div className="text-[13px] text-foreground mt-0.5">
-        ₹ {opportunity.expectedRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        {displayRevenue(opportunity.expectedRevenue, userId, 'crm')}
       </div>
 
       {/* Contact with avatar */}
@@ -225,6 +227,7 @@ function KanbanColumn({
   onCardFocus,
   onKeyboardMove,
   registerCardRef,
+  userId,
 }: {
   stage: PipelineStage;
   opportunities: Opportunity[];
@@ -235,6 +238,7 @@ function KanbanColumn({
   onCardFocus: (oppId: string) => void;
   onKeyboardMove: (oppId: string, dir: 'left' | 'right' | 'up' | 'down') => void;
   registerCardRef: (oppId: string, el: HTMLDivElement | null) => void;
+  userId?: string;
 }) {
   const navigate = useNavigate();
   const { toast } = useToast();
