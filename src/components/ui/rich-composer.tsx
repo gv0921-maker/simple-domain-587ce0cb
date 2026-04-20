@@ -11,8 +11,9 @@ import { useToast } from '@/hooks/use-toast';
 export interface RichAttachment {
   name: string;
   type: string;
-  size: number;
-  dataUrl: string;
+  size?: number;
+  dataUrl?: string;
+  url?: string;
 }
 
 export interface RichComposerValue {
