@@ -60,6 +60,8 @@ import {
 import { StarRating } from '@/components/crm/CRMKanbanBoard';
 import { CRM_NAV } from '@/lib/navigation/crm';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { RichComposer } from '@/components/ui/rich-composer';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 
@@ -79,6 +81,7 @@ export default function OpportunityDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const pipeline = getDefaultPipeline();
   const allOpportunities = getOpportunities();
 
@@ -90,11 +93,11 @@ export default function OpportunityDetail() {
   const [showLostDialog, setShowLostDialog] = useState(false);
   const [lostReason, setLostReason] = useState('');
   const [chatterTab, setChatterTab] = useState<'message' | 'note' | 'activity'>('note');
-  const [chatterInput, setChatterInput] = useState('');
   const [formTab, setFormTab] = useState('notes');
+  const [timelineVersion, setTimelineVersion] = useState(0);
 
-  const activities = useMemo(() => id ? getActivities('opportunity', id) : [], [id]);
-  const notes = useMemo(() => id ? getNotes('opportunity', id) : [], [id]);
+  const activities = useMemo(() => id ? getActivities('opportunity', id) : [], [id, timelineVersion]);
+  const notes = useMemo(() => id ? getNotes('opportunity', id) : [], [id, timelineVersion]);
 
   // Navigation between records
   const currentIndex = allOpportunities.findIndex(o => o.id === id);
@@ -149,31 +152,37 @@ export default function OpportunityDetail() {
     toast({ title: 'Opportunity updated' });
   };
 
-  const handleChatterSubmit = () => {
-    if (!chatterInput.trim()) return;
-    if (chatterTab === 'note') {
+  const handleChatterSubmit = (payload: { html: string; attachments: { name: string; url: string; type: string }[]; mentions: string[] }) => {
+    const userId = user?.id || '1';
+    const userName = user?.name || 'User';
+    if (chatterTab === 'note' || chatterTab === 'message') {
       saveNote({
-        content: chatterInput,
+        content: payload.html,
         relatedTo: 'opportunity',
         relatedId: opportunity.id,
-        userId: '1',
-        userName: 'Management',
-        visibility: 'team',
+        userId,
+        userName,
+        visibility: chatterTab === 'note' ? 'private' : 'team',
+        mentions: payload.mentions,
+        attachments: payload.attachments,
       });
     } else {
       saveActivity({
         type: 'note',
-        subject: chatterInput,
+        subject: payload.html.replace(/<[^>]+>/g, '').slice(0, 120) || 'Activity',
+        description: payload.html,
         relatedTo: 'opportunity',
         relatedId: opportunity.id,
-        userId: '1',
-        userName: 'Management',
+        userId,
+        userName,
         completed: true,
         completedAt: new Date().toISOString(),
       });
     }
-    setChatterInput('');
-    toast({ title: chatterTab === 'note' ? 'Note logged' : 'Message sent' });
+    setTimelineVersion(v => v + 1);
+    toast({
+      title: chatterTab === 'note' ? 'Note logged' : chatterTab === 'message' ? 'Message sent' : 'Activity logged',
+    });
   };
 
   const navigateRecord = (dir: 'prev' | 'next') => {
