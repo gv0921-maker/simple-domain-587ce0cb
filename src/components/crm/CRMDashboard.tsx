@@ -1,10 +1,13 @@
 // CRM Dashboard with Analytics
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Users,
   
@@ -14,10 +17,14 @@ import {
   CheckCircle2,
   Clock,
   Calendar,
+  CalendarIcon,
   ArrowRight,
   UserPlus,
   BarChart3,
   PieChart,
+  Download,
+  Filter,
+  Activity,
 } from 'lucide-react';
 import {
   getCRMStats,
@@ -31,6 +38,9 @@ import {
 import { SimpleBarChart } from '@/components/dashboard/SimpleBarChart';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isThisWeek } from 'date-fns';
+import { isWithinInterval, startOfDay, endOfDay, subDays, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { DEMO_USERS } from '@/lib/storage';
+import { toCSV, downloadCSV } from '@/lib/crm/csvExport';
 
 interface StatCardProps {
   title: string;
