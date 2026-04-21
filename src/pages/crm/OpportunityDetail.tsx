@@ -42,6 +42,7 @@ import {
   Package,
   User,
 } from 'lucide-react';
+import { EmailComposerDialog } from '@/components/crm/EmailComposerDialog';
 import {
   getOpportunity,
   getOpportunities,
@@ -95,6 +96,7 @@ export default function OpportunityDetail() {
   const [lostReason, setLostReason] = useState('');
   const [chatterTab, setChatterTab] = useState<'message' | 'note' | 'activity'>('note');
   const [formTab, setFormTab] = useState('notes');
+  const [emailOpen, setEmailOpen] = useState(false);
 
   const activities = useMemo(() => id ? getActivities('opportunity', id) : [], [id]);
   const notes = useMemo(() => id ? getNotes('opportunity', id) : [], [id]);
@@ -219,6 +221,11 @@ export default function OpportunityDetail() {
               <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-foreground font-medium">{opportunity.name}</span>
               <Settings className="h-3.5 w-3.5 text-muted-foreground ml-1 cursor-pointer" />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEmailOpen(true)}>
+                <Mail className="h-3 w-3 mr-1" /> Email
+              </Button>
             </div>
 
 
