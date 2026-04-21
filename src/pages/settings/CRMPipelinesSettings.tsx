@@ -206,8 +206,8 @@ export default function CRMPipelinesSettings() {
 
                 <div className="space-y-2">
                   {selected.stages.map(stage => (
+                    <div key={stage.id} className="space-y-0">
                     <div
-                      key={stage.id}
                       draggable
                       onDragStart={() => setDraggedStage(stage.id)}
                       onDragOver={e => e.preventDefault()}
@@ -278,6 +278,7 @@ export default function CRMPipelinesSettings() {
                         })}
                       </CollapsibleContent>
                     </Collapsible>
+                    </div>
                   ))}
                 </div>
 
