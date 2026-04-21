@@ -199,6 +199,7 @@ export default function OpportunityDetail() {
   const currentData = { ...opportunity, ...editData };
 
   return (
+    <>
     <AppLayout title="CRM" moduleNav={CRM_NAV}>
       <div className="flex flex-col h-full">
         {/* Top control panel — Odoo style */}
