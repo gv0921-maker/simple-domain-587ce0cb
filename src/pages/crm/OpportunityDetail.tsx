@@ -748,6 +748,14 @@ export default function OpportunityDetail() {
         </DialogContent>
       </Dialog>
     </AppLayout>
+    <EmailComposerDialog
+      open={emailOpen}
+      onOpenChange={setEmailOpen}
+      defaultTo={opportunity.email || ''}
+      relatedTo="opportunity"
+      relatedId={opportunity.id}
+    />
+    </>
   );
 }
 
