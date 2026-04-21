@@ -217,6 +217,64 @@ export function CRMDashboard() {
         </div>
       </div>
 
+      {/* Filter Bar */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Filter className="h-4 w-4" />
+          Filters
+        </div>
+        <Select value={dateRange} onValueChange={(v) => setDateRange(v as typeof dateRange)}>
+          <SelectTrigger className="w-[150px] h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Time</SelectItem>
+            <SelectItem value="7d">Last 7 Days</SelectItem>
+            <SelectItem value="30d">Last 30 Days</SelectItem>
+            <SelectItem value="this_month">This Month</SelectItem>
+            <SelectItem value="custom">Custom Range</SelectItem>
+          </SelectContent>
+        </Select>
+        {dateRange === 'custom' && (
+          <div className="flex items-center gap-1">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+                  <CalendarIcon className="h-3 w-3" />
+                  {customFrom ? format(customFrom, 'MMM d') : 'From'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarWidget mode="single" selected={customFrom} onSelect={setCustomFrom} className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+            <span className="text-xs text-muted-foreground">–</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+                  <CalendarIcon className="h-3 w-3" />
+                  {customTo ? format(customTo, 'MMM d') : 'To'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarWidget mode="single" selected={customTo} onSelect={setCustomTo} className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
+        <Select value={userFilter} onValueChange={setUserFilter}>
+          <SelectTrigger className="w-[160px] h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Users</SelectItem>
+            {DEMO_USERS.map(u => (
+              <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -276,6 +334,14 @@ export function CRMDashboard() {
           color="warning"
           delay={300}
         />
+        <StatCard
+          title="Activity Completion"
+          value={`${activityCompletionRate}%`}
+          subtitle={`${filteredActivities.filter(a => a.completed).length} of ${filteredActivities.length} activities`}
+          icon={ActivityIcon}
+          color="info"
+          delay={350}
+        />
       </div>
 
       {/* Charts Row */}
@@ -287,9 +353,14 @@ export function CRMDashboard() {
               <BarChart3 className="h-5 w-5" />
               Opportunity Pipeline
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/crm')}>
-              View All
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={exportPipelineCSV} title="Export CSV">
+                <Download className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/crm')}>
+                View All
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex justify-center gap-4 mb-4">
@@ -327,9 +398,14 @@ export function CRMDashboard() {
               <PieChart className="h-5 w-5" />
               Leads by Source
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/crm')}>
-              View All
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={exportLeadsCSV} title="Export CSV">
+                <Download className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/crm')}>
+                View All
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex justify-center gap-4 mb-4">
@@ -366,9 +442,14 @@ export function CRMDashboard() {
         <Card className="animate-fade-in">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Upcoming Deals</CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/crm')}>
-              View All
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={exportDealsCSV} title="Export CSV">
+                <Download className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/crm')}>
+                View All
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -436,6 +517,9 @@ export function CRMDashboard() {
         <Card className="animate-fade-in">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Pending Activities</CardTitle>
+            <Button variant="ghost" size="sm" onClick={exportActivitiesCSV} title="Export CSV">
+              <Download className="h-3.5 w-3.5" />
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
