@@ -214,7 +214,7 @@ export default function OpportunityDetail() {
               <Button
                 size="sm"
                 className="h-8 text-xs font-semibold bg-[#875A7B] hover:bg-[#6e4a64] text-white"
-                onClick={() => navigate('/crm')}
+                onClick={() => navigate('/crm/opportunities/new')}
               >
                 New
               </Button>
