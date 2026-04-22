@@ -73,6 +73,11 @@ export interface Contact {
   score: number;
   parentContactId?: string;
   customFields?: CustomField[];
+  salesperson?: string;
+  salesTeam?: string;
+  paymentTerms?: string;
+  priceList?: string;
+  purchasePaymentTerms?: string;
   createdAt: string;
   updatedAt: string;
 }
