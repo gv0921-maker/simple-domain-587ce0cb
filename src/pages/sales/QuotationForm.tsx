@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,12 +88,17 @@ const STATUS_CONFIG: Record<QuotationStatus, { label: string; className: string 
 export default function QuotationForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { user } = useAuth();
   const isNew = !id || id === 'new';
   const studio = useStudioConfig('sales', 'Quotation');
   
   const [contacts] = useState(() => getContacts());
+
+  // Pre-fill from CRM URL params
+  const urlCustomerId = searchParams.get('customerId');
+  const urlOpportunityId = searchParams.get('opportunityId');
   const [products] = useState(() => getProducts());
   const [pricelists] = useState(() => getPricelists());
   const [taxRules] = useState(() => getTaxRules());
@@ -106,6 +111,7 @@ export default function QuotationForm() {
   const [formData, setFormData] = useState<Partial<Quotation>>({
     customerId: '',
     customerName: '',
+    opportunityId: urlOpportunityId || undefined,
     quotationDate: new Date().toISOString().split('T')[0],
     validUntil: addDays(new Date(), 30).toISOString().split('T')[0],
     currency: 'INR',
@@ -141,7 +147,21 @@ export default function QuotationForm() {
       setLoading(false);
     }
   }, [id, isNew, navigate, toast]);
-  
+
+  // Pre-fill customer from CRM URL params
+  useEffect(() => {
+    if (isNew && urlCustomerId) {
+      const contact = contacts.find(c => c.id === urlCustomerId);
+      if (contact) {
+        setFormData(prev => ({
+          ...prev,
+          customerId: contact.id,
+          customerName: contact.company ? `${contact.name} - ${contact.company}` : contact.name,
+        }));
+      }
+    }
+  }, [isNew, urlCustomerId, contacts]);
+
   // Calculate totals
   const totals = useMemo(() => {
     const subtotal = lines.reduce((sum, line) => sum + line.subtotal, 0);

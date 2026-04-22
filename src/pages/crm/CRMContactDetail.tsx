@@ -28,6 +28,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { canViewSensitive, maskEmail, maskPhone, displayRevenue } from '@/lib/crm/fieldMask';
 import { EmailComposerDialog } from '@/components/crm/EmailComposerDialog';
+import { getQuotations, getSalesOrders } from '@/lib/data/sales/storage';
 
 export default function CRMContactDetail() {
   const { id } = useParams();
@@ -42,6 +43,10 @@ export default function CRMContactDetail() {
   const [notesVersion, setNotesVersion] = useState(0);
   const notes = useMemo(() => (id ? getNotes('contact', id) : []), [id, notesVersion]);
   const [emailOpen, setEmailOpen] = useState(false);
+
+  // Sales history
+  const linkedQuotations = useMemo(() => getQuotations().filter(q => q.customerId === id), [id]);
+  const linkedOrders = useMemo(() => getSalesOrders().filter(o => linkedQuotations.some(q => q.id === o.quotationId)), [linkedQuotations]);
 
   const showEmail = canViewSensitive(user?.id, 'crm', 'email');
   const showPhone = canViewSensitive(user?.id, 'crm', 'phone');
@@ -112,6 +117,9 @@ export default function CRMContactDetail() {
           </Badge>
           <Button variant="outline" size="sm" onClick={() => setEmailOpen(true)}>
             <Mail className="h-4 w-4 mr-1" /> Email
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate(`/sales/quotations/new?customerId=${id}`)}>
+            <FileText className="h-4 w-4 mr-1" /> New Quotation
           </Button>
         </div>
 
@@ -336,6 +344,37 @@ export default function CRMContactDetail() {
                       </div>
                     ))}
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Sales History */}
+            {(linkedQuotations.length > 0 || linkedOrders.length > 0) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Sales History</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {linkedQuotations.map(q => (
+                    <div key={q.id} className="flex items-center justify-between p-2 border rounded-md text-sm cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/sales/quotations/${q.id}`)}>
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="font-medium">{q.reference}</span>
+                        <Badge variant="outline" className="text-[10px] capitalize">{q.status}</Badge>
+                      </div>
+                      <span className="font-semibold">₹{q.total.toLocaleString('en-IN')}</span>
+                    </div>
+                  ))}
+                  {linkedOrders.map(o => (
+                    <div key={o.id} className="flex items-center justify-between p-2 border rounded-md text-sm cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/sales/orders/${o.id}`)}>
+                      <div className="flex items-center gap-2">
+                        <Target className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="font-medium">{o.reference}</span>
+                        <Badge variant="outline" className="text-[10px] capitalize">{o.status}</Badge>
+                      </div>
+                      <span className="font-semibold">₹{o.total.toLocaleString('en-IN')}</span>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             )}
