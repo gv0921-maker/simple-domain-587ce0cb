@@ -101,6 +101,7 @@ export default function OpportunityDetail() {
   const [emailOpen, setEmailOpen] = useState(false);
   const [chatterSearch, setChatterSearch] = useState('');
   const [showChatterSearch, setShowChatterSearch] = useState(false);
+  const [activityForm, setActivityForm] = useState({ type: 'task' as 'call' | 'email' | 'meeting' | 'task' | 'follow_up', dueDate: '', assignedTo: '', summary: '' });
 
   const activities = useMemo(() => id ? getActivities('opportunity', id) : [], [id]);
   const linkedContact = useMemo(() => opportunity?.contactId ? getContact(opportunity.contactId) : undefined, [opportunity?.contactId]);
@@ -189,6 +190,23 @@ export default function OpportunityDetail() {
       } as any);
     }
     toast({ title: chatterTab === 'note' ? 'Note logged' : 'Message sent' });
+  };
+
+  const handleActivitySubmit = () => {
+    if (!activityForm.summary.trim()) return;
+    saveActivity({
+      type: activityForm.type,
+      subject: activityForm.summary,
+      description: activityForm.summary,
+      relatedTo: 'opportunity',
+      relatedId: opportunity.id,
+      userId: user?.id || '1',
+      userName: user?.name || 'User',
+      dueDate: activityForm.dueDate || undefined,
+      completed: false,
+    } as any);
+    setActivityForm({ type: 'task', dueDate: '', assignedTo: '', summary: '' });
+    toast({ title: 'Activity scheduled' });
   };
 
   const navigateRecord = (dir: 'prev' | 'next') => {
@@ -692,6 +710,40 @@ export default function OpportunityDetail() {
                     />
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Activity compose area */}
+            {chatterTab === 'activity' && (
+              <div className="p-3 border-b border-border space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase">Type</label>
+                    <Select value={activityForm.type} onValueChange={(v) => setActivityForm(f => ({ ...f, type: v as any }))}>
+                      <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="task">Task</SelectItem>
+                        <SelectItem value="call">Call</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="meeting">Meeting</SelectItem>
+                        <SelectItem value="follow_up">Follow Up</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase">Due Date</label>
+                    <Input type="date" className="h-7 text-xs" value={activityForm.dueDate} onChange={(e) => setActivityForm(f => ({ ...f, dueDate: e.target.value }))} />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-muted-foreground uppercase">Assigned To</label>
+                  <Input className="h-7 text-xs" placeholder="e.g. Sales Rep" value={activityForm.assignedTo} onChange={(e) => setActivityForm(f => ({ ...f, assignedTo: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-muted-foreground uppercase">Summary</label>
+                  <Textarea className="min-h-[60px] text-xs" placeholder="Describe the activity..." value={activityForm.summary} onChange={(e) => setActivityForm(f => ({ ...f, summary: e.target.value }))} />
+                </div>
+                <Button size="sm" className="h-7 text-xs" onClick={handleActivitySubmit}>Schedule</Button>
               </div>
             )}
 
