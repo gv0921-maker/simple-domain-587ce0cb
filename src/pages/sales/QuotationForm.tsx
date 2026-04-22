@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,12 +88,17 @@ const STATUS_CONFIG: Record<QuotationStatus, { label: string; className: string 
 export default function QuotationForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { user } = useAuth();
   const isNew = !id || id === 'new';
   const studio = useStudioConfig('sales', 'Quotation');
   
   const [contacts] = useState(() => getContacts());
+
+  // Pre-fill from CRM URL params
+  const urlCustomerId = searchParams.get('customerId');
+  const urlOpportunityId = searchParams.get('opportunityId');
   const [products] = useState(() => getProducts());
   const [pricelists] = useState(() => getPricelists());
   const [taxRules] = useState(() => getTaxRules());
