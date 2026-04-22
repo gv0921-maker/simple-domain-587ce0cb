@@ -43,6 +43,10 @@ export default function CRMContactDetail() {
   const notes = useMemo(() => (id ? getNotes('contact', id) : []), [id, notesVersion]);
   const [emailOpen, setEmailOpen] = useState(false);
 
+  // Sales history
+  const linkedQuotations = useMemo(() => getQuotations().filter(q => q.customerId === id), [id]);
+  const linkedOrders = useMemo(() => getSalesOrders().filter(o => linkedQuotations.some(q => q.id === o.quotationId)), [linkedQuotations]);
+
   const showEmail = canViewSensitive(user?.id, 'crm', 'email');
   const showPhone = canViewSensitive(user?.id, 'crm', 'phone');
 
