@@ -93,6 +93,7 @@ describe("CRM Performance — Large Activities Set", () => {
     const t3 = performance.now();
     expect(filtered.length).toBe(50); // 5000/100
     expect(t3 - t2).toBeLessThan(500);
+  });
 });
 
 describe("CRM Performance — Analytics at Scale", () => {
@@ -132,4 +133,5 @@ describe("CRM Performance — Analytics at Scale", () => {
     crm.getOpportunitiesByStage();
     const t3 = performance.now();
     expect(t3 - t2).toBeLessThan(500);
+  });
 });
