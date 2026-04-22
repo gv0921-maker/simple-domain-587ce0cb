@@ -183,6 +183,7 @@ const App = () => (
             <Route path="/employees/*" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
 
             {/* CRM module */}
+            <Route path="/crm/dashboard" element={<ProtectedRoute><CRMOverview /></ProtectedRoute>} />
             <Route path="/crm" element={<ProtectedRoute><CRMPipeline /></ProtectedRoute>} />
             <Route path="/crm/opportunities/new" element={<ProtectedRoute><OpportunityForm /></ProtectedRoute>} />
             <Route path="/crm/opportunities/:id" element={<ProtectedRoute><OpportunityDetail /></ProtectedRoute>} />
