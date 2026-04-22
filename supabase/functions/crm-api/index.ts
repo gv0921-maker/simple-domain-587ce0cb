@@ -185,13 +185,13 @@ Deno.serve(async (req) => {
       const { data, error: ie } = await supabase.from(table).insert(body).select().single();
       if (ie) return err(ie.message, 500);
       // Audit log
-      await supabase.from("crm_audit_logs").insert({
-        user_id: claimsData.user.id,
-        user_name: claimsData.user.email || "",
-        action: "create",
-        resource: table,
-        resource_id: data.id,
-        details: `Created ${resource} record`,
+      await supabase.rpc("insert_audit_log", {
+        _user_id: claimsData.user.id,
+        _user_name: claimsData.user.email || "",
+        _action: "create",
+        _resource: table,
+        _resource_id: data.id,
+        _details: `Created ${resource} record`,
       });
       return json(data, 201);
     }
@@ -203,13 +203,13 @@ Deno.serve(async (req) => {
       delete body.created_at;
       const { data, error: ue } = await supabase.from(table).update(body).eq("id", resourceId).select().single();
       if (ue) return err(ue.message, 500);
-      await supabase.from("crm_audit_logs").insert({
-        user_id: claimsData.user.id,
-        user_name: claimsData.user.email || "",
-        action: "update",
-        resource: table,
-        resource_id: resourceId,
-        details: `Updated ${resource} record`,
+      await supabase.rpc("insert_audit_log", {
+        _user_id: claimsData.user.id,
+        _user_name: claimsData.user.email || "",
+        _action: "update",
+        _resource: table,
+        _resource_id: resourceId,
+        _details: `Updated ${resource} record`,
       });
       return json(data);
     }
@@ -219,13 +219,13 @@ Deno.serve(async (req) => {
       if (table === "crm_audit_logs") return err("Audit logs cannot be deleted", 403);
       const { error: de } = await supabase.from(table).delete().eq("id", resourceId);
       if (de) return err(de.message, 500);
-      await supabase.from("crm_audit_logs").insert({
-        user_id: claimsData.user.id,
-        user_name: claimsData.user.email || "",
-        action: "delete",
-        resource: table,
-        resource_id: resourceId,
-        details: `Deleted ${resource} record`,
+      await supabase.rpc("insert_audit_log", {
+        _user_id: claimsData.user.id,
+        _user_name: claimsData.user.email || "",
+        _action: "delete",
+        _resource: table,
+        _resource_id: resourceId,
+        _details: `Deleted ${resource} record`,
       });
       return json({ success: true });
     }
