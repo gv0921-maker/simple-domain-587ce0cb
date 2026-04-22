@@ -14,6 +14,7 @@ import type {
   SalesOrderLine,
 } from './types';
 import { getProducts } from '../inventory';
+import { logSales } from '../../sales/audit';
 
 // Default Tax Rules
 const DEFAULT_TAX_RULES: TaxRule[] = [
