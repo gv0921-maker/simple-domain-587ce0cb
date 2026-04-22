@@ -54,6 +54,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, parseISO, isPast } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { autoExpireQuotations } from '@/lib/sales/automation';
+import { SalesImportExport } from '@/components/sales/SalesImportExport';
 
 const STATUS_CONFIG: Record<QuotationStatus, { label: string; className: string; icon: typeof FileText }> = {
   draft: { label: 'Draft', className: 'bg-muted text-muted-foreground', icon: FileText },
@@ -68,6 +70,7 @@ export default function QuotationsList() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [quotations, setQuotations] = useState<Quotation[]>(() => getQuotations());
+  useState(() => { autoExpireQuotations(); });
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<QuotationStatus | 'all'>('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);

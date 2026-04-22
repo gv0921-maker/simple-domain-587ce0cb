@@ -52,6 +52,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { SalesImportExport } from '@/components/sales/SalesImportExport';
 
 const STATUS_CONFIG: Record<SalesOrderStatus, { label: string; className: string; icon: typeof ShoppingCart }> = {
   draft: { label: 'Draft', className: 'bg-muted text-muted-foreground', icon: FileText },
