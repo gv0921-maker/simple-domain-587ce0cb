@@ -147,7 +147,21 @@ export default function QuotationForm() {
       setLoading(false);
     }
   }, [id, isNew, navigate, toast]);
-  
+
+  // Pre-fill customer from CRM URL params
+  useEffect(() => {
+    if (isNew && urlCustomerId) {
+      const contact = contacts.find(c => c.id === urlCustomerId);
+      if (contact) {
+        setFormData(prev => ({
+          ...prev,
+          customerId: contact.id,
+          customerName: contact.company ? `${contact.name} - ${contact.company}` : contact.name,
+        }));
+      }
+    }
+  }, [isNew, urlCustomerId, contacts]);
+
   // Calculate totals
   const totals = useMemo(() => {
     const subtotal = lines.reduce((sum, line) => sum + line.subtotal, 0);
