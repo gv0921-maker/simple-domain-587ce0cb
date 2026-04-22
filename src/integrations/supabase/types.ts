@@ -662,6 +662,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      insert_audit_log: {
+        Args: {
+          _action: string
+          _details?: string
+          _ip_address?: string
+          _resource: string
+          _resource_id?: string
+          _user_id: string
+          _user_name: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       activity_type:
