@@ -432,7 +432,16 @@ export default function OpportunityDetail() {
                   {isEditing ? (
                     <Input defaultValue={opportunity.contactName} className="h-8 text-sm" onChange={e => setEditData({ ...editData, contactName: e.target.value })} />
                   ) : (
-                    currentData.contactName || '—'
+                    currentData.contactId ? (
+                      <button
+                        onClick={() => navigate(`/crm/contacts/${currentData.contactId}`)}
+                        className="text-primary hover:underline text-sm"
+                      >
+                        {currentData.contactName || '—'}
+                      </button>
+                    ) : (
+                      <span className="text-muted-foreground">{currentData.contactName || '—'}</span>
+                    )
                   )}
                 </OdooField>
 
@@ -461,7 +470,9 @@ export default function OpportunityDetail() {
                   {isEditing ? (
                     <Input type="date" defaultValue={opportunity.expectedCloseDate} className="h-8 text-sm" onChange={e => setEditData({ ...editData, expectedCloseDate: e.target.value })} />
                   ) : (
-                    currentData.expectedCloseDate ? format(parseISO(currentData.expectedCloseDate), 'MM/dd/yyyy') : 'No closing estimate'
+                    currentData.expectedCloseDate
+                      ? format(parseISO(currentData.expectedCloseDate), 'MM/dd/yyyy')
+                      : <span className="text-muted-foreground italic">No closing estimate</span>
                   )}
                   {!isEditing && (
                     <div className="ml-4">
