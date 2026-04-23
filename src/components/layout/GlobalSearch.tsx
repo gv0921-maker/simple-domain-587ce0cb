@@ -136,7 +136,7 @@ export function GlobalSearch() {
               ref={inputRef}
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Search leads, contacts, modules..."
+              placeholder="Search contacts, opportunities, modules..."
               className="h-10 flex-1 bg-transparent border-0 outline-none text-sm"
               autoFocus
             />
