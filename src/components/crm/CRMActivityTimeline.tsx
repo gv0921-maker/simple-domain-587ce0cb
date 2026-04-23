@@ -167,7 +167,7 @@ interface CRMActivityTimelineProps {
 export function CRMActivityTimeline({ relatedTo, relatedId }: CRMActivityTimelineProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { canEditOpportunities, canEditLeads, canEditContacts } = useCRMPermissions();
+  const { canEditOpportunities, canEditContacts } = useCRMPermissions();
   
   const [activities, setActivities] = useState<Activity[]>(() => getActivities(relatedTo, relatedId));
   const [notes, setNotes] = useState<Note[]>(() => getNotes(relatedTo, relatedId));
@@ -182,7 +182,7 @@ export function CRMActivityTimeline({ relatedTo, relatedId }: CRMActivityTimelin
   const [newNote, setNewNote] = useState('');
 
   const canEdit = relatedTo === 'opportunity' ? canEditOpportunities :
-                  relatedTo === 'lead' ? canEditLeads : canEditContacts;
+                  canEditContacts;
 
   const handleAddActivity = () => {
     if (!newActivity.subject?.trim()) {
