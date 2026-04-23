@@ -38,9 +38,7 @@ import {
 import {
   importContacts,
   importOpportunities,
-  importLeads,
   exportContacts,
-  exportLeads,
   exportOpportunities,
   type ImportResult,
 } from '@/lib/data/crm';
