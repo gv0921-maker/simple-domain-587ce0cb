@@ -21,16 +21,12 @@ import {
 } from '@/components/ui/select';
 import {
   Users,
-  
-  Target,
   TrendingUp,
   IndianRupee,
   CheckCircle2,
   Clock,
   ArrowRight,
-  UserPlus,
   BarChart3,
-  PieChart,
   CalendarIcon,
   Download,
   Filter,
@@ -38,10 +34,8 @@ import {
 } from 'lucide-react';
 import {
   getCRMStats,
-  getLeadsBySource,
   getOpportunitiesByStage,
   getOpportunities,
-  getLeads,
   getActivities,
   type CRMStats,
 } from '@/lib/data/crm';
@@ -116,15 +110,12 @@ export function CRMDashboard() {
   }, [userFilter]);
 
   const stats = useMemo(() => getCRMStats(), []);
-  const leadsBySource = useMemo(() => getLeadsBySource(), []);
   const opportunitiesByStage = useMemo(() => getOpportunitiesByStage(), []);
   const allOpportunities = useMemo(() => getOpportunities(), []);
-  const allLeads = useMemo(() => getLeads(), []);
   const activities = useMemo(() => getActivities(), []);
 
   // Apply filters
   const opportunities = useMemo(() => byUser(allOpportunities).filter(o => inRange(o.createdAt)), [allOpportunities, byUser, inRange]);
-  const leads = useMemo(() => byUser(allLeads).filter(l => inRange(l.createdAt)), [allLeads, byUser, inRange]);
   const filteredActivities = useMemo(() => activities.filter(a => inRange(a.createdAt)), [activities, inRange]);
 
   // Activity completion rate
@@ -137,10 +128,6 @@ export function CRMDashboard() {
   const exportPipelineCSV = () => {
     const rows = opportunitiesByStage.map(s => ({ Stage: s.stage, Count: s.count, Value: s.value }));
     downloadCSV('crm-pipeline.csv', toCSV(rows));
-  };
-  const exportLeadsCSV = () => {
-    const rows = leadsBySource.map(s => ({ Source: s.source, Count: s.count, Value: s.value }));
-    downloadCSV('crm-leads-by-source.csv', toCSV(rows));
   };
   const exportDealsCSV = () => {
     const rows = opportunities.filter(o => o.stage !== 'won' && o.stage !== 'lost').map(o => ({
@@ -169,13 +156,6 @@ export function CRMDashboard() {
       .slice(0, 5);
   }, [activities]);
 
-  const recentLeads = useMemo(() => {
-    return leads
-      .filter((l) => l.status === 'new')
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 5);
-  }, [leads]);
-
   const pipelineChartData = useMemo(() => {
     const colors: Record<string, 'blue' | 'teal' | 'orange' | 'coral'> = {
       new: 'blue',
@@ -191,14 +171,6 @@ export function CRMDashboard() {
       }));
   }, [opportunitiesByStage]);
 
-  const sourceChartData = useMemo(() => {
-    const colors: ('blue' | 'teal' | 'orange' | 'coral')[] = ['blue', 'teal', 'orange', 'coral'];
-    return leadsBySource.slice(0, 4).map((source, i) => ({
-      value: source.count,
-      color: colors[i % colors.length],
-    }));
-  }, [leadsBySource]);
-
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -208,10 +180,6 @@ export function CRMDashboard() {
           <p className="text-muted-foreground">Overview of your customer relationships and sales pipeline</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate('/crm/leads/new')}>
-            <UserPlus className="h-4 w-4 mr-2" />
-            New Lead
-          </Button>
           <Button onClick={() => navigate('/crm')}>
             View Pipeline
           </Button>
@@ -286,11 +254,11 @@ export function CRMDashboard() {
           delay={0}
         />
         <StatCard
-          title="Active Leads"
-          value={stats.totalLeads}
-          subtitle={`${stats.newLeadsThisMonth} new this month`}
-          icon={Target}
-          color="warning"
+          title="Active Opportunities"
+          value={stats.activeOpportunities}
+          subtitle="In pipeline"
+          icon={TrendingUp}
+          color="primary"
           delay={50}
         />
         <StatCard
@@ -392,53 +360,10 @@ export function CRMDashboard() {
           </CardContent>
         </Card>
 
-        {/* Leads by Source */}
-        <Card className="animate-fade-in">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <PieChart className="h-5 w-5" />
-              Leads by Source
-            </CardTitle>
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" onClick={exportLeadsCSV} title="Export CSV">
-                <Download className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/crm')}>
-                View All
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-center gap-4 mb-4">
-              {leadsBySource.slice(0, 4).map((source, i) => (
-                <div key={source.source} className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <div className={cn('w-2 h-2 rounded-full',
-                    i === 0 ? 'bg-chart-blue' :
-                    i === 1 ? 'bg-chart-teal' :
-                    i === 2 ? 'bg-chart-orange' : 'bg-chart-coral'
-                  )} />
-                  {source.source}
-                </div>
-              ))}
-            </div>
-            <SimpleBarChart data={sourceChartData} height={180} />
-            <div className="mt-4 space-y-2">
-              {leadsBySource.map((source) => (
-                <div key={source.source} className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground capitalize">{source.source.replace('_', ' ')}</span>
-                  <div className="flex items-center gap-4">
-                    <span>{source.count} leads</span>
-                    <span className="font-medium">₹{source.value.toLocaleString('en-IN')}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Lists Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Upcoming Deals */}
         <Card className="animate-fade-in">
           <CardHeader className="flex flex-row items-center justify-between">
@@ -472,40 +397,6 @@ export function CRMDashboard() {
                       {format(parseISO(deal.expectedCloseDate), 'MMM d')}
                       <span>•</span>
                       <span>{deal.probability}%</span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* New Leads */}
-        <Card className="animate-fade-in">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">New Leads</CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/crm')}>
-              View All
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {recentLeads.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No new leads</p>
-              ) : (
-                recentLeads.map((lead) => (
-                  <div
-                    key={lead.id}
-                    className="p-3 rounded-lg bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
-                    onClick={() => navigate(`/crm/leads/${lead.id}`)}
-                  >
-                    <p className="font-medium text-sm truncate">{lead.title}</p>
-                    <p className="text-xs text-muted-foreground">{lead.contactName}</p>
-                    <div className="flex items-center justify-between mt-1">
-                      <Badge variant="outline" className="text-xs capitalize">
-                        {lead.source.replace('_', ' ')}
-                      </Badge>
-                      <span className="text-xs font-medium">₹{lead.expectedRevenue.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
                 ))
