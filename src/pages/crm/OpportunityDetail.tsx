@@ -266,6 +266,23 @@ export default function OpportunityDetail() {
               <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEmailOpen(true)}>
                 <Mail className="h-3 w-3 mr-1" /> Email
               </Button>
+              {!isWon && !isLost && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="outline" className="h-7 text-xs">
+                      Mark As ▾
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleWon} className="text-xs gap-2">
+                      <Trophy className="h-3.5 w-3.5 text-green-600" /> Won
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowLostDialog(true)} className="text-xs gap-2">
+                      <XCircle className="h-3.5 w-3.5 text-muted-foreground" /> Lost
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
 
 
