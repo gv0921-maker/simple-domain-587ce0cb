@@ -863,7 +863,6 @@ export default function OpportunityDetail() {
               </div>
 
             </div>
-            </div>
           </div>
 
           {/* Right: Chatter panel */}
