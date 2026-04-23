@@ -396,7 +396,6 @@ function ensureCRMVersion() {
     // Clear all CRM data to use new empty defaults
     setItem('crm_opportunities', DEFAULT_OPPORTUNITIES);
     setItem('crm_pipelines', DEFAULT_PIPELINES);
-    setItem('crm_leads', DEFAULT_LEADS);
     setItem('crm_contacts', DEFAULT_CONTACTS);
     setItem('crm_companies', DEFAULT_COMPANIES);
     setItem('crm_activities', DEFAULT_ACTIVITIES);
@@ -638,8 +637,6 @@ export function saveTag(tag: Partial<CRMTag>): CRMTag {
 export interface CRMStats {
   totalContacts: number;
   totalCompanies: number;
-  totalLeads: number;
-  newLeadsThisMonth: number;
   totalOpportunities: number;
   activeOpportunities: number;
   pipelineValue: number;
@@ -655,7 +652,6 @@ export interface CRMStats {
 export function getCRMStats(): CRMStats {
   const contacts = getContacts();
   const companies = getCompanies();
-  const leads = getLeads();
   const opportunities = getOpportunities();
   const activities = getActivities();
   
@@ -670,8 +666,6 @@ export function getCRMStats(): CRMStats {
   return {
     totalContacts: contacts.filter(c => c.status === 'active').length,
     totalCompanies: companies.filter(c => c.status === 'active').length,
-    totalLeads: leads.length,
-    newLeadsThisMonth: leads.filter(l => new Date(l.createdAt) >= monthStart).length,
     totalOpportunities: opportunities.length,
     activeOpportunities: activeOpps.length,
     pipelineValue: activeOpps.reduce((sum, o) => sum + o.expectedRevenue, 0),
@@ -683,30 +677,6 @@ export function getCRMStats(): CRMStats {
     activitiesCompleted: activities.filter(a => a.completed).length,
     activitiesPending: activities.filter(a => !a.completed).length,
   };
-}
-
-export interface LeadsBySource {
-  source: string;
-  count: number;
-  value: number;
-}
-
-export function getLeadsBySource(): LeadsBySource[] {
-  const leads = getLeads();
-  const sourceMap = new Map<string, { count: number; value: number }>();
-  
-  leads.forEach(lead => {
-    const existing = sourceMap.get(lead.source) || { count: 0, value: 0 };
-    sourceMap.set(lead.source, {
-      count: existing.count + 1,
-      value: existing.value + lead.expectedRevenue,
-    });
-  });
-  
-  return Array.from(sourceMap.entries()).map(([source, data]) => ({
-    source,
-    ...data,
-  }));
 }
 
 export interface OpportunitiesByStage {
@@ -949,39 +919,8 @@ export function importOpportunities(data: Partial<Opportunity>[]): ImportResult 
   return result;
 }
 
-export function importLeads(data: Partial<Lead>[]): ImportResult {
-  const result: ImportResult = { success: 0, failed: 0, duplicates: 0, errors: [] };
-  
-  data.forEach((row, index) => {
-    try {
-      if (!row.title && !row.contactName) {
-        result.failed++;
-        result.errors.push(`Row ${index + 1}: Lead title or contact name is required`);
-        return;
-      }
-      
-      saveLead({
-        ...row,
-        title: row.title || `${row.contactName}'s lead`,
-        contactName: row.contactName || '',
-        email: row.email || '',
-      });
-      result.success++;
-    } catch (e) {
-      result.failed++;
-      result.errors.push(`Row ${index + 1}: ${e instanceof Error ? e.message : 'Unknown error'}`);
-    }
-  });
-  
-  return result;
-}
-
 export function exportContacts(): Contact[] {
   return getContacts();
-}
-
-export function exportLeads(): Lead[] {
-  return getLeads();
 }
 
 export function exportOpportunities(): Opportunity[] {

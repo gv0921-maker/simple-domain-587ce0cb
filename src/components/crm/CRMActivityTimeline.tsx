@@ -160,7 +160,7 @@ function NoteItem({ note }: NoteItemProps) {
 }
 
 interface CRMActivityTimelineProps {
-  relatedTo: 'contact' | 'company' | 'lead' | 'opportunity';
+  relatedTo: 'contact' | 'company' | 'opportunity';
   relatedId: string;
 }
 
