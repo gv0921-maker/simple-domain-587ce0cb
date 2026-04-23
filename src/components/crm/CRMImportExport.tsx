@@ -48,7 +48,7 @@ import * as XLSX from 'xlsx';
 
 // ===================== Field Mapping Configs =====================
 
-type RecordType = 'contacts' | 'leads' | 'opportunities';
+type RecordType = 'contacts' | 'opportunities';
 
 interface FieldDef {
   value: string;
@@ -101,26 +101,8 @@ const OPPORTUNITY_FIELDS: FieldDef[] = [
   { value: 'skip', label: '-- Skip --' },
 ];
 
-const LEAD_FIELDS: FieldDef[] = [
-  { value: 'title', label: 'Lead Title' },
-  { value: 'contactName', label: 'Contact Name' },
-  { value: 'email', label: 'Email' },
-  { value: 'phone', label: 'Phone' },
-  { value: 'companyName', label: 'Company Name' },
-  { value: 'source', label: 'Source' },
-  { value: 'status', label: 'Status' },
-  { value: 'priority', label: 'Priority' },
-  { value: 'expectedRevenue', label: 'Expected Revenue' },
-  { value: 'probability', label: 'Probability (%)' },
-  { value: 'assignedTo', label: 'Salesperson' },
-  { value: 'tags', label: 'Tags' },
-  { value: 'notes', label: 'Notes' },
-  { value: 'skip', label: '-- Skip --' },
-];
-
 const FIELDS_MAP: Record<RecordType, FieldDef[]> = {
   contacts: CONTACT_FIELDS,
-  leads: LEAD_FIELDS,
   opportunities: OPPORTUNITY_FIELDS,
 };
 
@@ -144,22 +126,6 @@ function guessFieldMapping(header: string, recordType: RecordType): string {
     if (h.includes('email')) return 'email';
     if (h.includes('phone')) return 'phone';
     if (h.includes('note')) return 'notes';
-  }
-
-  // Lead-specific
-  if (recordType === 'leads') {
-    if (h === 'title' || h === 'lead title' || h === 'opportunity') return 'title';
-    if (h === 'contact name' || h === 'contact') return 'contactName';
-    if (h === 'company name' || h === 'company') return 'companyName';
-    if (h === 'source' || h === 'lead source') return 'source';
-    if (h === 'status') return 'status';
-    if (h === 'expected revenue' || h === 'revenue') return 'expectedRevenue';
-    if (h === 'probability') return 'probability';
-    if (h === 'salesperson') return 'assignedTo';
-    if (h.includes('email')) return 'email';
-    if (h.includes('phone')) return 'phone';
-    if (h.includes('priority')) return 'priority';
-    if (h.includes('tag')) return 'tags';
   }
 
   // Contact-specific
@@ -333,8 +299,6 @@ export function CRMImportDialog({ open, onOpenChange, onImportComplete, defaultR
             record[mapping.crmField] = parseNumber(val);
           } else if (mapping.crmField === 'priority' && recordType === 'opportunities') {
             record[mapping.crmField] = parsePriority(String(val));
-          } else if (mapping.crmField === 'priority' && recordType === 'leads') {
-            record[mapping.crmField] = parseLeadPriority(String(val));
           } else if (mapping.crmField === 'tags') {
             record[mapping.crmField] = String(val).split(',').map(t => t.trim()).filter(Boolean);
           } else {
@@ -357,7 +321,6 @@ export function CRMImportDialog({ open, onOpenChange, onImportComplete, defaultR
       let result: ImportResult;
       switch (recordType) {
         case 'contacts': result = importContacts(records); break;
-        case 'leads': result = importLeads(records); break;
         case 'opportunities': result = importOpportunities(records); break;
       }
       Object.assign(combinedResult, result);
@@ -372,7 +335,6 @@ export function CRMImportDialog({ open, onOpenChange, onImportComplete, defaultR
         let result: ImportResult;
         switch (recordType) {
           case 'contacts': result = importContacts(batch); break;
-          case 'leads': result = importLeads(batch); break;
           case 'opportunities': result = importOpportunities(batch); break;
         }
         combinedResult.success += result.success;
@@ -403,7 +365,7 @@ export function CRMImportDialog({ open, onOpenChange, onImportComplete, defaultR
   if (!canImportData) return null;
 
   const fields = FIELDS_MAP[recordType];
-  const recordLabel = recordType === 'contacts' ? 'Contacts' : recordType === 'leads' ? 'Leads' : 'Opportunities';
+  const recordLabel = recordType === 'contacts' ? 'Contacts' : 'Opportunities';
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -621,25 +583,6 @@ export function CRMExportButton({ type, variant = 'outline', format = 'xlsx' }: 
           'Department': c.department || '',
           'Status': c.status,
           'Tags': c.tags.join(', '),
-        }));
-        break;
-      }
-      case 'leads': {
-        const leads = exportLeads();
-        filename = `crm_leads.${format}`;
-        exportData = leads.map(l => ({
-          'Title': l.title,
-          'Contact Name': l.contactName,
-          'Email': l.email,
-          'Phone': l.phone || '',
-          'Company Name': l.companyName || '',
-          'Source': l.source,
-          'Status': l.status,
-          'Priority': l.priority,
-          'Expected Revenue': l.expectedRevenue,
-          'Probability': l.probability,
-          'Salesperson': l.assignedTo || '',
-          'Tags': l.tags.join(', '),
         }));
         break;
       }
