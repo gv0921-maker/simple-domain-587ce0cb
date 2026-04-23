@@ -377,7 +377,7 @@ export default function OpportunityDetail() {
       <div className="flex flex-col h-full">
         {/* Top control panel — Odoo style */}
         <div className="border-b border-border bg-card px-4 py-2 shrink-0">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             {/* Left: breadcrumb */}
             <div className="flex items-center gap-1.5 text-sm">
               <Button
@@ -394,7 +394,7 @@ export default function OpportunityDetail() {
                 Pipeline
               </button>
               <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-foreground font-medium">{opportunity.name}</span>
+              <span className="text-foreground font-medium truncate max-w-[120px] sm:max-w-none">{opportunity.name}</span>
               <Settings className="h-3.5 w-3.5 text-muted-foreground ml-1 cursor-pointer" />
             </div>
             <div className="flex items-center gap-1.5">
@@ -442,9 +442,9 @@ export default function OpportunityDetail() {
         </div>
 
         {/* Content area — split: form left, chatter right */}
-        <div className="flex-1 overflow-hidden flex">
+        <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
           {/* Left: Form */}
-          <div className="flex-1 overflow-y-auto border-r border-border">
+          <div className="w-full lg:flex-1 overflow-y-auto border-b lg:border-b-0 lg:border-r border-border">
             <div className="p-4 max-w-4xl relative overflow-hidden">
               {/* Won/Lost Ribbon Overlay */}
               {isWon && (
@@ -459,7 +459,7 @@ export default function OpportunityDetail() {
               )}
 
               {/* Chevron Stage Bar */}
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-4 overflow-x-auto scrollbar-hide">
                 {!isLost && (
                   <div className="flex items-stretch flex-1">
                     {activeStages.map((stage, index) => {
@@ -489,7 +489,7 @@ export default function OpportunityDetail() {
                           key={stage.id}
                           onClick={() => handleStageClick(stage.id)}
                           className={cn(
-                            'relative flex-1 py-1.5 text-center text-xs font-semibold transition-all flex flex-col items-center justify-center',
+                            'relative flex-1 py-1.5 text-center text-xs font-semibold transition-all flex flex-col items-center justify-center min-w-[100px] lg:min-w-0 flex-shrink-0',
                             isActive && 'bg-[#875A7B] text-white z-10',
                             isPast && 'bg-[#875A7B]/20 text-[#875A7B]',
                             !isActive && !isPast && 'bg-muted/60 text-muted-foreground hover:bg-muted',
@@ -566,7 +566,7 @@ export default function OpportunityDetail() {
               <Separator className="mb-4" />
 
               {/* Two-column form */}
-              <div className="grid grid-cols-2 gap-x-12 gap-y-3 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-3 mb-6">
                 {/* Contact — clickable name + pencil popover */}
                 <OdooField label="Contact" link>
                   <div className="flex items-center gap-1 group">
@@ -720,14 +720,14 @@ export default function OpportunityDetail() {
 
                 <TabsContent value="notes" className="mt-4">
                   <Textarea
-                    className="min-h-[120px] text-sm border-transparent hover:border-border focus:border-primary bg-transparent"
+                    className="min-h-[200px] text-sm border-transparent hover:border-border focus:border-primary bg-transparent"
                     value={currentData.internalNotes || ''}
                     onChange={e => updateField('internalNotes', e.target.value)}
                   />
                 </TabsContent>
 
                 <TabsContent value="contacts" className="mt-4">
-                  <div className="grid grid-cols-2 gap-x-12 gap-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
                     <div>
                       <h3 className="text-sm font-bold text-[#875A7B] uppercase tracking-wide mb-3 border-b border-border pb-1">
                         Company Information
@@ -866,9 +866,9 @@ export default function OpportunityDetail() {
           </div>
 
           {/* Right: Chatter panel */}
-          <div className="w-[380px] flex flex-col shrink-0 bg-card">
+          <div className="w-full lg:w-[380px] max-h-[500px] lg:max-h-none flex flex-col shrink-0 bg-card overflow-y-auto">
             {/* Chatter tabs */}
-            <div className="flex items-center border-b border-border px-3 py-2 gap-1">
+            <div className="flex items-center border-b border-border px-3 py-2 gap-1 overflow-x-auto flex-nowrap">
               <Button
                 variant={chatterTab === 'message' ? 'default' : 'outline'}
                 size="sm"
