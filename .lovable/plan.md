@@ -1,162 +1,115 @@
 
 
-# Plan: Complete 6 Remaining CRM Module Items
+# Opportunity Detail — Odoo-Style Upgrade Plan
 
-## Overview
+## Summary
 
-Implement the 6 incomplete CRM requirements: Supabase database schema, REST API via Edge Functions, unit tests, integration tests, performance tests, and user/admin documentation.
-
----
-
-## Item 1: Database Schema with Indexes (Supabase Migration)
-
-Create a single migration that mirrors the existing localStorage data model into normalized Supabase tables.
-
-**Tables to create:**
-- `crm_contacts` — all contact fields including type (individual/company), emails/phones as JSONB arrays, addresses as JSONB, custom_fields as JSONB, tags as text array
-- `crm_companies` — name, website, industry, employee_count, annual_revenue, addresses JSONB, parent_company_id (self-ref), tags
-- `crm_leads` — title, contact_id (FK), email, phone, source enum, status enum, priority enum, score, expected_revenue, probability, assigned_to, team_id, tags, lost_reason
-- `crm_opportunities` — name, contact_id (FK), pipeline_id (FK), stage_id, stage enum, expected_revenue, probability, priority, expected_close_date, products JSONB, tags, lost_reason, won_at, lost_at
-- `crm_pipelines` — name, description, is_default boolean
-- `crm_pipeline_stages` — pipeline_id (FK), name, order, probability, color, automation_hooks JSONB
-- `crm_activities` — type enum, subject, description, related_to enum, related_id UUID, user_id, due_date, completed boolean, completed_at, priority enum, mentions JSONB
-- `crm_notes` — content (HTML), related_to, related_id, user_id, visibility enum, mentions JSONB, attachments JSONB
-- `crm_tags` — name, color, category
-- `crm_audit_logs` — user_id, user_name, action, resource, resource_id, details, timestamp
-
-**Indexes on:**
-- `crm_contacts`: email, phone, assigned_to, status, created_at
-- `crm_leads`: email, assigned_to, status, source, created_at
-- `crm_opportunities`: stage, assigned_to, pipeline_id, expected_close_date, created_at
-- `crm_activities`: related_to + related_id, user_id, due_date, completed
-- `crm_notes`: related_to + related_id
-
-**Enums to create:** contact_type, contact_status, lead_source, lead_priority, lead_status, opportunity_stage, activity_type, note_visibility
-
-**RLS policies:** All tables will have RLS enabled. Authenticated users can read all records; create/update/delete restricted to authenticated users. The `crm_audit_logs` table is insert-only for authenticated, select for admins.
-
-**Triggers:** `update_updated_at_column()` on all tables with updated_at.
+Six targeted changes to the existing `OpportunityDetail.tsx` and supporting files, transforming the page to match the Odoo CRM reference layout. No rebuild — surgical edits only.
 
 ---
 
-## Item 2: REST API + OpenAPI Spec (Edge Functions)
+## Change 1 — Won/Lost Ribbon Overlay + "Mark As" Dropdown
 
-Create Supabase Edge Functions that expose RESTful endpoints for all CRM entities.
+**Files:** `src/pages/crm/OpportunityDetail.tsx`
 
-**Edge Function: `crm-api`** (single function, route-based)
-
-Endpoints:
-- `GET/POST /contacts`, `GET/PATCH/DELETE /contacts/:id`
-- `GET/POST /companies`, `GET/PATCH/DELETE /companies/:id`
-- `GET/POST /leads`, `GET/PATCH/DELETE /leads/:id`, `POST /leads/:id/convert`
-- `GET/POST /opportunities`, `GET/PATCH/DELETE /opportunities/:id`, `PATCH /opportunities/:id/stage`
-- `GET/POST /activities`, `PATCH /activities/:id/complete`, `DELETE /activities/:id`
-- `GET/POST /notes`, `DELETE /notes/:id`
-- `GET/POST /pipelines`, `DELETE /pipelines/:id`
-- `GET /tags`, `POST /tags`
-
-Features per endpoint:
-- Pagination (`?page=1&limit=25`)
-- Filtering (`?status=active&assigned_to=xxx`)
-- Search (`?q=search_term`)
-- Sorting (`?sort=created_at&order=desc`)
-- JWT auth validation — role-aware responses based on user permissions
-
-**Edge Function: `crm-openapi`**
-
-Returns a complete OpenAPI 3.0 JSON spec documenting all endpoints, request/response schemas, authentication requirements, and query parameters. Accessible at `/crm-openapi`.
-
-**Update CRMDataSchema.tsx** to link to the live OpenAPI spec and show the real API endpoints instead of localStorage references.
+- Remove the standalone Won and Lost buttons (lines 285-311) from the stage bar area
+- Add a "Mark As" dropdown button next to the Email button in the top control bar (line 251-253), using `DropdownMenu` from shadcn. Menu items: "Won" and "Lost" (Lost opens the existing dialog)
+- On the main content area (`<div className="p-4 max-w-4xl">`, line 282), add `relative overflow-hidden` classes
+- Inside that div, conditionally render a CSS ribbon:
+  - When `isWon`: green (`bg-green-600`) diagonal ribbon, text "WON", positioned `absolute top-4 -right-7 rotate-45` with wide horizontal padding
+  - When `isLost`: grey (`bg-gray-500`) diagonal ribbon, text "LOST"
+- The ribbon is purely CSS — no images or SVGs
 
 ---
 
-## Item 3: Unit Tests
+## Change 2 — Time-in-Stage Indicators
 
-Create test files using Vitest (already configured):
+**Files:** `src/lib/data/crm.ts`, `src/pages/crm/OpportunityDetail.tsx`
 
-**`src/test/crm/crm-data.test.ts`** — CRM logic unit tests:
-- Contact CRUD: create, read, update, delete
-- Duplicate detection: by email, by phone, exclusion logic
-- Lead CRUD and status transitions
-- Lead scoring calculation (rule matching, score aggregation)
-- Opportunity CRUD, stage update logic (won sets probability=100, lost sets probability=0)
-- Pipeline CRUD, default pipeline logic, deletion guards
-- Activity CRUD, completion logic
-- Note CRUD with visibility
-- Tag CRUD
-- Analytics: getCRMStats, getLeadsBySource, getOpportunitiesByStage
-- Import contacts: success, duplicate detection, field mapping
+### Data model change
+- Add `stageHistory?: { stageId: string; enteredAt: string }[]` to the `Opportunity` interface
+- In `updateOpportunityStage()`, append `{ stageId, enteredAt: new Date().toISOString() }` to the opportunity's `stageHistory` array before saving
 
-**`src/test/crm/crm-audit.test.ts`** — Audit logging:
-- Verify logCRM creates entries
-- Verify all CRUD operations produce audit logs
-
-**`src/test/crm/crm-permissions.test.ts`** — Permission logic:
-- hasPermission checks per level
-- Record scope filtering (own vs all)
-- Field masking (maskEmail, maskPhone, maskRevenue)
-- canViewSensitive by permission level
+### UI change
+- In the chevron stage bar (lines 316-348), for each stage:
+  - Look up the stage in `stageHistory` to find when it was entered
+  - If it is the current stage, calculate elapsed time from `enteredAt` to now
+  - If it is a past stage, calculate time from its `enteredAt` to the next stage's `enteredAt`
+  - Display below the stage name in a `<span>` with format: <1h = "Xm", <24h = "Xh", else "Xd"
+  - If no history entry exists for a stage, show no time indicator
 
 ---
 
-## Item 4: Integration Tests
+## Change 3 — Contact Field as Clickable Link
 
-**`src/test/crm/crm-integration.test.ts`**:
-- Lead → Opportunity conversion: create lead, convert, verify opportunity fields, verify lead status = converted
-- Pipeline stage changes: create opportunity, move through stages, verify probability updates, verify won/lost timestamps
-- Permission-gated operations: verify scope filtering returns correct records
-- Contact-Lead linking: create lead with email, verify auto-created contact, verify contactId linkage
-- CRM backup/restore cycle: export, import, verify data integrity
+**File:** `src/pages/crm/OpportunityDetail.tsx`
 
----
-
-## Item 5: Performance Tests
-
-**`src/test/crm/crm-performance.test.ts`**:
-- **10k+ contacts**: generate 10,000 contacts, measure getContacts() time (target: < 500ms), measure findDuplicateContacts time, measure importContacts with 1,000 records
-- **50k+ activities**: generate 50,000 activities, measure getActivities() time, measure filtered getActivities(relatedTo, relatedId) time
-- **Analytics at scale**: with 10k contacts and 5k opportunities, measure getCRMStats(), getOpportunitiesByStage(), getLeadsBySource() performance
-- Use `performance.now()` for timing, assert reasonable thresholds
+- In the Contact `OdooField` (lines 398-404), when not editing:
+  - If `opportunity.contactId` exists, render the contact name as a `<button>` with `text-primary hover:underline` that navigates to `/crm/contacts/${opportunity.contactId}`
+  - If no `contactId`, show the name as plain text or "—" if empty
 
 ---
 
-## Item 6: User & Admin Documentation
+## Change 4 — Expected Closing Empty State
 
-Generate two DOCX documents to `/mnt/documents/`:
+**File:** `src/pages/crm/OpportunityDetail.tsx`
 
-**`crm-user-guide.docx`** — Step-by-step workflow guide:
-1. Logging in and navigating to CRM
-2. Managing Contacts (create, edit, archive, duplicate detection)
-3. Managing Leads (create, qualify, convert to opportunity)
-4. Pipeline & Opportunities (Kanban view, drag-drop, stage transitions, win/loss)
-5. Activities & Timeline (scheduling calls/meetings, completing tasks, ICS export)
-6. Notes & Communication (rich text, @mentions, attachments, visibility)
-7. Search & Filtering (global search, pipeline filters, group-by)
-8. Import/Export (CSV import with field mapping, CSV export)
-9. Analytics Dashboard (date filters, user filters, chart widgets)
-10. Notifications (bell icon, reminders, automation alerts)
+- Already implemented at line 431: `'No closing estimate'` is shown when `expectedCloseDate` is falsy
+- Verify it renders with `text-muted-foreground` styling. If not, wrap in a `<span className="text-muted-foreground italic">` — currently it falls through to the OdooField's default text color, so add explicit muted styling
 
-**`crm-admin-guide.docx`** — Administration reference:
-1. Role management (CRM Admin, Sales Manager, Sales Rep, Read-only)
-2. Permission levels (View/Create/Edit/Delete/Admin)
-3. Record scope configuration (Own/Team/All)
-4. Field-level masking (sensitive field visibility)
-5. Pipeline configuration (multi-pipeline, stages, automation hooks)
-6. Backup & restore (encrypted export/import)
-7. Audit logs (viewing, filtering, interpreting)
-8. CRM Data Schema / API reference
+---
+
+## Change 5 — Chatter Tab Labels (already mostly done)
+
+**File:** `src/pages/crm/OpportunityDetail.tsx`
+
+- The tabs already say "Send message", "Log note", "Activity" (lines 668-688) — these match the reference
+- Move the search icon to the far right of the chatter header (already at line 690) — no change needed
+- Ensure active tab has a distinct visual: currently uses variant="default" with colored backgrounds — matches reference style. No changes required here.
+
+---
+
+## Change 6 — Auto-log Stage Changes in Chatter
+
+**File:** `src/pages/crm/OpportunityDetail.tsx`
+
+- In `handleStageClick()` (line 131): after calling `updateOpportunityStage()`, save a system note via `saveNote()`:
+  ```
+  subject: "Stage changed"
+  content: "Stage changed\n{previousStageName} → {newStageName} (Stage)"
+  relatedTo: 'opportunity', relatedId: opportunity.id
+  userName: user.name, visibility: 'team'
+  ```
+- In `handleWon()` (line 143): after the stage update, log:
+  ```
+  content: "Opportunity won\nPending → Won (Won/Lost)\n{previousStageName} → Won (Stage)"
+  ```
+- In `handleLost()` (line 149): after saving, log:
+  ```
+  content: "Opportunity lost\nPending → Lost (Won/Lost)\n{previousStageName} → Lost (Stage)"
+  ```
+- These system notes will appear in the existing chatter timeline automatically since they're saved via `saveNote()`
+
+---
+
+## Technical Details
+
+- **New import:** `DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem` from `@/components/ui/dropdown-menu`
+- **Opportunity interface change:** Adding optional `stageHistory` array — backward compatible, existing records without it will simply show no time indicators
+- **Ribbon CSS:** Uses Tailwind utility classes only (`absolute`, `rotate-45`, overflow-hidden on parent), no custom CSS needed
+- **Time formatting helper:** Small inline function `formatElapsed(ms: number)` returning "Xm" / "Xh" / "Xd"
+- **No new files created** — all changes are edits to existing files
 
 ---
 
 ## Execution Order
 
-1. **Database migration** — Create all tables, enums, indexes, RLS, triggers
-2. **Edge Functions** — `crm-api` + `crm-openapi`, update CRMDataSchema.tsx
-3. **Unit tests** — 3 test files covering data, audit, permissions
-4. **Integration tests** — 1 test file covering cross-feature flows
-5. **Performance tests** — 1 test file with scale benchmarks
-6. **Documentation** — 2 DOCX files generated to /mnt/documents/
+1. Change 1 (Ribbon + Mark As dropdown) — most visual impact
+2. Change 2 (Stage history data model + time indicators)
+3. Change 3 (Contact clickable link)
+4. Change 4 (Expected Closing empty state styling)
+5. Change 5 (Verify chatter tabs — likely no-op)
+6. Change 6 (Auto-log stage changes)
 
-**Estimated new files:** ~8 (migration, 2 edge functions, 5 test files, 2 docs)
-**Estimated edited files:** ~2 (CRMDataSchema.tsx, App.tsx or config)
+Each confirmed individually before proceeding.
 
