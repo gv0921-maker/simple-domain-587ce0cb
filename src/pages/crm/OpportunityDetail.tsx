@@ -44,6 +44,12 @@ import {
   User,
   Mail,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 import { EmailComposerDialog } from '@/components/crm/EmailComposerDialog';
 import {
   getOpportunity,
@@ -69,6 +75,15 @@ import { format, parseISO } from 'date-fns';
 import { RichComposer, RichContent, type RichComposerValue } from '@/components/ui/rich-composer';
 import { useAuth } from '@/contexts/AuthContext';
 import { displayRevenue, canViewSensitive, maskEmail, maskPhone } from '@/lib/crm/fieldMask';
+
+// Format elapsed time: <1h → "Xm", <24h → "Xh", else → "Xd"
+function formatElapsed(ms: number): string {
+  const minutes = Math.floor(ms / 60000);
+  if (minutes < 60) return `${Math.max(1, minutes)}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
+}
 
 // Contact avatar
 function ChatterAvatar({ name }: { name: string }) {
