@@ -202,6 +202,7 @@ const DEFAULT_PIPELINES: Pipeline[] = [
       { id: 'qualified', pipelineId: 'default', name: 'Qualified', order: 2, probability: 30, color: 'hsl(174, 60%, 45%)' },
       { id: 'proposition', pipelineId: 'default', name: 'Proposition', order: 3, probability: 60, color: 'hsl(38, 90%, 55%)' },
       { id: 'won', pipelineId: 'default', name: 'Won', order: 4, probability: 100, color: 'hsl(142, 60%, 45%)' },
+      { id: 'lost', pipelineId: 'default', name: 'Lost', order: 5, probability: 0, color: 'hsl(0, 70%, 55%)' },
     ],
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
@@ -389,12 +390,12 @@ export function savePipeline(pipeline: Partial<Pipeline> & { id?: string }): Pip
 
 // Force reset CRM data to new Odoo-style pipeline on version change
 const CRM_VERSION_KEY = 'crm_data_version';
-const CRM_CURRENT_VERSION = 3;
+const CRM_CURRENT_VERSION = 4;
 
 function ensureCRMVersion() {
   const stored = getItem<number>(CRM_VERSION_KEY, 0);
-  if (stored < CRM_CURRENT_VERSION) {
-    // Clear all CRM data to use new empty defaults
+  if (stored === 0) {
+    // Fresh install — seed all defaults
     setItem('crm_opportunities', DEFAULT_OPPORTUNITIES);
     setItem('crm_pipelines', DEFAULT_PIPELINES);
     setItem('crm_contacts', DEFAULT_CONTACTS);
@@ -402,6 +403,24 @@ function ensureCRMVersion() {
     setItem('crm_activities', DEFAULT_ACTIVITIES);
     setItem('crm_notes', DEFAULT_NOTES);
     setItem('crm_tags', DEFAULT_TAGS);
+    setItem(CRM_VERSION_KEY, CRM_CURRENT_VERSION);
+    return;
+  }
+  if (stored < CRM_CURRENT_VERSION) {
+    // v4: ensure default pipeline includes a 'lost' stage without wiping user data
+    const pipelines = getItem<Pipeline[]>('crm_pipelines', DEFAULT_PIPELINES);
+    const patched = pipelines.map(p => {
+      if (p.id !== 'default') return p;
+      if (p.stages.some(s => s.id === 'lost')) return p;
+      return {
+        ...p,
+        stages: [
+          ...p.stages,
+          { id: 'lost', pipelineId: p.id, name: 'Lost', order: (p.stages.length || 0) + 1, probability: 0, color: 'hsl(0, 70%, 55%)' },
+        ],
+      };
+    });
+    setItem('crm_pipelines', patched);
     setItem(CRM_VERSION_KEY, CRM_CURRENT_VERSION);
   }
 }
