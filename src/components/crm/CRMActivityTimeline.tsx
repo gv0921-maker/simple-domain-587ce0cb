@@ -1,5 +1,4 @@
-// TODO: Replace localStorage with Supabase queries
-// Activity Timeline Component for CRM entities
+// Activity Timeline Component for CRM entities (TanStack Query backed)
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,17 +23,18 @@ import {
   Bell,
   FileText,
   Download,
+  Loader2,
 } from 'lucide-react';
+import type { Activity, ActivityType, Note } from '@/lib/services/crm';
 import {
-  getActivities,
-  saveActivity,
-  completeActivity,
-  type Activity,
-  type ActivityType,
-  type Note,
-  getNotes,
-  saveNote,
-} from '@/lib/services/crm';
+  useActivities,
+  useSaveActivity,
+  useCompleteActivity,
+  useNotes,
+  useSaveNote,
+  useActivitiesRealtime,
+  useNotesRealtime,
+} from '@/hooks/crm/useCRMQueries';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useCRMPermissions } from '@/hooks/useCRMPermissions';
@@ -165,9 +165,24 @@ export function CRMActivityTimeline({ relatedTo, relatedId }: CRMActivityTimelin
   const { user } = useAuth();
   const { toast } = useToast();
   const { canEditOpportunities, canEditContacts } = useCRMPermissions();
-  
-  const [activities, setActivities] = useState<Activity[]>(() => getActivities(relatedTo, relatedId));
-  const [notes, setNotes] = useState<Note[]>(() => getNotes(relatedTo, relatedId));
+
+  const { data: activitiesData, isLoading: activitiesLoading, isFetching: activitiesFetching } =
+    useActivities(relatedTo, relatedId);
+  const { data: notesData, isLoading: notesLoading, isFetching: notesFetching } =
+    useNotes(relatedTo, relatedId);
+  const activities: Activity[] = activitiesData ?? [];
+  const notes: Note[] = notesData ?? [];
+  const saveActivityMut = useSaveActivity();
+  const saveNoteMut = useSaveNote();
+  const completeActivityMut = useCompleteActivity();
+
+  // Realtime sync for this record
+  useActivitiesRealtime(relatedId);
+  useNotesRealtime(relatedId);
+
+  const isLoading = activitiesLoading || notesLoading;
+  const isFetching = activitiesFetching || notesFetching;
+
   const [isAddingActivity, setIsAddingActivity] = useState(false);
   const [isAddingNote, setIsAddingNote] = useState(false);
   
@@ -187,18 +202,22 @@ export function CRMActivityTimeline({ relatedTo, relatedId }: CRMActivityTimelin
       return;
     }
 
-    saveActivity({
-      ...newActivity,
-      relatedTo,
-      relatedId,
-      userId: user?.id || '',
-      userName: user?.name || 'System',
-    });
-
-    setActivities(getActivities(relatedTo, relatedId));
-    setNewActivity({ type: 'call', subject: '', description: '' });
-    setIsAddingActivity(false);
-    toast({ title: 'Activity logged' });
+    saveActivityMut.mutate(
+      {
+        ...newActivity,
+        relatedTo,
+        relatedId,
+        userId: user?.id || '',
+        userName: user?.name || 'System',
+      },
+      {
+        onSuccess: () => {
+          setNewActivity({ type: 'call', subject: '', description: '' });
+          setIsAddingActivity(false);
+          toast({ title: 'Activity logged' });
+        },
+      },
+    );
   };
 
   const handleAddNote = () => {
@@ -207,25 +226,29 @@ export function CRMActivityTimeline({ relatedTo, relatedId }: CRMActivityTimelin
       return;
     }
 
-    saveNote({
-      content: newNote,
-      relatedTo,
-      relatedId,
-      userId: user?.id || '',
-      userName: user?.name || 'System',
-      visibility: 'team',
-    });
-
-    setNotes(getNotes(relatedTo, relatedId));
-    setNewNote('');
-    setIsAddingNote(false);
-    toast({ title: 'Note added' });
+    saveNoteMut.mutate(
+      {
+        content: newNote,
+        relatedTo,
+        relatedId,
+        userId: user?.id || '',
+        userName: user?.name || 'System',
+        visibility: 'team',
+      },
+      {
+        onSuccess: () => {
+          setNewNote('');
+          setIsAddingNote(false);
+          toast({ title: 'Note added' });
+        },
+      },
+    );
   };
 
   const handleCompleteActivity = (id: string) => {
-    completeActivity(id);
-    setActivities(getActivities(relatedTo, relatedId));
-    toast({ title: 'Activity completed' });
+    completeActivityMut.mutate(id, {
+      onSuccess: () => toast({ title: 'Activity completed' }),
+    });
   };
 
   // Combine and sort activities and notes by date
