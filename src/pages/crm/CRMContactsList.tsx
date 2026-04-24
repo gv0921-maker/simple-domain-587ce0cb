@@ -1,5 +1,4 @@
-// TODO: Replace localStorage with Supabase queries
-// CRM Contacts List Page
+// CRM Contacts List Page — uses TanStack Query hooks (Supabase-ready)
 import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -32,8 +31,10 @@ import {
   User,
   UserPlus,
   Upload,
+  Loader2,
 } from 'lucide-react';
-import { getContacts, deleteContact, type Contact } from '@/lib/services/crm';
+import { type Contact } from '@/lib/services/crm';
+import { useContacts, useDeleteContact } from '@/hooks/crm/useCRMQueries';
 import { CRM_NAV } from '@/lib/navigation/crm';
 import { CRMImportDialog, CRMExportButton } from '@/components/crm/CRMImportExport';
 import { CRMFilterPopover, type FilterOption, type ActiveFilter } from '@/components/crm/CRMFilterPopover';
@@ -59,8 +60,9 @@ export default function CRMContactsList() {
   const { user } = useAuth();
   const { canCreateContacts, canDeleteContacts, canImportData, filterByScope } = useCRMPermissions();
   const isSuperAdmin = user ? isSuperAdminUser(user.id) : false;
-  
-  const [contacts, setContacts] = useState<Contact[]>(() => getContacts());
+
+  const { data: contacts = [], isLoading, isFetching } = useContacts();
+  const deleteContactMutation = useDeleteContact();
   const [search, setSearch] = useState('');
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
@@ -108,16 +110,18 @@ export default function CRMContactsList() {
   }, []);
 
   const handleDelete = (id: string) => {
-    deleteContact(id);
-    setContacts(getContacts());
-    setSelectedIds(prev => { const n = new Set(prev); n.delete(id); return n; });
-    toast({ title: 'Contact deleted' });
+    deleteContactMutation.mutate(id, {
+      onSuccess: () => {
+        setSelectedIds(prev => { const n = new Set(prev); n.delete(id); return n; });
+        toast({ title: 'Contact deleted' });
+      },
+    });
   };
 
-  const handleBulkDelete = () => {
-    selectedIds.forEach(id => deleteContact(id));
-    setContacts(getContacts());
-    toast({ title: `${selectedIds.size} contact(s) deleted` });
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    await Promise.all(ids.map(id => deleteContactMutation.mutateAsync(id)));
+    toast({ title: `${ids.length} contact(s) deleted` });
     setSelectedIds(new Set());
   };
 
