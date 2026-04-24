@@ -1,5 +1,5 @@
 // Odoo-style Opportunity Detail Form — inline editing, live chatter, audit logging
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -85,7 +85,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { TiptapNotesEditor } from '@/components/ui/tiptap-notes-editor';
 import { getQuotations, getSalesOrders } from '@/lib/services/sales/storage';
 import { getStockMoves } from '@/lib/services/inventory';
-import { useMemo } from 'react';
 
 // Format elapsed time: <1h → "Xm", <24h → "Xh", else → "Xd"
 function formatElapsed(ms: number): string {
