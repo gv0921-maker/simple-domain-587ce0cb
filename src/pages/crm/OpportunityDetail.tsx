@@ -616,7 +616,7 @@ export default function OpportunityDetail() {
                           onChange={e => setContactSearch(e.target.value)}
                         />
                         <div className="max-h-40 overflow-y-auto">
-                          {getContacts().filter(c => {
+                          {allContacts.filter(c => {
                             const q = contactSearch.toLowerCase();
                             return !q || `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q);
                           }).slice(0, 20).map(c => (
@@ -675,7 +675,6 @@ export default function OpportunityDetail() {
                       value={opportunity.priority}
                       onChange={(p) => {
                         saveOpportunity({ ...opportunity, priority: p as 0 | 1 | 2 | 3 });
-                        setOpportunity(getOpportunity(opportunity.id));
                       }}
                     />
                   </div>
