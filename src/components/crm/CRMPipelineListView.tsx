@@ -104,7 +104,7 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
             {isFetching && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
           </div>
 
-          <CRMSearchDropdown activeFilters={activeFilters} onFiltersChange={setActiveFilters} />
+          <div className="flex-1" />
 
           <div className="flex items-center gap-1">
             {[
