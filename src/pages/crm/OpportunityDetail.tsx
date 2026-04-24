@@ -729,10 +729,11 @@ export default function OpportunityDetail() {
                 </TabsList>
 
                 <TabsContent value="notes" className="mt-4">
-                  <Textarea
-                    className="min-h-[200px] text-sm border-transparent hover:border-border focus:border-primary bg-transparent"
+                  <TiptapNotesEditor
                     value={currentData.internalNotes || ''}
-                    onChange={e => updateField('internalNotes', e.target.value)}
+                    onChange={(html) => updateField('internalNotes', html)}
+                    placeholder="Write notes — supports tables, headings, lists, links, and Word-like formatting…"
+                    minHeight="240px"
                   />
                 </TabsContent>
 
