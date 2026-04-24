@@ -648,12 +648,15 @@ export default function OpportunityDetail() {
 
                 {/* Email */}
                 <OdooField label="Email">
-                  <input
-                    type="email"
-                    className={INLINE_CSS}
-                    value={currentData.email || ''}
-                    onChange={e => updateField('email', e.target.value)}
-                  />
+                  {linkedContact?.email ? (
+                    <a href={`mailto:${linkedContact.email}`} className="text-primary hover:underline text-sm truncate">
+                      {linkedContact.email}
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground/60 text-sm italic">
+                      {currentData.contactId ? 'No email on contact' : 'Select a contact'}
+                    </span>
+                  )}
                 </OdooField>
 
                 {/* Expected Closing */}
@@ -679,46 +682,32 @@ export default function OpportunityDetail() {
 
                 {/* Phone */}
                 <OdooField label="Phone">
-                  <input
-                    type="tel"
-                    className={INLINE_CSS}
-                    value={currentData.phone || ''}
-                    onChange={e => updateField('phone', e.target.value)}
-                  />
+                  {linkedContact?.phone ? (
+                    <a href={`tel:${linkedContact.phone}`} className="text-primary hover:underline text-sm">
+                      {linkedContact.phone}
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground/60 text-sm italic">
+                      {currentData.contactId ? 'No phone on contact' : 'Select a contact'}
+                    </span>
+                  )}
                 </OdooField>
 
-                {/* Tags — chip-style input */}
+                {/* Tags — auto-fetched from linked contact */}
                 <OdooField label="Tags">
-                  <div
-                    className="flex flex-wrap items-center gap-1 flex-1 min-w-0 cursor-text"
-                    onClick={() => tagInputRef.current?.focus()}
-                  >
-                    {(currentData.tags || []).map(tag => (
-                      <Badge key={tag} variant="secondary" className="text-[11px] font-medium gap-0.5">
-                        {tag}
-                        <button
-                          onClick={e => { e.stopPropagation(); updateField('tags', (currentData.tags || []).filter(t => t !== tag)); }}
-                          className="ml-0.5 hover:text-destructive"
-                        >
-                          <X className="h-2.5 w-2.5" />
-                        </button>
-                      </Badge>
-                    ))}
-                    <input
-                      ref={tagInputRef}
-                      className="border-0 bg-transparent text-sm outline-none w-20 min-w-[50px]"
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
-                          e.preventDefault();
-                          const val = (e.target as HTMLInputElement).value.trim();
-                          if (!(currentData.tags || []).includes(val)) {
-                            updateField('tags', [...(currentData.tags || []), val]);
-                          }
-                          (e.target as HTMLInputElement).value = '';
-                        }
-                      }}
-                    />
-                  </div>
+                  {linkedContact?.tags && linkedContact.tags.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-1 flex-1 min-w-0">
+                      {linkedContact.tags.map(tag => (
+                        <Badge key={tag} variant="secondary" className="text-[11px] font-medium">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground/60 text-sm italic">
+                      {currentData.contactId ? 'No tags on contact' : 'Select a contact'}
+                    </span>
+                  )}
                 </OdooField>
               </div>
 
