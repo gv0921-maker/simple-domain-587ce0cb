@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getInvoices, updateInvoice } from '@/lib/services/accounting';
-import { Plus, Search, Send, DollarSign, FileText } from 'lucide-react';
+import { Plus, Search, DollarSign, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 const statusColors: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -43,12 +43,6 @@ export default function InvoicesList({ variant = 'bills', title }: InvoicesListP
     const matchesTab = activeTab === 'all' || inv.status === activeTab;
     return matchesSearch && matchesTab;
   });
-
-  const handleSend = (id: string) => {
-    updateInvoice(id, { status: 'sent' });
-    setInvoices(getInvoices());
-    toast.success('Invoice sent');
-  };
 
   const handleMarkPaid = (id: string) => {
     const inv = invoices.find(i => i.id === id);
@@ -132,13 +126,7 @@ export default function InvoicesList({ variant = 'bills', title }: InvoicesListP
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1">
-                          {inv.status === 'draft' && (
-                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleSend(inv.id); }}>
-                              <Send className="h-4 w-4 mr-1" />
-                              Send
-                            </Button>
-                          )}
-                          {(inv.status === 'sent' || inv.status === 'overdue') && (
+                          {(inv.status === 'draft' || inv.status === 'overdue') && (
                             <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleMarkPaid(inv.id); }}>
                               <DollarSign className="h-4 w-4 mr-1" />
                               Paid
