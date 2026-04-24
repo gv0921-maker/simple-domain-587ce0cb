@@ -394,8 +394,8 @@ const CRM_CURRENT_VERSION = 4;
 
 function ensureCRMVersion() {
   const stored = getItem<number>(CRM_VERSION_KEY, 0);
-  if (stored < CRM_CURRENT_VERSION) {
-    // Clear all CRM data to use new empty defaults
+  if (stored === 0) {
+    // Fresh install — seed all defaults
     setItem('crm_opportunities', DEFAULT_OPPORTUNITIES);
     setItem('crm_pipelines', DEFAULT_PIPELINES);
     setItem('crm_contacts', DEFAULT_CONTACTS);
@@ -403,6 +403,24 @@ function ensureCRMVersion() {
     setItem('crm_activities', DEFAULT_ACTIVITIES);
     setItem('crm_notes', DEFAULT_NOTES);
     setItem('crm_tags', DEFAULT_TAGS);
+    setItem(CRM_VERSION_KEY, CRM_CURRENT_VERSION);
+    return;
+  }
+  if (stored < CRM_CURRENT_VERSION) {
+    // v4: ensure default pipeline includes a 'lost' stage without wiping user data
+    const pipelines = getItem<Pipeline[]>('crm_pipelines', DEFAULT_PIPELINES);
+    const patched = pipelines.map(p => {
+      if (p.id !== 'default') return p;
+      if (p.stages.some(s => s.id === 'lost')) return p;
+      return {
+        ...p,
+        stages: [
+          ...p.stages,
+          { id: 'lost', pipelineId: p.id, name: 'Lost', order: (p.stages.length || 0) + 1, probability: 0, color: 'hsl(0, 70%, 55%)' },
+        ],
+      };
+    });
+    setItem('crm_pipelines', patched);
     setItem(CRM_VERSION_KEY, CRM_CURRENT_VERSION);
   }
 }
