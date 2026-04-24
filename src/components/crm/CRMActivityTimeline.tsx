@@ -260,7 +260,10 @@ export function CRMActivityTimeline({ relatedTo, relatedId }: CRMActivityTimelin
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-base">Activity Timeline</CardTitle>
+        <CardTitle className="text-base flex items-center gap-2">
+          Activity Timeline
+          {isFetching && !isLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+        </CardTitle>
         {canEdit && (
           <div className="flex gap-2">
             <Button
@@ -283,6 +286,12 @@ export function CRMActivityTimeline({ relatedTo, relatedId }: CRMActivityTimelin
         )}
       </CardHeader>
       <CardContent className="space-y-4">
+        {isLoading && (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
         {/* Add Activity Form */}
         {isAddingActivity && (
           <div className="p-4 border border-border rounded-lg space-y-3 animate-fade-in bg-muted/30">
