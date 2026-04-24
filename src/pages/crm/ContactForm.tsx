@@ -214,8 +214,8 @@ export default function ContactForm() {
       if (shipHasData) addresses.push({ ...shipping, type: 'shipping' });
     }
 
-    const existingContact = id ? getContacts().find(c => c.id === id) : undefined;
-    saveContact({
+    const existingContact = id ? allContacts.find(c => c.id === id) : undefined;
+    saveContactMutation.mutate({
       ...(existingContact || {}),
       type: formData.type,
       firstName: formData.firstName,
@@ -238,36 +238,34 @@ export default function ContactForm() {
       paymentTerms: formData.paymentTerms || undefined,
       priceList: formData.priceList || undefined,
       purchasePaymentTerms: formData.purchasePaymentTerms || undefined,
+    }, {
+      onSuccess: (saved) => {
+        toast({ title: isEdit ? 'Contact updated' : 'Contact created' });
+
+        if (action === 'new') {
+          setFormData({
+            type: 'individual', firstName: '', lastName: '',
+            companyName: '', jobTitle: '', website: '', gstin: '',
+            notes: '', tags: [], parentContactId: '',
+            salesperson: '', salesTeam: '', paymentTerms: '', priceList: '', purchasePaymentTerms: '',
+          });
+          setEmails([{ email: '', type: 'Work' }]);
+          setPhones([{ phone: '', type: 'Work' }]);
+          setBilling(emptyAddress('billing'));
+          setShipping(emptyAddress('shipping'));
+          setSameAsBilling(true);
+          setCustomFields([]);
+        } else if (parsedReturn?.returnTo) {
+          const returnData = encodeURIComponent(JSON.stringify({
+            ...parsedReturn.opportunityData,
+            contactId: saved.id,
+          }));
+          navigate(`${parsedReturn.returnTo}?restoredData=${returnData}`);
+        } else {
+          navigate('/crm/contacts');
+        }
+      },
     });
-
-    toast({ title: isEdit ? 'Contact updated' : 'Contact created' });
-
-    if (action === 'new') {
-      setFormData({
-        type: 'individual', firstName: '', lastName: '',
-        companyName: '', jobTitle: '', website: '', gstin: '',
-        notes: '', tags: [], parentContactId: '',
-        salesperson: '', salesTeam: '', paymentTerms: '', priceList: '', purchasePaymentTerms: '',
-      });
-      setEmails([{ email: '', type: 'Work' }]);
-      setPhones([{ phone: '', type: 'Work' }]);
-      setBilling(emptyAddress('billing'));
-      setShipping(emptyAddress('shipping'));
-      setSameAsBilling(true);
-      setCustomFields([]);
-    } else {
-      if (parsedReturn?.returnTo) {
-        const savedContacts = getContacts();
-        const newest = savedContacts[savedContacts.length - 1];
-        const returnData = encodeURIComponent(JSON.stringify({
-          ...parsedReturn.opportunityData,
-          contactId: newest?.id || '',
-        }));
-        navigate(`${parsedReturn.returnTo}?restoredData=${returnData}`);
-      } else {
-        navigate('/crm/contacts');
-      }
-    }
   };
 
   const renderAddressBlock = (addr: Address, which: 'billing' | 'shipping') => (
