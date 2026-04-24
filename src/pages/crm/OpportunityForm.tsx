@@ -1,4 +1,4 @@
-// TODO: Replace localStorage with Supabase queries
+// CRM Opportunity Form — uses TanStack Query hooks (Supabase-ready).
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -8,8 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Plus } from 'lucide-react';
-import { getContacts, saveOpportunity } from '@/lib/services/crm';
+import { ArrowLeft, Plus, Loader2 } from 'lucide-react';
+import { useContacts, useSaveOpportunity } from '@/hooks/crm/useCRMQueries';
 import { useToast } from '@/hooks/use-toast';
 import { useStudioConfig } from '@/hooks/useStudioConfig';
 
@@ -17,7 +17,8 @@ export default function OpportunityForm() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
-  const [contacts] = useState(() => getContacts());
+  const { data: contacts = [], isFetching } = useContacts();
+  const saveOpportunityMutation = useSaveOpportunity();
   const studio = useStudioConfig('crm', 'New Opportunity');
 
   const [formData, setFormData] = useState(() => {
@@ -55,17 +56,19 @@ export default function OpportunityForm() {
 
     const contact = contacts.find((c) => c.id === formData.contactId);
 
-    saveOpportunity({
+    saveOpportunityMutation.mutate({
       name: formData.name,
       contactId: formData.contactId,
       contactName: contact ? `${contact.firstName} ${contact.lastName}` : '',
       companyName: contact?.companyName,
       expectedRevenue: formData.expectedRevenue,
       expectedCloseDate: formData.expectedCloseDate,
+    }, {
+      onSuccess: () => {
+        toast({ title: 'Opportunity created' });
+        navigate('/crm');
+      },
     });
-
-    toast({ title: 'Opportunity created' });
-    navigate('/crm');
   };
 
   return (
@@ -76,7 +79,10 @@ export default function OpportunityForm() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">New Opportunity</h1>
+            <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
+              New Opportunity
+              {isFetching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            </h1>
             <p className="text-muted-foreground">Create a new opportunity in your pipeline</p>
           </div>
         </div>
