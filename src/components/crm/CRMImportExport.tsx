@@ -204,6 +204,9 @@ export function CRMImportDialog({ open, onOpenChange, onImportComplete, defaultR
   const { toast } = useToast();
   const { canImportData } = useCRMPermissions();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importContactsMut = useImportContacts();
+  const importOpportunitiesMut = useImportOpportunities();
+  const isImporting = importContactsMut.isPending || importOpportunitiesMut.isPending;
 
   const [step, setStep] = useState<'upload' | 'mapping' | 'importing' | 'result'>('upload');
   const [recordType, setRecordType] = useState<RecordType>(defaultRecordType);
@@ -321,8 +324,8 @@ export function CRMImportDialog({ open, onOpenChange, onImportComplete, defaultR
 
       let result: ImportResult;
       switch (recordType) {
-        case 'contacts': result = importContacts(records); break;
-        case 'opportunities': result = importOpportunities(records); break;
+        case 'contacts': result = await importContactsMut.mutateAsync(records); break;
+        case 'opportunities': result = await importOpportunitiesMut.mutateAsync(records); break;
       }
       Object.assign(combinedResult, result);
     } else {
@@ -335,8 +338,8 @@ export function CRMImportDialog({ open, onOpenChange, onImportComplete, defaultR
 
         let result: ImportResult;
         switch (recordType) {
-          case 'contacts': result = importContacts(batch); break;
-          case 'opportunities': result = importOpportunities(batch); break;
+          case 'contacts': result = await importContactsMut.mutateAsync(batch); break;
+          case 'opportunities': result = await importOpportunitiesMut.mutateAsync(batch); break;
         }
         combinedResult.success += result.success;
         combinedResult.failed += result.failed;
@@ -563,14 +566,17 @@ interface CRMExportButtonProps {
 export function CRMExportButton({ type, variant = 'outline', format = 'xlsx' }: CRMExportButtonProps) {
   const { toast } = useToast();
   const { canExportData } = useCRMPermissions();
+  const exportContactsMut = useExportContacts();
+  const exportOpportunitiesMut = useExportOpportunities();
+  const isExporting = exportContactsMut.isPending || exportOpportunitiesMut.isPending;
 
-  const handleExport = () => {
+  const handleExport = async () => {
     let exportData: Record<string, any>[];
     let filename: string;
 
     switch (type) {
       case 'contacts': {
-        const contacts = exportContacts();
+        const contacts = await exportContactsMut.mutateAsync();
         filename = `crm_contacts.${format}`;
         exportData = contacts.map(c => ({
           'First Name': c.firstName,
@@ -586,7 +592,7 @@ export function CRMExportButton({ type, variant = 'outline', format = 'xlsx' }: 
         break;
       }
       case 'opportunities': {
-        const opps = exportOpportunities();
+        const opps = await exportOpportunitiesMut.mutateAsync();
         filename = `crm_opportunities.${format}`;
         exportData = opps.map(o => ({
           'Stage': o.stageId,
