@@ -275,26 +275,32 @@ export default function OpportunityDetail() {
   const currentStageIndex = activeStages.findIndex(s => s.id === opportunity.stageId);
   const currentData = editingData || opportunity;
 
+  const resolveStageEnum = (stageId: string): OpportunityStage => {
+    const known: OpportunityStage[] = ['new', 'qualified', 'proposition', 'won', 'lost'];
+    if ((known as string[]).includes(stageId)) return stageId as OpportunityStage;
+    const stageDef = pipeline.stages.find(s => s.id === stageId);
+    const nameKey = stageDef?.name.trim().toLowerCase();
+    if (nameKey && (known as string[]).includes(nameKey)) return nameKey as OpportunityStage;
+    // Custom stage — treat as in-progress
+    return 'proposition';
+  };
+
   const handleStageClick = (stageId: string) => {
-    const stageMap: Record<string, OpportunityStage> = {
-      new: 'new', qualified: 'qualified', proposition: 'proposition', won: 'won',
-    };
-    const stage = stageMap[stageId];
-    if (stage) {
-      const previousStageName = activeStages.find(s => s.id === opportunity.stageId)?.name || opportunity.stageId;
-      const newStageName = activeStages.find(s => s.id === stageId)?.name || stageId;
-      updateStageMutation.mutate({ id: opportunity.id, stageId, stage });
-      toast({ title: `Stage updated to ${newStageName}` });
-      saveNote({
-        content: `<p><strong>Stage changed</strong><br/>${previousStageName} → ${newStageName} (Stage)</p>`,
-        relatedTo: 'opportunity',
-        relatedId: opportunity.id,
-        userId: user?.id || '1',
-        userName: 'System',
-        visibility: 'team',
-      } as any);
-      refreshChatter();
-    }
+    if (stageId === opportunity.stageId && !isWon && !isLost) return;
+    const stage = resolveStageEnum(stageId);
+    const previousStageName = pipeline.stages.find(s => s.id === opportunity.stageId)?.name || opportunity.stageId;
+    const newStageName = pipeline.stages.find(s => s.id === stageId)?.name || stageId;
+    updateStageMutation.mutate({ id: opportunity.id, stageId, stage });
+    toast({ title: `Stage updated to ${newStageName}` });
+    saveNote({
+      content: `<p><strong>Stage changed</strong><br/>${previousStageName} → ${newStageName} (Stage)</p>`,
+      relatedTo: 'opportunity',
+      relatedId: opportunity.id,
+      userId: user?.id || '1',
+      userName: 'System',
+      visibility: 'team',
+    } as any);
+    refreshChatter();
   };
 
   const handleWon = () => {
