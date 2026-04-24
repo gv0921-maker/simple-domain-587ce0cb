@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserRole, getRole } from '@/lib/data/rbac';
+import { getUserRole, getRole } from '@/lib/services/settings';
 import { 
   DEFAULT_INVENTORY_ROLES,
   type InventoryPermission,
   type InventoryRolePermissions
-} from '@/lib/data/inventory/types';
+} from '@/lib/services/inventory';
 import { getItem } from '@/lib/storage';
 
 // Mapping from RBAC roles to inventory roles

@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
-import { getAccounts, createAccount, updateAccount, type Account } from '@/lib/data/accounting';
+import { getAccounts, createAccount, updateAccount, type Account } from '@/lib/services/accounting';
 import { toast } from 'sonner';
 
 export default function AccountForm() {

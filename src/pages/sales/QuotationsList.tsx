@@ -48,8 +48,8 @@ import {
   CheckCircle,
   Eye,
 } from 'lucide-react';
-import { getContacts, type Contact } from '@/lib/data/sales';
-import { getProducts, type Product } from '@/lib/data/inventory';
+import { getContacts, type Contact } from '@/lib/services/sales';
+import { getProducts, type Product } from '@/lib/services/inventory';
 import { getItem, setItem } from '@/lib/storage';
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';

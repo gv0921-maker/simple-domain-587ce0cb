@@ -57,7 +57,7 @@ import {
   type PipelineStage,
   type OpportunityStage,
   saveActivity,
-} from '@/lib/data/crm';
+} from '@/lib/services/crm';
 import { useToast } from '@/hooks/use-toast';
 import { useCRMPermissions } from '@/hooks/useCRMPermissions';
 import { useAuth } from '@/contexts/AuthContext';

@@ -58,10 +58,10 @@ import {
   applyPricelistPrice,
   checkStockAvailability,
   convertQuotationToOrder,
-} from '@/lib/data/sales/storage';
-import type { Quotation, QuotationLine, QuotationStatus, DiscountType } from '@/lib/data/sales/types';
-import { getContacts } from '@/lib/data/sales';
-import { getProducts } from '@/lib/data/inventory';
+} from '@/lib/services/sales';
+import type { Quotation, QuotationLine, QuotationStatus, DiscountType } from '@/lib/services/sales';
+import { getContacts } from '@/lib/services/sales';
+import { getProducts } from '@/lib/services/inventory';
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';

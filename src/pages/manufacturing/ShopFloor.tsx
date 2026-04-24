@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { getWorkOrders, updateWorkOrder, getWorkCenters, WorkOrder } from '@/lib/data/manufacturing';
+import { getWorkOrders, updateWorkOrder, getWorkCenters, WorkOrder } from '@/lib/services/manufacturing';
 import { Play, Pause, CheckCircle, Clock, Package, AlertTriangle, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 

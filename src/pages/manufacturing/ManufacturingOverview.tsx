@@ -3,7 +3,7 @@ import { MANUFACTURING_NAV } from '@/lib/navigation/manufacturing';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { getWorkOrders, getWorkCenters, getBOMs } from '@/lib/data/manufacturing';
+import { getWorkOrders, getWorkCenters, getBOMs } from '@/lib/services/manufacturing';
 import { Factory, ClipboardList, Cog, Layers, TrendingUp, Clock, AlertTriangle, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Progress } from '@/components/ui/progress';

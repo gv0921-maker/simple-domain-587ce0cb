@@ -34,8 +34,8 @@ import {
   getReorderRules, 
   deleteReorderRule,
   checkReorderRules,
-} from '@/lib/data/inventory/storage';
-import type { ReorderRule } from '@/lib/data/inventory/types';
+} from '@/lib/services/inventory';
+import type { ReorderRule } from '@/lib/services/inventory';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';

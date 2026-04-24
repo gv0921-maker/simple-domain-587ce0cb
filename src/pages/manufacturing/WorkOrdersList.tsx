@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
-import { getWorkOrders, deleteWorkOrder, updateWorkOrder, type WorkOrder } from '@/lib/data/manufacturing';
+import { getWorkOrders, deleteWorkOrder, updateWorkOrder, type WorkOrder } from '@/lib/services/manufacturing';
 import { Plus, Search, Filter, Trash2, Edit, Play, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 

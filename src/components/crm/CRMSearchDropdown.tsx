@@ -257,7 +257,7 @@ export function CRMSearchDropdown({ activeFilters, onFiltersChange }: CRMSearchD
 
 // === Filter logic applied to opportunities ===
 
-import type { Opportunity } from '@/lib/data/crm';
+import type { Opportunity } from '@/lib/services/crm';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function useFilteredOpportunities(

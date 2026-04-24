@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { canAccessRoute } from '@/lib/data/rbac';
+import { canAccessRoute } from '@/lib/services/settings';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getECOs, createECO, updateECO, ECO } from '@/lib/data/manufacturing';
+import { getECOs, createECO, updateECO, ECO } from '@/lib/services/manufacturing';
 import { Plus, Search, FileText, GitBranch, CheckCircle, XCircle, Clock, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 

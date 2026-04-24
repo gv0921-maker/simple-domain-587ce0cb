@@ -29,7 +29,7 @@ import {
   type ContactType,
   saveContact,
   findDuplicateContacts,
-} from '@/lib/data/crm';
+} from '@/lib/services/crm';
 import { useToast } from '@/hooks/use-toast';
 
 interface ContactFormDialogProps {

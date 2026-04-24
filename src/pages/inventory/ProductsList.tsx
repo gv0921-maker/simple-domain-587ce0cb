@@ -31,7 +31,7 @@ import {
   ArrowUpDown,
   Package,
 } from 'lucide-react';
-import { getProducts, deleteProduct, type Product } from '@/lib/data/inventory';
+import { getProducts, deleteProduct, type Product } from '@/lib/services/inventory';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 

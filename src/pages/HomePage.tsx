@@ -4,7 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { ModuleCard } from '@/components/modules/ModuleCard';
 import { useCustomization } from '@/contexts/CustomizationContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { canAccessRoute } from '@/lib/data/rbac';
+import { canAccessRoute } from '@/lib/services/settings';
 import { useToast } from '@/hooks/use-toast';
 
 export default function HomePage() {

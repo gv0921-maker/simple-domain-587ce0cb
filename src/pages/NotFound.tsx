@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { canAccessRoute, getModuleForPath } from '@/lib/data/rbac';
+import { canAccessRoute, getModuleForPath } from '@/lib/services/settings';
 
 const NotFound = () => {
   const location = useLocation();

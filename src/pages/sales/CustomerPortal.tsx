@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FileText, ShoppingCart, ExternalLink } from 'lucide-react';
-import { getQuotations, getSalesOrders } from '@/lib/data/sales/storage';
+import { getQuotations, getSalesOrders } from '@/lib/services/sales';
 import { getItem } from '@/lib/storage';
 import { format, parseISO } from 'date-fns';
 

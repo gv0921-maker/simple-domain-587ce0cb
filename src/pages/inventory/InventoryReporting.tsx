@@ -30,7 +30,7 @@ import {
   BarChart3,
   FileText,
 } from 'lucide-react';
-import { getProducts, getWarehouses, type Product } from '@/lib/data/inventory';
+import { getProducts, getWarehouses, type Product } from '@/lib/services/inventory';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 

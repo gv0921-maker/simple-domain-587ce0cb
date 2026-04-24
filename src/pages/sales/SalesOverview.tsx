@@ -16,8 +16,8 @@ import {
 import {
   getSalesOrders,
   getContacts,
-} from '@/lib/data/sales';
-import { getQuotations } from '@/lib/data/sales/storage';
+} from '@/lib/services/sales';
+import { getQuotations } from '@/lib/services/sales';
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { SimpleBarChart } from '@/components/dashboard/SimpleBarChart';
 import { format, parseISO, isThisMonth } from 'date-fns';

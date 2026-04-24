@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import {
   getOpportunities, getDefaultPipeline, type Opportunity,
-} from '@/lib/data/crm';
+} from '@/lib/services/crm';
 import { StarRating } from '@/components/crm/CRMKanbanBoard';
 import { useCRMPermissions } from '@/hooks/useCRMPermissions';
 import { useAuth } from '@/contexts/AuthContext';

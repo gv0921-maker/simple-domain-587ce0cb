@@ -9,8 +9,8 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
-import { getReorderRules, saveReorderRule, getProducts, getWarehouses } from '@/lib/data/inventory/storage';
-import type { ReorderRule } from '@/lib/data/inventory/types';
+import { getReorderRules, saveReorderRule, getProducts, getWarehouses } from '@/lib/services/inventory';
+import type { ReorderRule } from '@/lib/services/inventory';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ReorderRuleForm() {

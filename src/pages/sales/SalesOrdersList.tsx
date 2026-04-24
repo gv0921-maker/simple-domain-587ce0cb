@@ -49,8 +49,8 @@ import {
   Eye,
   Package,
 } from 'lucide-react';
-import { getSalesOrders, saveSalesOrder, getContacts, type SalesOrder, type OrderLine, type OrderStatus, type Contact } from '@/lib/data/sales';
-import { getProducts, type Product } from '@/lib/data/inventory';
+import { getSalesOrders, saveSalesOrder, getContacts, type SalesOrder, type OrderLine, type OrderStatus, type Contact } from '@/lib/services/sales';
+import { getProducts, type Product } from '@/lib/services/inventory';
 import { getItem, setItem } from '@/lib/storage';
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';

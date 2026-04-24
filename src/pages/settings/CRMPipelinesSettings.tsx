@@ -28,7 +28,7 @@ import {
   getPipelines, savePipeline, getDefaultPipeline,
   deletePipeline, setDefaultPipeline,
   type Pipeline, type PipelineStage,
-} from '@/lib/data/crm';
+} from '@/lib/services/crm';
 import { useToast } from '@/hooks/use-toast';
 import { useCRMPermissions } from '@/hooks/useCRMPermissions';
 import { cn } from '@/lib/utils';

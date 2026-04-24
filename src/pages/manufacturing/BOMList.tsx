@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { getBOMs, createBOM, updateBOM, deleteBOM, BillOfMaterials, BOMLine } from '@/lib/data/manufacturing';
+import { getBOMs, createBOM, updateBOM, deleteBOM, BillOfMaterials, BOMLine } from '@/lib/services/manufacturing';
 import { Plus, Search, Trash2, Edit, Layers, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 

@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
-import { getWorkOrders, createWorkOrder, updateWorkOrder, getBOMs, getWorkCenters, type WorkOrder } from '@/lib/data/manufacturing';
+import { getWorkOrders, createWorkOrder, updateWorkOrder, getBOMs, getWorkCenters, type WorkOrder } from '@/lib/services/manufacturing';
 import { toast } from 'sonner';
 
 export default function WorkOrderForm() {

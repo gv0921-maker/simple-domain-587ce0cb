@@ -67,7 +67,7 @@ import {
   type OpportunityStage,
   type Activity,
   type Note,
-} from '@/lib/data/crm';
+} from '@/lib/services/crm';
 import { StarRating } from '@/components/crm/CRMKanbanBoard';
 import { CRM_NAV } from '@/lib/navigation/crm';
 import { useToast } from '@/hooks/use-toast';

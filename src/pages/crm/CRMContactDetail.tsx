@@ -21,14 +21,14 @@ import {
   FileText,
   MessageSquare,
 } from 'lucide-react';
-import { getContact, getContacts, getOpportunities, getNotes, saveNote, type Contact, type Note } from '@/lib/data/crm';
+import { getContact, getContacts, getOpportunities, getNotes, saveNote, type Contact, type Note } from '@/lib/services/crm';
 import { CRM_NAV } from '@/lib/navigation/crm';
 import { format, parseISO } from 'date-fns';
 import { RichComposer, RichContent, type RichComposerValue } from '@/components/ui/rich-composer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { canViewSensitive, maskEmail, maskPhone, displayRevenue } from '@/lib/crm/fieldMask';
-import { getQuotations, getSalesOrders } from '@/lib/data/sales/storage';
+import { getQuotations, getSalesOrders } from '@/lib/services/sales';
 import DOMPurify from 'dompurify';
 
 export default function CRMContactDetail() {

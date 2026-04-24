@@ -6,7 +6,7 @@ import {
   hasModulePermission,
   getModuleRecordScope,
   type RecordScope,
-} from '@/lib/data/rbac';
+} from '@/lib/services/settings';
 
 export type CRMAction = 
   | 'view_crm'

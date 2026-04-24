@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getAccounts, type Account } from '@/lib/data/accounting';
+import { getAccounts, type Account } from '@/lib/services/accounting';
 import { Plus, Search, Edit, Wallet, TrendingUp, TrendingDown, Building2, DollarSign } from 'lucide-react';
 
 const typeIcons: Record<string, React.ReactNode> = {

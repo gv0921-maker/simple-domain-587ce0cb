@@ -41,8 +41,8 @@ import {
   getAdjustments, 
   approveAdjustment,
   getLocations,
-} from '@/lib/data/inventory/storage';
-import type { InventoryAdjustment } from '@/lib/data/inventory/types';
+} from '@/lib/services/inventory';
+import type { InventoryAdjustment } from '@/lib/services/inventory';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';

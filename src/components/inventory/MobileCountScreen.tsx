@@ -29,8 +29,8 @@ import {
   getAdjustment,
   saveAdjustment,
   getProducts,
-} from '@/lib/data/inventory/storage';
-import type { InventoryAdjustment, AdjustmentLine } from '@/lib/data/inventory/types';
+} from '@/lib/services/inventory';
+import type { InventoryAdjustment, AdjustmentLine } from '@/lib/services/inventory';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';

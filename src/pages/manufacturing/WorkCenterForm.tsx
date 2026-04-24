@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
-import { getWorkCenters, createWorkCenter, updateWorkCenter, type WorkCenter } from '@/lib/data/manufacturing';
+import { getWorkCenters, createWorkCenter, updateWorkCenter, type WorkCenter } from '@/lib/services/manufacturing';
 import { toast } from 'sonner';
 
 export default function WorkCenterForm() {

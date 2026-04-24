@@ -22,7 +22,7 @@ import {
   ArrowRight,
   User,
 } from 'lucide-react';
-import { getLeads, updateLeadStatus, type Lead, type LeadStatus } from '@/lib/data/sales';
+import { getLeads, updateLeadStatus, type Lead, type LeadStatus } from '@/lib/services/sales';
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';

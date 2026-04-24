@@ -18,7 +18,7 @@ import type {
   Opportunity,
   OpportunityStage,
   Pipeline,
-} from '@/lib/data/crm';
+} from '@/lib/services/crm';
 
 // ---------- query keys ----------
 

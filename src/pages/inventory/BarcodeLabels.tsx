@@ -31,8 +31,8 @@ import {
   Settings2,
   Eye,
 } from 'lucide-react';
-import { getProducts } from '@/lib/data/inventory/storage';
-import type { Product } from '@/lib/data/inventory/types';
+import { getProducts } from '@/lib/services/inventory';
+import type { Product } from '@/lib/services/inventory';
 import { BARCODE_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 import JsBarcode from 'jsbarcode';

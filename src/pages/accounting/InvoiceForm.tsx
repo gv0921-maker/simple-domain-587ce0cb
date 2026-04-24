@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
-import { createInvoice, type InvoiceLine } from '@/lib/data/accounting';
+import { createInvoice, type InvoiceLine } from '@/lib/services/accounting';
 import { toast } from 'sonner';
 
 export default function InvoiceForm() {

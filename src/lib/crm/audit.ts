@@ -1,5 +1,5 @@
 // CRM-specific audit helper - wraps addAuditLog with current user context
-import { addAuditLog, getAuditLogs } from '@/lib/data/rbac';
+import { addAuditLog, getAuditLogs } from '@/lib/services/settings';
 import { getAuthState } from '@/lib/storage';
 
 export type CRMAuditAction = 'create' | 'update' | 'delete';
