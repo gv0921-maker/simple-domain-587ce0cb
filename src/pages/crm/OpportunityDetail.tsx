@@ -217,6 +217,16 @@ export default function OpportunityDetail() {
   const currentIndex = allOpportunities.findIndex(o => o.id === id);
   const totalRecords = allOpportunities.length;
 
+  if (isLoadingOpp) {
+    return (
+      <AppLayout title="CRM" moduleNav={CRM_NAV}>
+        <div className="p-6 flex items-center justify-center h-full">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
+
   if (!opportunity) {
     return (
       <AppLayout title="CRM" moduleNav={CRM_NAV}>
