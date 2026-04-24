@@ -64,7 +64,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useCRMPermissions } from '@/hooks/useCRMPermissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { CRMSearchDropdown, useFilteredOpportunities, type ActiveFilters, EMPTY_FILTERS } from '@/components/crm/CRMSearchDropdown';
+import { useFilteredOpportunities, type ActiveFilters, EMPTY_FILTERS } from '@/components/crm/CRMSearchDropdown';
 import { displayRevenue } from '@/lib/crm/fieldMask';
 
 // Star rating (Odoo-style — golden stars)
