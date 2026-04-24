@@ -51,7 +51,6 @@ import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { EmailComposerDialog } from '@/components/crm/EmailComposerDialog';
 import {
   getOpportunity,
   getContact,
