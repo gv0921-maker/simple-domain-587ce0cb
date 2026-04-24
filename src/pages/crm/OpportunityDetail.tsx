@@ -178,6 +178,36 @@ export default function OpportunityDetail() {
   const { data: linkedContact } = useContact(opportunity?.contactId);
   const { data: allContacts = [] } = useContacts();
 
+  // Cross-module related records (same contact across Sales, Inventory, etc.)
+  const relatedRecords = useMemo(() => {
+    const cId = opportunity?.contactId;
+    const cName = opportunity?.contactName?.trim().toLowerCase();
+    if (!cId && !cName) {
+      return { quotations: [], salesOrders: [], stockMoves: [] };
+    }
+    const matchByContact = (rec: { customerId?: string; contactId?: string; customerName?: string; contactName?: string }) => {
+      if (cId && (rec.customerId === cId || rec.contactId === cId)) return true;
+      if (cName) {
+        const cn = (rec.customerName || rec.contactName || '').trim().toLowerCase();
+        if (cn && cn === cName) return true;
+      }
+      return false;
+    };
+    let quotations: ReturnType<typeof getQuotations> = [];
+    let salesOrders: ReturnType<typeof getSalesOrders> = [];
+    let stockMoves: ReturnType<typeof getStockMoves> = [];
+    try { quotations = getQuotations().filter(matchByContact); } catch { /* noop */ }
+    try { salesOrders = getSalesOrders().filter(matchByContact); } catch { /* noop */ }
+    try {
+      stockMoves = getStockMoves().filter(m => {
+        if (cId && m.partnerId === cId) return true;
+        if (cName && (m.partnerName || '').trim().toLowerCase() === cName) return true;
+        return false;
+      });
+    } catch { /* noop */ }
+    return { quotations, salesOrders, stockMoves };
+  }, [opportunity?.contactId, opportunity?.contactName]);
+
   // refreshChatter now invalidates the React Query cache instead of calling
   // localStorage helpers directly. The hooks above re-render automatically.
   const refreshChatter = useCallback(() => {
