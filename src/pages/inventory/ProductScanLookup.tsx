@@ -21,8 +21,8 @@ import {
   ExternalLink,
   Search,
 } from 'lucide-react';
-import { getProducts, getProductByBarcode, getStockMoves, getLotsByProduct, getSerialsByProduct } from '@/lib/services/inventory';
-import type { Product, StockMove } from '@/lib/services/inventory';
+import { getProducts, getProductByBarcode, getStockMoves, getLotsByProduct, getSerialsByProduct } from '@/lib/services/inventory/storage';
+import type { Product, StockMove } from '@/lib/services/inventory/types';
 import { BARCODE_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';

@@ -13,7 +13,7 @@ import {
   AlertCircle,
   Keyboard
 } from 'lucide-react';
-import { getProductByBarcode, getLocationByBarcode } from '@/lib/services/inventory';
+import { getProductByBarcode, getLocationByBarcode } from '@/lib/services/inventory/storage';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
