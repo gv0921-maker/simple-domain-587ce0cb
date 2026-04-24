@@ -1,4 +1,4 @@
-// TODO: Replace localStorage with Supabase queries
+// CRM Contact Form — uses TanStack Query hooks (Supabase-ready).
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -19,15 +19,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { ArrowLeft, Plus, X, Mail, Phone, User, AlertTriangle, Trash2, MapPin } from 'lucide-react';
+import { ArrowLeft, Plus, X, Mail, Phone, User, AlertTriangle, Trash2, MapPin, Loader2 } from 'lucide-react';
 import {
   type Contact,
   type Address,
   type CustomField,
-  getContacts,
-  saveContact,
-  findDuplicateContacts,
 } from '@/lib/services/crm';
+import { useContacts, useSaveContact } from '@/hooks/crm/useCRMQueries';
 import { CRM_NAV } from '@/lib/navigation/crm';
 import { useToast } from '@/hooks/use-toast';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
@@ -47,6 +45,9 @@ export default function ContactForm() {
   const { id } = useParams();
   const { toast } = useToast();
   const isEdit = !!id;
+
+  const { data: allContactsData = [], isFetching } = useContacts();
+  const saveContactMutation = useSaveContact();
 
   const [searchParams] = useSearchParams();
   const parsedReturn = (() => {
@@ -82,7 +83,7 @@ export default function ContactForm() {
   const [parentSearch, setParentSearch] = useState('');
   const [parentPopoverOpen, setParentPopoverOpen] = useState(false);
 
-  const allContacts = useMemo(() => getContacts(), []);
+  const allContacts = allContactsData;
 
   // Filter potential parents (companies or any contact except self)
   const parentCandidates = useMemo(() => {
@@ -109,8 +110,8 @@ export default function ContactForm() {
   );
 
   useEffect(() => {
-    if (id) {
-      const contact = getContacts().find(c => c.id === id);
+    if (id && allContacts.length > 0) {
+      const contact = allContacts.find(c => c.id === id);
       if (contact) {
         setFormData({
           type: contact.type,
@@ -158,15 +159,29 @@ export default function ContactForm() {
         navigate('/crm/contacts');
       }
     }
-  }, [id, navigate]);
+  }, [id, navigate, allContacts]);
 
   // Live duplicate detection on primary email/phone
   const duplicates = useMemo(() => {
     const primaryEmail = emails[0]?.email || '';
     const primaryPhone = phones[0]?.phone || '';
     if (!primaryEmail && !primaryPhone) return [];
-    return findDuplicateContacts(primaryEmail, primaryPhone, id);
-  }, [emails, phones, id]);
+    const normalizePhone = (p?: string) => (p || '').replace(/[^\d+]/g, '');
+    const targetPhone = normalizePhone(primaryPhone);
+    const targetEmail = primaryEmail.toLowerCase().trim();
+    return allContacts.filter(c => {
+      if (id && c.id === id) return false;
+      if (targetEmail) {
+        if (c.email?.toLowerCase() === targetEmail) return true;
+        if (c.emails?.some(e => e.email.toLowerCase() === targetEmail)) return true;
+      }
+      if (targetPhone) {
+        if (normalizePhone(c.phone) === targetPhone) return true;
+        if (c.phones?.some(p => normalizePhone(p.phone) === targetPhone)) return true;
+      }
+      return false;
+    });
+  }, [emails, phones, id, allContacts]);
 
   const handleAddTag = () => {
     if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
