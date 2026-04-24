@@ -21,6 +21,7 @@ import {
   FileText,
   MessageSquare,
   Loader2,
+  Pencil,
 } from 'lucide-react';
 import { type Note } from '@/lib/services/crm';
 import {
@@ -36,6 +37,7 @@ import { format, parseISO } from 'date-fns';
 import { RichComposer, RichContent, type RichComposerValue } from '@/components/ui/rich-composer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useCRMPermissions } from '@/hooks/useCRMPermissions';
 import { canViewSensitive, maskEmail, maskPhone, displayRevenue } from '@/lib/crm/fieldMask';
 import { getQuotations, getSalesOrders } from '@/lib/services/sales/storage';
 import DOMPurify from 'dompurify';
