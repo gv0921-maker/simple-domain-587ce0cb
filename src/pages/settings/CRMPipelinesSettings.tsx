@@ -162,7 +162,10 @@ export default function CRMPipelinesSettings() {
           <div className="flex items-center gap-3">
             <GitBranch className="h-6 w-6 text-primary" />
             <div>
-              <h1 className="text-lg font-medium">CRM Pipelines</h1>
+              <h1 className="text-lg font-medium flex items-center gap-2">
+                CRM Pipelines
+                {isFetching && !isLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+              </h1>
               <p className="text-sm text-muted-foreground">Manage multiple sales pipelines and their stages</p>
             </div>
           </div>
@@ -171,6 +174,11 @@ export default function CRMPipelinesSettings() {
           </Button>
         </div>
 
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Pipelines list */}
           <div className="space-y-2">
