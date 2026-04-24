@@ -648,8 +648,8 @@ export function CRMExportButton({ type, variant = 'outline', format = 'xlsx' }: 
   if (!canExportData) return null;
 
   return (
-    <Button variant={variant} onClick={handleExport} className="gap-2">
-      <FileDown className="h-4 w-4" />
+    <Button variant={variant} onClick={handleExport} className="gap-2" disabled={isExporting}>
+      {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
       Export
     </Button>
   );
