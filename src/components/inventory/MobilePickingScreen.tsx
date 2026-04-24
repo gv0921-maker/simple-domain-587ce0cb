@@ -31,8 +31,8 @@ import {
   validateStockMove,
   getProduct,
   getLocation,
-} from '@/lib/services/inventory';
-import type { StockMove, StockMoveLine } from '@/lib/services/inventory';
+} from '@/lib/services/inventory/storage';
+import type { StockMove, StockMoveLine } from '@/lib/services/inventory/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';

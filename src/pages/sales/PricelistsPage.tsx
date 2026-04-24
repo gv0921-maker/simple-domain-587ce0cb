@@ -32,7 +32,7 @@ import {
   Check,
 } from 'lucide-react';
 import { getPricelists, deletePricelist } from '@/lib/services/sales';
-import type { Pricelist } from '@/lib/services/sales';
+import type { Pricelist } from '@/lib/services/sales/types';
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';

@@ -56,7 +56,7 @@ import {
   applyPricelistPrice,
   checkStockAvailability,
 } from '@/lib/services/sales';
-import type { SalesOrder, SalesOrderLine, SalesOrderStatus, DiscountType } from '@/lib/services/sales';
+import type { SalesOrder, SalesOrderLine, SalesOrderStatus, DiscountType } from '@/lib/services/sales/types';
 import { getContacts } from '@/lib/services/sales';
 import { getProducts } from '@/lib/services/inventory';
 import { SALES_NAV } from '@/lib/navigation/sales';

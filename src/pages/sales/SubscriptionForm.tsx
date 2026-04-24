@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft } from 'lucide-react';
 import { getContacts } from '@/lib/services/sales';
 import { getSubscriptions, saveSubscription } from '@/lib/services/sales';
-import type { Subscription, BillingCycle } from '@/lib/services/sales';
+import type { Subscription, BillingCycle } from '@/lib/services/sales/types';
 import { getProducts } from '@/lib/services/inventory';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';

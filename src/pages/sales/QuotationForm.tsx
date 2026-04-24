@@ -59,7 +59,7 @@ import {
   checkStockAvailability,
   convertQuotationToOrder,
 } from '@/lib/services/sales';
-import type { Quotation, QuotationLine, QuotationStatus, DiscountType } from '@/lib/services/sales';
+import type { Quotation, QuotationLine, QuotationStatus, DiscountType } from '@/lib/services/sales/types';
 import { getContacts } from '@/lib/services/sales';
 import { getProducts } from '@/lib/services/inventory';
 import { SALES_NAV } from '@/lib/navigation/sales';

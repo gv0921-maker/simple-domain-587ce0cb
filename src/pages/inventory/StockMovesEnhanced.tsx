@@ -45,8 +45,8 @@ import {
   getStockMoves, 
   deleteStockMove,
   validateStockMove,
-} from '@/lib/services/inventory';
-import type { StockMove, StockMoveState } from '@/lib/services/inventory';
+} from '@/lib/services/inventory/storage';
+import type { StockMove, StockMoveState } from '@/lib/services/inventory/types';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';

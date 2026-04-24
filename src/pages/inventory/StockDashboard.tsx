@@ -17,7 +17,7 @@ import {
   Layers,
   Activity,
 } from 'lucide-react';
-import { getProducts, getWarehouses, getStockMoves } from '@/lib/services/inventory';
+import { getProducts, getWarehouses, getStockMoves } from '@/lib/services/inventory/storage';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';

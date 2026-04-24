@@ -1,4 +1,4 @@
-import type { Quotation } from '@/lib/services/sales';
+import type { Quotation } from '@/lib/services/sales/types';
 import { getTaxRules } from '@/lib/services/sales';
 
 export function downloadQuotationPdf(quotation: Quotation) {
