@@ -21,12 +21,6 @@ export default function UserSelectPage() {
   return (
     <div className="min-h-screen bg-gradient-lavender flex items-center justify-center p-4">
       <Card className="w-full max-w-md p-8 animate-scale-in">
-        {/* Logo */}
-        <div className="flex justify-center mb-6">
-          <div className="w-24 h-24 rounded-full border-4 border-info flex items-center justify-center bg-card">
-            <span className="text-2xl font-bold text-primary">ERP</span>
-          </div>
-        </div>
 
         <div className="border-t border-border my-6" />
 
