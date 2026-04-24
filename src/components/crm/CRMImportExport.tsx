@@ -1,5 +1,5 @@
-// TODO: Replace localStorage with Supabase queries
 // CRM Import/Export Component - Supports Odoo-format XLSX/CSV
+// Async via TanStack Query hooks (Supabase-backed).
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,14 +34,15 @@ import {
   AlertTriangle,
   FileDown,
   FileSpreadsheet,
+  Loader2,
 } from 'lucide-react';
+import type { ImportResult } from '@/lib/services/crm';
 import {
-  importContacts,
-  importOpportunities,
-  exportContacts,
-  exportOpportunities,
-  type ImportResult,
-} from '@/lib/services/crm';
+  useImportContacts,
+  useImportOpportunities,
+  useExportContacts,
+  useExportOpportunities,
+} from '@/hooks/crm/useCRMQueries';
 import { useToast } from '@/hooks/use-toast';
 import { useCRMPermissions } from '@/hooks/useCRMPermissions';
 import * as XLSX from 'xlsx';
