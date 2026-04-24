@@ -149,7 +149,10 @@ export default function CRMContactsList() {
       <div className="p-6 space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Contacts</h1>
+            <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
+              Contacts
+              {isFetching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            </h1>
             <p className="text-muted-foreground">Manage your contacts and customer relationships</p>
           </div>
           <div className="flex gap-2">
@@ -319,7 +322,7 @@ export default function CRMContactsList() {
         <CRMImportDialog
           open={isImportOpen}
           onOpenChange={setIsImportOpen}
-          onImportComplete={() => setContacts(getContacts())}
+          onImportComplete={() => { /* React Query invalidation handled inside the dialog */ }}
         />
       </div>
     </AppLayout>
