@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
-import { getWorkCenters, deleteWorkCenter, updateWorkCenter, type WorkCenter } from '@/lib/data/manufacturing';
+import { getWorkCenters, deleteWorkCenter, updateWorkCenter, type WorkCenter } from '@/lib/services/manufacturing';
 import { Plus, Search, Trash2, Edit, Cog, DollarSign, Users } from 'lucide-react';
 import { toast } from 'sonner';
 

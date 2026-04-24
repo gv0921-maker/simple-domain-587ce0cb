@@ -38,7 +38,7 @@ import {
   getOpportunities,
   getActivities,
   type CRMStats,
-} from '@/lib/data/crm';
+} from '@/lib/services/crm';
 import { SimpleBarChart } from '@/components/dashboard/SimpleBarChart';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay, subDays, subMonths, startOfMonth, endOfMonth } from 'date-fns';

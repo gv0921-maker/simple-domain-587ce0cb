@@ -40,7 +40,7 @@ import {
   TruckIcon,
   RotateCcw,
 } from 'lucide-react';
-import { getTransfers, deleteTransfer, type InventoryTransfer, type TransferStatus } from '@/lib/data/inventory';
+import { getTransfers, deleteTransfer, type InventoryTransfer, type TransferStatus } from '@/lib/services/inventory';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';

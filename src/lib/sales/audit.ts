@@ -1,4 +1,4 @@
-import { addAuditLog, getAuditLogs } from '@/lib/data/rbac';
+import { addAuditLog, getAuditLogs } from '@/lib/services/settings';
 import { getAuthState } from '@/lib/storage';
 
 export type SalesResource = 'quotation' | 'order' | 'subscription' | 'pricelist' | 'tax_rule';

@@ -30,7 +30,7 @@ import {
   Building,
   User,
 } from 'lucide-react';
-import { getContacts, type Contact } from '@/lib/data/sales';
+import { getContacts, type Contact } from '@/lib/services/sales';
 import { setItem } from '@/lib/storage';
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';

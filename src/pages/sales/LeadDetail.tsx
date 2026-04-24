@@ -43,7 +43,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { WorkflowStatus } from '@/components/forms/WorkflowStatus';
 import { ActivityTimeline } from '@/components/forms/ActivityTimeline';
-import { getLead, saveLead, type Lead, type LeadStatus, type Activity } from '@/lib/data/sales';
+import { getLead, saveLead, type Lead, type LeadStatus, type Activity } from '@/lib/services/sales';
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';

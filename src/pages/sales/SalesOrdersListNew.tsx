@@ -45,8 +45,8 @@ import {
   FileText,
   Package,
 } from 'lucide-react';
-import { getSalesOrders, deleteSalesOrder, saveSalesOrder } from '@/lib/data/sales/storage';
-import type { SalesOrder, SalesOrderStatus } from '@/lib/data/sales/types';
+import { getSalesOrders, deleteSalesOrder, saveSalesOrder } from '@/lib/services/sales';
+import type { SalesOrder, SalesOrderStatus } from '@/lib/services/sales';
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';

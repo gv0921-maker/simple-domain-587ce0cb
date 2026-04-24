@@ -26,7 +26,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
-import { canAccessRoute } from '@/lib/data/rbac';
+import { canAccessRoute } from '@/lib/services/settings';
 
 interface TopNavProps {
   title?: string;

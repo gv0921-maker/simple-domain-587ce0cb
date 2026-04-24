@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getInvoices, updateInvoice } from '@/lib/data/accounting';
+import { getInvoices, updateInvoice } from '@/lib/services/accounting';
 import { Plus, Search, Send, DollarSign, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 

@@ -19,7 +19,7 @@ import {
   Barcode,
   ListFilter,
 } from 'lucide-react';
-import { getTransfer, updateTransferStatus, type InventoryTransfer, type TransferStatus } from '@/lib/data/inventory';
+import { getTransfer, updateTransferStatus, type InventoryTransfer, type TransferStatus } from '@/lib/services/inventory';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';

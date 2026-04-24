@@ -15,7 +15,7 @@ import {
   Building,
   TrendingUp,
 } from 'lucide-react';
-import { getOpportunities, type Opportunity, type OpportunityStage } from '@/lib/data/sales';
+import { getOpportunities, type Opportunity, type OpportunityStage } from '@/lib/services/sales';
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';

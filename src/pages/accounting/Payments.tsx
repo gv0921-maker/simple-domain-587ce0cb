@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getPayments, createPayment, Payment } from '@/lib/data/accounting';
+import { getPayments, createPayment, Payment } from '@/lib/services/accounting';
 import { Plus, Search, ArrowUpRight, ArrowDownRight, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 

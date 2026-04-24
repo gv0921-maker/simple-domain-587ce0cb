@@ -60,8 +60,8 @@ import {
   type Permission,
   type TabPermission,
   type RecordScope,
-} from '@/lib/data/rbac';
-import { MODULE_TABS, getModuleTabIds } from '@/lib/data/moduleTabs';
+} from '@/lib/services/settings';
+import { MODULE_TABS, getModuleTabIds } from '@/lib/services/settings';
 
 const RECORD_SCOPE_OPTIONS: { id: RecordScope | 'none'; label: string; description: string }[] = [
   { id: 'none', label: 'None', description: 'No access to records' },

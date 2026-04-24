@@ -37,8 +37,8 @@ import {
   getWarehouses,
   getLocations,
   getBarcodeOperations,
-} from '@/lib/data/inventory/storage';
-import type { StockMove, BarcodeOperation } from '@/lib/data/inventory/types';
+} from '@/lib/services/inventory';
+import type { StockMove, BarcodeOperation } from '@/lib/services/inventory';
 import { BARCODE_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';

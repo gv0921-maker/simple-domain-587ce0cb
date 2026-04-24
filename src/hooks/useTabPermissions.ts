@@ -1,8 +1,8 @@
 // Hook for checking tab-level permissions
 import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { hasTabAccess, getAccessibleTabs } from '@/lib/data/rbac';
-import { getModuleTabs, type ModuleTab } from '@/lib/data/moduleTabs';
+import { hasTabAccess, getAccessibleTabs } from '@/lib/services/settings';
+import { getModuleTabs, type ModuleTab } from '@/lib/services/settings';
 
 interface TabPermissions {
   hasAccess: (tabId: string) => boolean;

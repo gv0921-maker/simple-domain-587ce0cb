@@ -34,7 +34,7 @@ import {
   type Note,
   getNotes,
   saveNote,
-} from '@/lib/data/crm';
+} from '@/lib/services/crm';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useCRMPermissions } from '@/hooks/useCRMPermissions';

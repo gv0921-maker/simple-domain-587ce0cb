@@ -3,7 +3,7 @@ import { ACCOUNTING_NAV } from '@/lib/navigation/accounting';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { getFinancialSummary, getInvoices } from '@/lib/data/accounting';
+import { getFinancialSummary, getInvoices } from '@/lib/services/accounting';
 import { DollarSign, TrendingUp, TrendingDown, FileText, CreditCard, ArrowUpRight, ArrowDownRight, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 

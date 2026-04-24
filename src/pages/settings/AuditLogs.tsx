@@ -29,7 +29,7 @@ import {
   LogIn,
   LogOut,
 } from 'lucide-react';
-import { getAuditLogs, type AuditLog } from '@/lib/data/rbac';
+import { getAuditLogs, type AuditLog } from '@/lib/services/settings';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { SETTINGS_NAV } from '@/lib/navigation/settings';

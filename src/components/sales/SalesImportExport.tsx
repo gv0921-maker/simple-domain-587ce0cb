@@ -4,8 +4,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import { Upload, Download, AlertTriangle } from 'lucide-react';
-import { saveQuotation, saveSalesOrder, getQuotations, getSalesOrders } from '@/lib/data/sales/storage';
-import type { Quotation, SalesOrder } from '@/lib/data/sales/types';
+import { saveQuotation, saveSalesOrder, getQuotations, getSalesOrders } from '@/lib/services/sales';
+import type { Quotation, SalesOrder } from '@/lib/services/sales';
 import { useToast } from '@/hooks/use-toast';
 
 interface SalesImportExportProps {

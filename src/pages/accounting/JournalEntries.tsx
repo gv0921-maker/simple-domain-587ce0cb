@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getJournalEntries, createJournalEntry, updateJournalEntry, getAccounts, JournalEntry, JournalLine } from '@/lib/data/accounting';
+import { getJournalEntries, createJournalEntry, updateJournalEntry, getAccounts, JournalEntry, JournalLine } from '@/lib/services/accounting';
 import { Plus, Search, Trash2, FileText, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 

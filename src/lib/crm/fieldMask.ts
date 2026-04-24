@@ -1,6 +1,6 @@
 // Field-level masking based on user role / permission level
 // Sensitive fields (email, phone, expectedRevenue) are masked for users with view-only or restricted access.
-import { getUserPermissions, isSuperAdminUser } from '@/lib/data/rbac';
+import { getUserPermissions, isSuperAdminUser } from '@/lib/services/settings';
 
 export type SensitiveField = 'email' | 'phone' | 'revenue';
 

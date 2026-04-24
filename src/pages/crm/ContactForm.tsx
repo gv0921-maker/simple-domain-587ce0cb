@@ -27,7 +27,7 @@ import {
   getContacts,
   saveContact,
   findDuplicateContacts,
-} from '@/lib/data/crm';
+} from '@/lib/services/crm';
 import { CRM_NAV } from '@/lib/navigation/crm';
 import { useToast } from '@/hooks/use-toast';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';

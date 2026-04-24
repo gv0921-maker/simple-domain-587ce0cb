@@ -33,14 +33,14 @@ import {
   UserPlus,
   Upload,
 } from 'lucide-react';
-import { getContacts, deleteContact, type Contact } from '@/lib/data/crm';
+import { getContacts, deleteContact, type Contact } from '@/lib/services/crm';
 import { CRM_NAV } from '@/lib/navigation/crm';
 import { CRMImportDialog, CRMExportButton } from '@/components/crm/CRMImportExport';
 import { CRMFilterPopover, type FilterOption, type ActiveFilter } from '@/components/crm/CRMFilterPopover';
 import { useToast } from '@/hooks/use-toast';
 import { useCRMPermissions } from '@/hooks/useCRMPermissions';
 import { useAuth } from '@/contexts/AuthContext';
-import { isSuperAdminUser } from '@/lib/data/rbac';
+import { isSuperAdminUser } from '@/lib/services/settings';
 import { canViewSensitive, maskEmail, maskPhone } from '@/lib/crm/fieldMask';
 
 const CONTACT_FILTER_OPTIONS: FilterOption[] = [

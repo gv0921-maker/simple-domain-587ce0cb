@@ -55,10 +55,10 @@ import {
   calculateLineTotal,
   applyPricelistPrice,
   checkStockAvailability,
-} from '@/lib/data/sales/storage';
-import type { SalesOrder, SalesOrderLine, SalesOrderStatus, DiscountType } from '@/lib/data/sales/types';
-import { getContacts } from '@/lib/data/sales';
-import { getProducts } from '@/lib/data/inventory';
+} from '@/lib/services/sales';
+import type { SalesOrder, SalesOrderLine, SalesOrderStatus, DiscountType } from '@/lib/services/sales';
+import { getContacts } from '@/lib/services/sales';
+import { getProducts } from '@/lib/services/inventory';
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';

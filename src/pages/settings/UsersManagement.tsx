@@ -41,7 +41,7 @@ import {
   UserCog,
 } from 'lucide-react';
 import { DEMO_USERS, type User } from '@/lib/storage';
-import { getRoles, getUserRole, setUserRoles, type Role } from '@/lib/data/rbac';
+import { getRoles, getUserRole, setUserRoles, type Role } from '@/lib/services/settings';
 import { SETTINGS_NAV } from '@/lib/navigation/settings';
 import { useToast } from '@/hooks/use-toast';
 

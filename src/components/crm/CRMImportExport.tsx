@@ -41,7 +41,7 @@ import {
   exportContacts,
   exportOpportunities,
   type ImportResult,
-} from '@/lib/data/crm';
+} from '@/lib/services/crm';
 import { useToast } from '@/hooks/use-toast';
 import { useCRMPermissions } from '@/hooks/useCRMPermissions';
 import * as XLSX from 'xlsx';

@@ -36,7 +36,7 @@ import {
   type InventoryTransfer,
   type StockMove,
   type TransferStatus,
-} from '@/lib/data/inventory';
+} from '@/lib/services/inventory';
 import { getItem } from '@/lib/storage';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';

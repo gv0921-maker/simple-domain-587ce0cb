@@ -31,7 +31,7 @@ import {
   MapPin,
   Package,
 } from 'lucide-react';
-import { getWarehouses, saveWarehouse, deleteWarehouse, type Warehouse as WarehouseType } from '@/lib/data/inventory';
+import { getWarehouses, saveWarehouse, deleteWarehouse, type Warehouse as WarehouseType } from '@/lib/services/inventory';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';

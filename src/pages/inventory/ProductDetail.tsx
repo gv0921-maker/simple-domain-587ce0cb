@@ -33,7 +33,7 @@ import {
   History,
   Plus,
 } from 'lucide-react';
-import { getProduct, saveProduct, deleteProduct, type Product, type ProductVariant } from '@/lib/data/inventory';
+import { getProduct, saveProduct, deleteProduct, type Product, type ProductVariant } from '@/lib/services/inventory';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useStudioConfig } from '@/hooks/useStudioConfig';

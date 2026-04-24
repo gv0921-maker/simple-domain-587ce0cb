@@ -16,7 +16,7 @@ import {
   Settings,
   X,
 } from 'lucide-react';
-import { getContacts, getOpportunities } from '@/lib/data/crm';
+import { getContacts, getOpportunities } from '@/lib/services/crm';
 import { cn } from '@/lib/utils';
 
 interface SearchResult {

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, ChevronLeft, ChevronRight, Settings, MoreVertical, Warehouse, Package, ArrowLeftRight, BarChart3 } from 'lucide-react';
-import { getProducts, getTransfers, getWarehouses } from '@/lib/data/inventory';
+import { getProducts, getTransfers, getWarehouses } from '@/lib/services/inventory';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useMemo } from 'react';
 
