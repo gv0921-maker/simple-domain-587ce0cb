@@ -47,9 +47,9 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  // Apply filters
+  // Apply text search only (filters/group-by removed)
   const filteredByFilters = useFilteredOpportunities(
-    activeFilters.filters.has('lost') ? opportunities : opportunities.filter(o => o.stage !== 'lost'),
+    opportunities,
     activeFilters,
     user?.id,
   );
