@@ -1,9 +1,8 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -15,205 +14,153 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Search,
   Plus,
   MoreHorizontal,
-  Pencil,
   Trash2,
   ShoppingCart,
-  DollarSign,
   Calendar,
   Truck,
   CheckCircle,
   Eye,
+  Lock,
+  XCircle,
+  FileText,
   Package,
 } from 'lucide-react';
-import { getSalesOrders, saveSalesOrder, getContacts, type SalesOrder, type OrderLine, type OrderStatus, type Contact } from '@/lib/services/sales';
-import { getProducts, type Product } from '@/lib/services/inventory';
-import { getItem, setItem } from '@/lib/storage';
+import { getSalesOrders, deleteSalesOrder, saveSalesOrder } from '@/lib/services/sales/storage';
+import type { SalesOrder, SalesOrderStatus } from '@/lib/services/sales/types';
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { SalesImportExport } from '@/components/sales/SalesImportExport';
 
-const STATUS_CONFIG: Record<OrderStatus, { label: string; className: string }> = {
-  draft: { label: 'Draft', className: 'bg-muted text-muted-foreground' },
-  sent: { label: 'Sent', className: 'bg-info/20 text-info border-info' },
-  confirmed: { label: 'Confirmed', className: 'bg-success/20 text-success border-success' },
-  done: { label: 'Done', className: 'bg-primary/20 text-primary border-primary' },
-  cancelled: { label: 'Cancelled', className: 'bg-destructive/20 text-destructive border-destructive' },
+const STATUS_CONFIG: Record<SalesOrderStatus, { label: string; className: string; icon: typeof ShoppingCart }> = {
+  draft: { label: 'Draft', className: 'bg-muted text-muted-foreground', icon: FileText },
+  confirmed: { label: 'Confirmed', className: 'bg-success/20 text-success border-success', icon: CheckCircle },
+  locked: { label: 'Locked', className: 'bg-primary/20 text-primary border-primary', icon: Lock },
+  cancelled: { label: 'Cancelled', className: 'bg-destructive/20 text-destructive border-destructive', icon: XCircle },
 };
 
-export default function SalesOrdersList() {
+const DELIVERY_STATUS_CONFIG = {
+  pending: { label: 'Pending', className: 'bg-warning/20 text-warning-foreground' },
+  partial: { label: 'Partial', className: 'bg-info/20 text-info' },
+  done: { label: 'Delivered', className: 'bg-success/20 text-success' },
+};
+
+export default function SalesOrdersListNew() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get('highlight');
   const { toast } = useToast();
   const { user } = useAuth();
-  const [orders, setOrders] = useState<SalesOrder[]>(getSalesOrders());
-  const [contacts] = useState<Contact[]>(getContacts());
-  const [products] = useState<Product[]>(getProducts());
+  const [orders, setOrders] = useState<SalesOrder[]>(() => getSalesOrders());
   const [search, setSearch] = useState('');
-
-  // Dialog state
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingOrder, setEditingOrder] = useState<SalesOrder | null>(null);
-  const [formData, setFormData] = useState({
-    customerId: '',
-    deliveryDate: '',
-    notes: '',
-  });
-  const [lines, setLines] = useState<OrderLine[]>([]);
-  const [newLine, setNewLine] = useState({
-    productId: '',
-    quantity: 1,
-    discount: 0,
-  });
+  const [statusFilter, setStatusFilter] = useState<SalesOrderStatus | 'all'>('all');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{ orderId: string; action: 'confirm' | 'lock' | 'cancel' } | null>(null);
 
   const filteredOrders = useMemo(() => {
-    return orders.filter(
-      (o) =>
+    return orders.filter((o) => {
+      const matchesSearch =
         o.reference.toLowerCase().includes(search.toLowerCase()) ||
-        o.customerName.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [orders, search]);
+        o.customerName.toLowerCase().includes(search.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || o.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [orders, search, statusFilter]);
 
   const stats = useMemo(() => ({
     total: orders.length,
+    draft: orders.filter((o) => o.status === 'draft').length,
     confirmed: orders.filter((o) => o.status === 'confirmed').length,
-    revenue: orders.filter((o) => o.status === 'done').reduce((sum, o) => sum + o.total, 0),
-    pending: orders.filter((o) => o.status === 'confirmed').reduce((sum, o) => sum + o.total, 0),
+    locked: orders.filter((o) => o.status === 'locked').length,
+    pendingDelivery: orders.filter((o) => o.deliveryStatus === 'pending' && o.status !== 'cancelled').length,
+    totalRevenue: orders
+      .filter((o) => o.status !== 'cancelled')
+      .reduce((sum, o) => sum + o.total, 0),
+    pendingRevenue: orders
+      .filter((o) => o.status === 'confirmed')
+      .reduce((sum, o) => sum + o.total, 0),
   }), [orders]);
 
-  const calculateLineTotal = (productId: string, quantity: number, discount: number) => {
-    const product = products.find((p) => p.id === productId);
-    if (!product) return 0;
-    return product.salePrice * quantity * (1 - discount / 100);
-  };
+  const handleUpdateStatus = useCallback((orderId: string, status: SalesOrderStatus) => {
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) return;
 
-  const handleAddLine = () => {
-    if (!newLine.productId) {
-      toast({ title: 'Select a product', variant: 'destructive' });
-      return;
+    const updates: Partial<SalesOrder> = { status };
+    if (status === 'confirmed') {
+      updates.confirmedAt = new Date().toISOString();
+      updates.confirmedBy = user?.name;
+      updates.activities = [
+        ...order.activities,
+        {
+          id: crypto.randomUUID(),
+          userId: user?.id || '1',
+          userName: user?.name || 'System',
+          action: 'Order confirmed',
+          timestamp: new Date().toISOString(),
+        },
+      ];
+    }
+    if (status === 'locked') {
+      updates.lockedAt = new Date().toISOString();
+      updates.lockedBy = user?.name;
+      updates.activities = [
+        ...order.activities,
+        {
+          id: crypto.randomUUID(),
+          userId: user?.id || '1',
+          userName: user?.name || 'System',
+          action: 'Order locked',
+          timestamp: new Date().toISOString(),
+        },
+      ];
     }
 
-    const product = products.find((p) => p.id === newLine.productId);
-    if (!product) return;
-
-    const line: OrderLine = {
-      id: crypto.randomUUID(),
-      productId: product.id,
-      productName: product.name,
-      quantity: newLine.quantity,
-      unitPrice: product.salePrice,
-      discount: newLine.discount,
-      total: calculateLineTotal(product.id, newLine.quantity, newLine.discount),
-    };
-
-    setLines((prev) => [...prev, line]);
-    setNewLine({ productId: '', quantity: 1, discount: 0 });
-  };
-
-  const handleRemoveLine = (lineId: string) => {
-    setLines((prev) => prev.filter((l) => l.id !== lineId));
-  };
-
-  const handleOpenDialog = (order?: SalesOrder) => {
-    if (order) {
-      setEditingOrder(order);
-      setFormData({
-        customerId: order.customerId,
-        deliveryDate: order.deliveryDate || '',
-        notes: order.notes || '',
-      });
-      setLines(order.lines);
-    } else {
-      setEditingOrder(null);
-      setFormData({
-        customerId: '',
-        deliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        notes: '',
-      });
-      setLines([]);
-    }
-    setIsDialogOpen(true);
-  };
-
-  const handleSave = () => {
-    if (!formData.customerId || lines.length === 0) {
-      toast({ title: 'Select a customer and add products', variant: 'destructive' });
-      return;
-    }
-
-    const customer = contacts.find((c) => c.id === formData.customerId);
-    const subtotal = lines.reduce((sum, l) => sum + l.total, 0);
-    const tax = subtotal * 0.18;
-
-    const orderData: SalesOrder = {
-      id: editingOrder?.id || crypto.randomUUID(),
-      reference: editingOrder?.reference || `SO-${new Date().getFullYear()}-${String(orders.length + 1).padStart(3, '0')}`,
-      customerId: formData.customerId,
-      customerName: customer ? `${customer.name}${customer.company ? ` - ${customer.company}` : ''}` : '',
-      status: editingOrder?.status || 'draft',
-      orderDate: editingOrder?.orderDate || new Date().toISOString().split('T')[0],
-      deliveryDate: formData.deliveryDate,
-      lines,
-      subtotal,
-      tax,
-      total: subtotal + tax,
-      notes: formData.notes,
-      createdBy: user?.name || 'System',
-      createdAt: editingOrder?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    saveSalesOrder(orderData);
+    saveSalesOrder({ ...order, ...updates });
     setOrders(getSalesOrders());
-    setIsDialogOpen(false);
-    toast({
-      title: editingOrder ? 'Order Updated' : 'Order Created',
-      description: `${orderData.reference} has been saved.`,
-    });
-  };
+    toast({ title: `Order ${status}` });
+    setConfirmDialogOpen(false);
+  }, [orders, user, toast]);
 
-  const handleUpdateStatus = (id: string, status: OrderStatus) => {
-    const order = orders.find((o) => o.id === id);
-    if (order) {
-      saveSalesOrder({ ...order, status, updatedAt: new Date().toISOString() });
-      setOrders(getSalesOrders());
-      toast({ title: `Order marked as ${status}` });
+  const confirmDelete = useCallback(() => {
+    if (orderToDelete) {
+      try {
+        deleteSalesOrder(orderToDelete);
+        setOrders(getSalesOrders());
+        toast({ title: 'Order deleted' });
+      } catch (error: any) {
+        toast({ title: error.message, variant: 'destructive' });
+      }
     }
-  };
-
-  const handleDelete = (id: string) => {
-    const updated = orders.filter((o) => o.id !== id);
-    setItem('salesOrders', updated);
-    setOrders(updated);
-    toast({ title: 'Order Deleted' });
-  };
+    setDeleteDialogOpen(false);
+    setOrderToDelete(null);
+  }, [orderToDelete, toast]);
 
   return (
-    <AppLayout title="CRM" moduleNav={SALES_NAV}>
+    <AppLayout title="Sales" moduleNav={SALES_NAV}>
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -221,65 +168,89 @@ export default function SalesOrdersList() {
             <h1 className="text-2xl font-semibold text-foreground">Sales Orders</h1>
             <p className="text-muted-foreground">Manage customer orders and fulfillment</p>
           </div>
-          <Button onClick={() => handleOpenDialog()} className="gap-2">
+          <Button onClick={() => navigate('/sales/orders/new')} className="gap-2">
             <Plus className="h-4 w-4" />
             New Order
           </Button>
+          <SalesImportExport type="orders" onImportComplete={() => setOrders(getSalesOrders())} />
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <Card className="animate-slide-up">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
+          <Card className="animate-slide-up cursor-pointer hover:ring-2 ring-primary/20 transition-all" onClick={() => setStatusFilter('all')}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Orders
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Orders</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.total}</div>
             </CardContent>
           </Card>
-          <Card className="animate-slide-up" style={{ animationDelay: '50ms' }}>
+          <Card className="animate-slide-up cursor-pointer hover:ring-2 ring-primary/20 transition-all" style={{ animationDelay: '50ms' }} onClick={() => setStatusFilter('draft')}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                To Fulfill
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Drafts</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-warning">{stats.confirmed}</div>
+              <div className="text-2xl font-bold">{stats.draft}</div>
             </CardContent>
           </Card>
-          <Card className="animate-slide-up" style={{ animationDelay: '100ms' }}>
+          <Card className="animate-slide-up cursor-pointer hover:ring-2 ring-primary/20 transition-all" style={{ animationDelay: '100ms' }} onClick={() => setStatusFilter('confirmed')}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Pending Revenue
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Confirmed</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{`₹${stats.pending.toLocaleString('en-IN')}`}</div>
+              <div className="text-2xl font-bold text-success">{stats.confirmed}</div>
             </CardContent>
           </Card>
           <Card className="animate-slide-up" style={{ animationDelay: '150ms' }}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Completed Revenue
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">To Deliver</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-success">{`₹${stats.revenue.toLocaleString('en-IN')}`}</div>
+              <div className="text-2xl font-bold text-warning">{stats.pendingDelivery}</div>
+            </CardContent>
+          </Card>
+          <Card className="animate-slide-up" style={{ animationDelay: '200ms' }}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{`₹${stats.totalRevenue.toLocaleString('en-IN')}`}</div>
+            </CardContent>
+          </Card>
+          <Card className="animate-slide-up" style={{ animationDelay: '250ms' }}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Pending Revenue</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-info">{`₹${stats.pendingRevenue.toLocaleString('en-IN')}`}</div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Search */}
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder=""
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+        {/* Search & Filters */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder=""
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {(['all', 'draft', 'confirmed', 'locked', 'cancelled'] as const).map((status) => (
+              <Button
+                key={status}
+                variant={statusFilter === status ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter(status)}
+                className="capitalize"
+              >
+                {status}
+              </Button>
+            ))}
+          </div>
         </div>
 
         {/* Table */}
@@ -293,244 +264,209 @@ export default function SalesOrdersList() {
                 <TableHead>Delivery</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Delivery</TableHead>
                 <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    No orders found
+                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                    <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                    <p>No orders found</p>
+                    <Button variant="link" onClick={() => navigate('/sales/orders/new')}>
+                      Create your first order
+                    </Button>
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredOrders.map((order, index) => (
-                  <TableRow
-                    key={order.id}
-                    className="animate-fade-in"
-                    style={{ animationDelay: `${index * 30}ms` }}
-                  >
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <ShoppingCart className="h-4 w-4 text-primary" />
-                        {order.reference}
-                      </div>
-                    </TableCell>
-                    <TableCell>{order.customerName}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 text-sm">
-                        <Calendar className="h-3 w-3 text-muted-foreground" />
-                        {format(parseISO(order.orderDate), 'MMM d, yyyy')}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {order.deliveryDate && (
-                        <div className="flex items-center gap-1 text-sm">
-                          <Truck className="h-3 w-3 text-muted-foreground" />
-                          {format(parseISO(order.deliveryDate), 'MMM d')}
-                        </div>
+                filteredOrders.map((order, index) => {
+                  const StatusIcon = STATUS_CONFIG[order.status].icon;
+                  const isHighlighted = order.id === highlightId;
+                  return (
+                    <TableRow
+                      key={order.id}
+                      className={cn(
+                        'animate-fade-in cursor-pointer hover:bg-muted/50',
+                        isHighlighted && 'bg-primary/10 ring-2 ring-primary/20'
                       )}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      ₹{order.total.toLocaleString('en-IN')}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={cn('font-normal', STATUS_CONFIG[order.status].className)}>
-                        {STATUS_CONFIG[order.status].label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleOpenDialog(order)}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View/Edit
-                          </DropdownMenuItem>
-                          {order.status === 'draft' && (
-                            <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'confirmed')}>
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Confirm Order
-                            </DropdownMenuItem>
+                      style={{ animationDelay: `${index * 30}ms` }}
+                      onClick={() => navigate(`/sales/orders/${order.id}`)}
+                    >
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <ShoppingCart className="h-4 w-4 text-primary" />
+                          {order.reference}
+                          {order.quotationId && (
+                            <Badge variant="outline" className="text-xs">From Quote</Badge>
                           )}
-                          {order.status === 'confirmed' && (
-                            <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'done')}>
-                              <Package className="h-4 w-4 mr-2" />
-                              Mark as Done
-                            </DropdownMenuItem>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{order.customerName}</p>
+                          {order.salespersonName && (
+                            <p className="text-xs text-muted-foreground">{order.salespersonName}</p>
                           )}
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(order.id)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1 text-sm">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          {format(parseISO(order.orderDate), 'MMM d, yyyy')}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {order.deliveryDate && (
+                          <div className="flex items-center gap-1 text-sm">
+                            <Truck className="h-3 w-3 text-muted-foreground" />
+                            {format(parseISO(order.deliveryDate), 'MMM d')}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div>
+                          <p className="font-semibold">{`₹${order.total.toLocaleString('en-IN')}`}</p>
+                          <p className="text-xs text-muted-foreground">{order.lines.length} items</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={cn('font-normal gap-1', STATUS_CONFIG[order.status].className)}>
+                          <StatusIcon className="h-3 w-3" />
+                          {STATUS_CONFIG[order.status].label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {order.deliveryStatus && order.status !== 'cancelled' && (
+                          <Badge className={cn('font-normal', DELIVERY_STATUS_CONFIG[order.deliveryStatus].className)}>
+                            <Package className="h-3 w-3 mr-1" />
+                            {DELIVERY_STATUS_CONFIG[order.deliveryStatus].label}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/sales/orders/${order.id}`); }}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View
+                            </DropdownMenuItem>
+                            {order.status === 'draft' && (
+                              <>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/sales/orders/${order.id}/edit`); }}>
+                                  <FileText className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConfirmAction({ orderId: order.id, action: 'confirm' });
+                                  setConfirmDialogOpen(true);
+                                }}>
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  Confirm Order
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {order.status === 'confirmed' && (
+                              <>
+                                <DropdownMenuItem onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConfirmAction({ orderId: order.id, action: 'lock' });
+                                  setConfirmDialogOpen(true);
+                                }}>
+                                  <Lock className="h-4 w-4 mr-2" />
+                                  Lock Order
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConfirmAction({ orderId: order.id, action: 'cancel' });
+                                  setConfirmDialogOpen(true);
+                                }}>
+                                  <XCircle className="h-4 w-4 mr-2" />
+                                  Cancel Order
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {order.status === 'draft' && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOrderToDelete(order.id);
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
         </Card>
-
-        {/* Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingOrder ? `Edit ${editingOrder.reference}` : 'New Sales Order'}
-              </DialogTitle>
-              <DialogDescription>
-                {editingOrder ? 'Update order details' : 'Create a new sales order'}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label>Customer *</Label>
-                  <Select
-                    value={formData.customerId}
-                    onValueChange={(v) => setFormData({ ...formData, customerId: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select customer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {contacts.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name} {c.company ? `- ${c.company}` : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Delivery Date</Label>
-                  <Input
-                    type="date"
-                    value={formData.deliveryDate}
-                    onChange={(e) => setFormData({ ...formData, deliveryDate: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              {/* Add Products */}
-              <div className="space-y-4">
-                <Label>Products</Label>
-                <div className="flex gap-2 p-3 bg-muted/50 rounded-lg">
-                  <Select
-                    value={newLine.productId}
-                    onValueChange={(v) => setNewLine({ ...newLine, productId: v })}
-                  >
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select product" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name} - ₹{p.salePrice} (Stock: {p.stockOnHand})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={newLine.quantity}
-                    onChange={(e) => setNewLine({ ...newLine, quantity: parseInt(e.target.value) || 1 })}
-                    className="w-20"
-                    placeholder=""
-                  />
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={newLine.discount}
-                    onChange={(e) => setNewLine({ ...newLine, discount: parseInt(e.target.value) || 0 })}
-                    className="w-20"
-                    placeholder=""
-                  />
-                  <Button onClick={handleAddLine}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                {lines.length > 0 && (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Product</TableHead>
-                        <TableHead className="text-right">Qty</TableHead>
-                        <TableHead className="text-right">Price</TableHead>
-                        <TableHead className="text-right">Disc.</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                        <TableHead className="w-[40px]"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {lines.map((line) => (
-                        <TableRow key={line.id}>
-                          <TableCell>{line.productName}</TableCell>
-                          <TableCell className="text-right">{line.quantity}</TableCell>
-                          <TableCell className="text-right">₹{line.unitPrice}</TableCell>
-                          <TableCell className="text-right">{line.discount}%</TableCell>
-                          <TableCell className="text-right font-medium">
-                            ₹{line.total.toLocaleString('en-IN')}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => handleRemoveLine(line.id)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-
-                {lines.length > 0 && (
-                  <div className="flex justify-end">
-                    <div className="w-48 space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Subtotal</span>
-                        <span>₹{lines.reduce((s, l) => s + l.total, 0).toLocaleString('en-IN')}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Tax (18%)</span>
-                        <span>₹{(lines.reduce((s, l) => s + l.total, 0) * 0.18).toLocaleString('en-IN')}</span>
-                      </div>
-                      <div className="flex justify-between font-semibold border-t pt-1">
-                        <span>Total</span>
-                        <span>₹{(lines.reduce((s, l) => s + l.total, 0) * 1.18).toLocaleString('en-IN')}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSave}>
-                {editingOrder ? 'Update' : 'Create'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Order?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. Only draft orders can be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Status Change Confirmation */}
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmAction?.action === 'confirm' && 'Confirm Order?'}
+              {confirmAction?.action === 'lock' && 'Lock Order?'}
+              {confirmAction?.action === 'cancel' && 'Cancel Order?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction?.action === 'confirm' && 'This will confirm the order and notify the customer. Stock will be reserved.'}
+              {confirmAction?.action === 'lock' && 'Locked orders cannot be edited. This is typically done after delivery.'}
+              {confirmAction?.action === 'cancel' && 'This will cancel the order and release any reserved stock.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmAction && handleUpdateStatus(confirmAction.orderId, confirmAction.action === 'confirm' ? 'confirmed' : confirmAction.action === 'lock' ? 'locked' : 'cancelled')}
+              className={confirmAction?.action === 'cancel' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
+            >
+              {confirmAction?.action === 'confirm' && 'Confirm'}
+              {confirmAction?.action === 'lock' && 'Lock'}
+              {confirmAction?.action === 'cancel' && 'Cancel Order'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

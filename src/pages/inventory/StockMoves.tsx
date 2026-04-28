@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -21,431 +21,329 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Search,
   Plus,
-  ArrowRight,
-  TrendingUp,
-  TrendingDown,
-  RefreshCw,
+  Filter,
+  MoreHorizontal,
+  Eye,
+  Check,
+  X,
+  ArrowUpDown,
+  Package,
+  Truck,
+  ArrowLeftRight,
+  RotateCcw,
+  Factory,
 } from 'lucide-react';
-import { getProducts, getWarehouses, type Product } from '@/lib/services/inventory';
+import { 
+  getStockMoves, 
+  deleteStockMove,
+  validateStockMove,
+} from '@/lib/services/inventory/storage';
+import type { StockMove, StockMoveState } from '@/lib/services/inventory/types';
 import { INVENTORY_NAV } from '@/lib/navigation';
-import { getItem, setItem } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
+import { useInventoryAccess } from '@/hooks/useInventoryPermissions';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
-export interface StockMoveRecord {
-  id: string;
-  productId: string;
-  productName: string;
-  productSku: string;
-  moveType: 'in' | 'out' | 'adjustment' | 'transfer';
-  quantity: number;
-  previousQty: number;
-  newQty: number;
-  sourceLocation: string;
-  destinationLocation: string;
-  reference?: string;
-  lotNumber?: string;
-  serialNumber?: string;
-  notes?: string;
-  createdBy: string;
-  createdAt: string;
-}
-
-const DEFAULT_STOCK_MOVES: StockMoveRecord[] = [];
-
-function getStockMoves(): StockMoveRecord[] {
-  return getItem<StockMoveRecord[]>('stock_moves', DEFAULT_STOCK_MOVES);
-}
-
-function saveStockMove(move: StockMoveRecord): void {
-  const moves = getStockMoves();
-  moves.unshift({ ...move, id: crypto.randomUUID(), createdAt: new Date().toISOString() });
-  setItem('stock_moves', moves);
-}
-
-const MOVE_TYPE_CONFIG = {
-  in: { label: 'Receipt', icon: TrendingUp, className: 'text-success' },
-  out: { label: 'Delivery', icon: TrendingDown, className: 'text-destructive' },
-  adjustment: { label: 'Adjustment', icon: RefreshCw, className: 'text-warning' },
-  transfer: { label: 'Transfer', icon: ArrowRight, className: 'text-info' },
+const STATE_CONFIG: Record<StockMoveState, { label: string; className: string }> = {
+  draft: { label: 'Draft', className: 'bg-muted text-muted-foreground' },
+  waiting: { label: 'Waiting', className: 'bg-warning/20 text-warning-foreground border-warning' },
+  confirmed: { label: 'Confirmed', className: 'bg-info/20 text-info border-info' },
+  assigned: { label: 'Assigned', className: 'bg-primary/20 text-primary border-primary' },
+  done: { label: 'Done', className: 'bg-success/20 text-success border-success' },
+  cancelled: { label: 'Cancelled', className: 'bg-destructive/20 text-destructive border-destructive' },
 };
 
-export default function StockMoves() {
+const OPERATION_ICONS = {
+  receipt: Package,
+  delivery: Truck,
+  internal: ArrowLeftRight,
+  adjustment: RotateCcw,
+  production: Factory,
+  return: RotateCcw,
+};
+
+const OPERATION_COLORS = {
+  receipt: 'text-success bg-success/10',
+  delivery: 'text-info bg-info/10',
+  internal: 'text-warning bg-warning/10',
+  adjustment: 'text-primary bg-primary/10',
+  production: 'text-purple-500 bg-purple-500/10',
+  return: 'text-orange-500 bg-orange-500/10',
+};
+
+export default function StockMovesEnhanced() {
+  const navigate = useNavigate();
   const { toast } = useToast();
-  const [moves, setMoves] = useState<StockMoveRecord[]>(getStockMoves());
-  const [products] = useState<Product[]>(getProducts());
-  const [warehouses] = useState(getWarehouses());
+  const { user } = useAuth();
+  const { canCreateMoves, canValidateReceipts, canValidateDeliveries } = useInventoryAccess();
+  
+  const [moves, setMoves] = useState<StockMove[]>(getStockMoves());
   const [search, setSearch] = useState('');
+  const [stateFilter, setStateFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    productId: '',
-    moveType: 'adjustment' as 'in' | 'out' | 'adjustment' | 'transfer',
-    quantity: '',
-    sourceLocation: '',
-    destinationLocation: '',
-    lotNumber: '',
-    serialNumber: '',
-    notes: '',
-  });
+  const [sortField, setSortField] = useState<'scheduledDate' | 'reference'>('scheduledDate');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const filteredMoves = useMemo(() => {
-    return moves.filter((m) => {
-      const matchesSearch =
-        m.productName.toLowerCase().includes(search.toLowerCase()) ||
-        m.productSku.toLowerCase().includes(search.toLowerCase()) ||
-        m.reference?.toLowerCase().includes(search.toLowerCase());
-      const matchesType = typeFilter === 'all' || m.moveType === typeFilter;
-      return matchesSearch && matchesType;
-    });
-  }, [moves, search, typeFilter]);
-
-  const stats = useMemo(() => {
-    return {
-      totalMoves: moves.length,
-      receipts: moves.filter((m) => m.moveType === 'in').length,
-      deliveries: moves.filter((m) => m.moveType === 'out').length,
-      adjustments: moves.filter((m) => m.moveType === 'adjustment').length,
-    };
-  }, [moves]);
-
-  const handleCreateAdjustment = () => {
-    const product = products.find((p) => p.id === formData.productId);
-    if (!product || !formData.quantity) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please select a product and enter quantity',
-        variant: 'destructive',
+    return moves
+      .filter((m) => {
+        const matchesSearch =
+          m.reference.toLowerCase().includes(search.toLowerCase()) ||
+          m.partnerName?.toLowerCase().includes(search.toLowerCase()) ||
+          m.sourceDocument?.toLowerCase().includes(search.toLowerCase());
+        const matchesState = stateFilter === 'all' || m.state === stateFilter;
+        const matchesType = typeFilter === 'all' || m.operationType === typeFilter;
+        return matchesSearch && matchesState && matchesType;
+      })
+      .sort((a, b) => {
+        const aVal = sortField === 'scheduledDate' ? new Date(a.scheduledDate).getTime() : a.reference;
+        const bVal = sortField === 'scheduledDate' ? new Date(b.scheduledDate).getTime() : b.reference;
+        if (sortOrder === 'asc') return aVal > bVal ? 1 : -1;
+        return aVal < bVal ? 1 : -1;
       });
-      return;
+  }, [moves, search, stateFilter, typeFilter, sortField, sortOrder]);
+
+  const stats = useMemo(() => ({
+    total: moves.length,
+    pending: moves.filter(m => !['done', 'cancelled'].includes(m.state)).length,
+    receipts: moves.filter(m => m.operationType === 'receipt' && m.state !== 'done').length,
+    deliveries: moves.filter(m => m.operationType === 'delivery' && m.state !== 'done').length,
+  }), [moves]);
+
+  const toggleSort = (field: 'scheduledDate' | 'reference') => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
     }
+  };
 
-    const qty = parseInt(formData.quantity);
-    const newMove: StockMoveRecord = {
-      id: '',
-      productId: product.id,
-      productName: product.name,
-      productSku: product.sku,
-      moveType: formData.moveType,
-      quantity: qty,
-      previousQty: product.stockOnHand,
-      newQty: formData.moveType === 'out' ? product.stockOnHand - Math.abs(qty) : product.stockOnHand + Math.abs(qty),
-      sourceLocation: formData.sourceLocation || 'GLF/Stock',
-      destinationLocation: formData.destinationLocation || 'GLF/Stock',
-      lotNumber: formData.lotNumber || undefined,
-      serialNumber: formData.serialNumber || undefined,
-      notes: formData.notes || undefined,
-      createdBy: 'Current User',
-      createdAt: '',
-    };
+  const handleValidate = (moveId: string) => {
+    if (user) {
+      validateStockMove(moveId, user.id, user.name);
+      setMoves(getStockMoves());
+      toast({
+        title: 'Stock Move Validated',
+        description: 'Stock levels have been updated.',
+      });
+    }
+  };
 
-    saveStockMove(newMove);
+  const handleDelete = (id: string) => {
+    deleteStockMove(id);
     setMoves(getStockMoves());
-    setIsDialogOpen(false);
-    setFormData({
-      productId: '',
-      moveType: 'adjustment',
-      quantity: '',
-      sourceLocation: '',
-      destinationLocation: '',
-      lotNumber: '',
-      serialNumber: '',
-      notes: '',
-    });
-    toast({
-      title: 'Stock Move Created',
-      description: `${product.name} stock ${formData.moveType === 'out' ? 'reduced' : 'increased'} by ${Math.abs(qty)}`,
-    });
+    toast({ title: 'Stock Move Deleted' });
   };
 
   return (
     <AppLayout title="Inventory" moduleNav={INVENTORY_NAV}>
       <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">Stock Moves</h1>
-            <p className="text-muted-foreground">Track all inventory movements and adjustments</p>
-          </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                New Stock Move
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Create Stock Move</DialogTitle>
-                <DialogDescription>
-                  Record a new inventory movement or adjustment
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label>Product *</Label>
-                  <Select
-                    value={formData.productId}
-                    onValueChange={(v) => setFormData({ ...formData, productId: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select product" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          [{p.sku}] {p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Move Type *</Label>
-                  <Select
-                    value={formData.moveType}
-                    onValueChange={(v) => setFormData({ ...formData, moveType: v as any })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="in">Receipt (In)</SelectItem>
-                      <SelectItem value="out">Delivery (Out)</SelectItem>
-                      <SelectItem value="adjustment">Adjustment</SelectItem>
-                      <SelectItem value="transfer">Internal Transfer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Quantity *</Label>
-                  <Input
-                    type="number"
-                    value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                    placeholder=""
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label>Source Location</Label>
-                    <Select
-                      value={formData.sourceLocation}
-                      onValueChange={(v) => setFormData({ ...formData, sourceLocation: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select source" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {warehouses.map((w) => (
-                          <SelectItem key={w.id} value={`${w.code}/Stock`}>
-                            {w.name}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="Vendor">Vendor</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Destination</Label>
-                    <Select
-                      value={formData.destinationLocation}
-                      onValueChange={(v) => setFormData({ ...formData, destinationLocation: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select destination" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {warehouses.map((w) => (
-                          <SelectItem key={w.id} value={`${w.code}/Stock`}>
-                            {w.name}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="Customer">Customer</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label>Lot Number</Label>
-                    <Input
-                      value={formData.lotNumber}
-                      onChange={(e) => setFormData({ ...formData, lotNumber: e.target.value })}
-                      placeholder=""
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Serial Number</Label>
-                    <Input
-                      value={formData.serialNumber}
-                      onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
-                      placeholder=""
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Notes</Label>
-                  <Input
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder=""
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateAdjustment}>Create Move</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <Card className="animate-slide-up" style={{ animationDelay: '0ms' }}>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <Card className="animate-slide-up">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Moves</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalMoves}</div>
+              <div className="text-2xl font-bold">{stats.total}</div>
             </CardContent>
           </Card>
           <Card className="animate-slide-up" style={{ animationDelay: '50ms' }}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-success" />
-                Receipts
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-warning">{stats.pending}</div>
+            </CardContent>
+          </Card>
+          <Card className="animate-slide-up" style={{ animationDelay: '100ms' }}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Receipts Waiting</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-success">{stats.receipts}</div>
             </CardContent>
           </Card>
-          <Card className="animate-slide-up" style={{ animationDelay: '100ms' }}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <TrendingDown className="h-4 w-4 text-destructive" />
-                Deliveries
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-destructive">{stats.deliveries}</div>
-            </CardContent>
-          </Card>
           <Card className="animate-slide-up" style={{ animationDelay: '150ms' }}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <RefreshCw className="h-4 w-4 text-warning" />
-                Adjustments
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Deliveries Waiting</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-warning">{stats.adjustments}</div>
+              <div className="text-2xl font-bold text-info">{stats.deliveries}</div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder=""
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
+        {/* Filters and Actions */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder=""
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={stateFilter} onValueChange={setStateFilter}>
+              <SelectTrigger className="w-[140px]">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="State" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All States</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="waiting">Waiting</SelectItem>
+                <SelectItem value="confirmed">Confirmed</SelectItem>
+                <SelectItem value="assigned">Assigned</SelectItem>
+                <SelectItem value="done">Done</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="receipt">Receipts</SelectItem>
+                <SelectItem value="delivery">Deliveries</SelectItem>
+                <SelectItem value="internal">Internal</SelectItem>
+                <SelectItem value="adjustment">Adjustments</SelectItem>
+                <SelectItem value="production">Production</SelectItem>
+                <SelectItem value="return">Returns</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="in">Receipts</SelectItem>
-              <SelectItem value="out">Deliveries</SelectItem>
-              <SelectItem value="adjustment">Adjustments</SelectItem>
-              <SelectItem value="transfer">Transfers</SelectItem>
-            </SelectContent>
-          </Select>
+          {canCreateMoves && (
+            <Button onClick={() => navigate('/inventory/transfers/new')} className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Stock Move
+            </Button>
+          )}
         </div>
 
         {/* Table */}
-        <Card className="animate-fade-in">
+        <Card>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead>Type</TableHead>
+                <TableHead className="w-[50px]">Type</TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1 -ml-3"
+                    onClick={() => toggleSort('reference')}
+                  >
+                    Reference
+                    <ArrowUpDown className="h-3 w-3" />
+                  </Button>
+                </TableHead>
+                <TableHead>Partner</TableHead>
                 <TableHead>From → To</TableHead>
-                <TableHead className="text-right">Qty</TableHead>
-                <TableHead className="text-right">Before</TableHead>
-                <TableHead className="text-right">After</TableHead>
-                <TableHead>Reference</TableHead>
+                <TableHead>Items</TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1 -ml-3"
+                    onClick={() => toggleSort('scheduledDate')}
+                  >
+                    Date
+                    <ArrowUpDown className="h-3 w-3" />
+                  </Button>
+                </TableHead>
+                <TableHead>State</TableHead>
+                <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredMoves.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                    No stock moves found
+                    <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No stock moves found</p>
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredMoves.map((move, index) => {
-                  const config = MOVE_TYPE_CONFIG[move.moveType];
-                  const Icon = config.icon;
+                  const Icon = OPERATION_ICONS[move.operationType] || Package;
+                  const colorClass = OPERATION_COLORS[move.operationType] || 'text-muted-foreground bg-muted';
+                  const canValidate = 
+                    (move.operationType === 'receipt' && canValidateReceipts) ||
+                    (move.operationType === 'delivery' && canValidateDeliveries) ||
+                    (['internal', 'adjustment', 'production', 'return'].includes(move.operationType) && canCreateMoves);
+                  
                   return (
                     <TableRow
                       key={move.id}
-                      className="animate-fade-in"
+                      className="cursor-pointer hover:bg-muted/50 animate-fade-in"
                       style={{ animationDelay: `${index * 30}ms` }}
+                      onClick={() => navigate(`/inventory/transfers/${move.id}`)}
                     >
-                      <TableCell className="text-sm text-muted-foreground">
-                        {format(new Date(move.createdAt), 'dd MMM yyyy, HH:mm')}
-                      </TableCell>
                       <TableCell>
-                        <div>
-                          <div className="font-medium">{move.productName}</div>
-                          <div className="text-sm text-muted-foreground">{move.productSku}</div>
+                        <div className={cn('h-9 w-9 rounded-lg flex items-center justify-center', colorClass)}>
+                          <Icon className="h-5 w-5" />
                         </div>
                       </TableCell>
+                      <TableCell className="font-medium text-primary">{move.reference}</TableCell>
+                      <TableCell>{move.partnerName || '—'}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
+                        {move.sourceLocationName} → {move.destinationLocationName}
+                      </TableCell>
                       <TableCell>
-                        <div className={cn('flex items-center gap-1.5', config.className)}>
-                          <Icon className="h-4 w-4" />
-                          <span className="text-sm font-medium">{config.label}</span>
-                        </div>
+                        <Badge variant="outline">{move.lines.length} items</Badge>
                       </TableCell>
                       <TableCell className="text-sm">
-                        {move.sourceLocation} → {move.destinationLocation}
+                        {format(new Date(move.scheduledDate), 'MMM d, HH:mm')}
                       </TableCell>
-                      <TableCell className={cn('text-right font-medium', config.className)}>
-                        {move.moveType === 'out' ? '-' : '+'}{Math.abs(move.quantity)}
+                      <TableCell>
+                        <Badge className={cn('font-normal', STATE_CONFIG[move.state].className)}>
+                          {STATE_CONFIG[move.state].label}
+                        </Badge>
                       </TableCell>
-                      <TableCell className="text-right text-muted-foreground">
-                        {move.previousQty}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {move.newQty}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {move.reference || move.lotNumber || '-'}
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => navigate(`/inventory/transfers/${move.id}`)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
+                            </DropdownMenuItem>
+                            {canValidate && ['confirmed', 'assigned'].includes(move.state) && (
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleValidate(move.id); }}>
+                                <Check className="h-4 w-4 mr-2" />
+                                Validate
+                              </DropdownMenuItem>
+                            )}
+                            {move.state === 'draft' && (
+                              <DropdownMenuItem 
+                                onClick={(e) => { e.stopPropagation(); handleDelete(move.id); }}
+                                className="text-destructive"
+                              >
+                                <X className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );
