@@ -67,7 +67,7 @@ const DELIVERY_STATUS_CONFIG = {
   done: { label: 'Delivered', className: 'bg-success/20 text-success' },
 };
 
-export default function SalesOrdersListNew() {
+export default function SalesOrdersList() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight');
