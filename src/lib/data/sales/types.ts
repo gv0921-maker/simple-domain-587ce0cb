@@ -1,11 +1,117 @@
 // Sales & Quotations Types
 
 export type QuotationStatus = 'draft' | 'sent' | 'accepted' | 'expired' | 'cancelled';
-export type SalesOrderStatus = 'draft' | 'confirmed' | 'locked' | 'cancelled';
+// Modern B2C 5-stage workflow. Legacy 'draft' / 'locked' kept for back-compat
+// (mapped via DB migration: draft→estimate, locked→ready_to_pick).
+export type SalesOrderStatus =
+  | 'estimate'
+  | 'confirmed'
+  | 'ready_to_pick'
+  | 'dispatched'
+  | 'delivered'
+  | 'cancelled'
+  // Legacy values kept so existing localStorage / DB rows still type-check.
+  | 'draft'
+  | 'locked';
 export type SubscriptionStatus = 'draft' | 'active' | 'paused' | 'cancelled';
 export type BillingCycle = 'monthly' | 'quarterly' | 'yearly';
 export type TaxType = 'inclusive' | 'exclusive';
 export type DiscountType = 'percentage' | 'fixed';
+
+// B2C custom location & loyalty types ----------------------------------------
+export type LocationType = 'house' | 'flat' | 'office';
+export type LoyaltyTier = 'bronze' | 'silver' | 'gold';
+export type LinePerLineDiscountType =
+  | 'flat_order'
+  | 'item'
+  | 'loyalty'
+  | 'seasonal'
+  | null;
+export type OrderDiscountType = 'percent' | 'amount' | null;
+export type GSTType = 'cgst_sgst' | 'igst';
+
+/**
+ * Reusable B2C billing/delivery address block. Used as a mixin on Quotation
+ * and SalesOrder. All fields are optional at the type level so legacy records
+ * keep validating; runtime form validation enforces required-ness.
+ */
+export interface B2CAddressFields {
+  // Billing
+  billingCustomerName?: string;
+  billingPhone1?: string;
+  billingPhone2?: string;
+  billingName?: string;
+  billingAddressLine1?: string;
+  billingAddressLine2?: string;
+  billingCity?: string;
+  billingState?: string;
+  billingZip?: string;
+  billingLocationType?: LocationType;
+  billingRoadAvailableForTempo?: boolean;
+  billingFloorNumber?: number;
+  billingCargoElevator?: boolean;
+  billingStaircaseWidth?: number;
+  billingStaircaseHeight?: number;
+  billingGSTIN?: string;
+  billingOfficeFloorNumber?: number;
+  billingOfficeCargoElevator?: boolean;
+  billingOfficeStaircaseWidth?: number;
+  billingOfficeStaircaseHeight?: number;
+
+  // Delivery
+  deliverySameAsBilling?: boolean;
+  deliveryName?: string;
+  deliveryAddressLine1?: string;
+  deliveryAddressLine2?: string;
+  deliveryCity?: string;
+  deliveryState?: string;
+  deliveryZip?: string;
+  deliveryLocationType?: LocationType;
+  deliveryRoadAvailableForTempo?: boolean;
+  deliveryFloorNumber?: number;
+  deliveryCargoElevator?: boolean;
+  deliveryStaircaseWidth?: number;
+  deliveryStaircaseHeight?: number;
+  deliveryGSTIN?: string;
+  deliveryOfficeFloorNumber?: number;
+  deliveryOfficeCargoElevator?: boolean;
+  deliveryOfficeStaircaseWidth?: number;
+  deliveryOfficeStaircaseHeight?: number;
+}
+
+/** B2C per-line custom fields. All optional for back-compat. */
+export interface B2CLineFields {
+  barcode?: string;
+  customization?: string;
+  units?: number;                  // alias of `quantity` for B2C UI
+  netAmount?: number;              // units × unitPrice
+  gstRate?: number;                // single GST % rate per product
+  cgstAmount?: number;
+  sgstAmount?: number;
+  igstAmount?: number;
+  perLineDiscountType?: LinePerLineDiscountType;
+  discountValue?: number;
+  discountAmount?: number;
+  finalAmount?: number;
+}
+
+/** B2C order summary fields. All optional for back-compat. */
+export interface B2COrderSummary {
+  totalUntaxed?: number;
+  totalCGST?: number;
+  totalSGST?: number;
+  totalIGST?: number;
+  totalGST?: number;
+  grandTotal?: number;
+  gstType?: GSTType;
+  orderDiscountType?: OrderDiscountType;
+  orderDiscountValue?: number;
+  orderDiscountAmount?: number;
+  // Loyalty
+  pointsRedeemed?: number;
+  pointsEarned?: number;
+  redemptionAmount?: number;
+}
 
 // Quotation Interfaces
 export interface QuotationLine {
@@ -22,6 +128,19 @@ export interface QuotationLine {
   taxAmount: number;
   total: number;
   stockAvailable?: number;
+  // B2C extension — see B2CLineFields
+  barcode?: string;
+  customization?: string;
+  units?: number;
+  netAmount?: number;
+  gstRate?: number;
+  cgstAmount?: number;
+  sgstAmount?: number;
+  igstAmount?: number;
+  perLineDiscountType?: LinePerLineDiscountType;
+  discountValue?: number;
+  discountAmount?: number;
+  finalAmount?: number;
 }
 
 export interface QuotationVersion {
@@ -32,7 +151,7 @@ export interface QuotationVersion {
   changeNotes?: string;
 }
 
-export interface Quotation {
+export interface Quotation extends B2CAddressFields, B2COrderSummary {
   id: string;
   reference: string;
   customerId: string;
@@ -101,6 +220,19 @@ export interface SalesOrderLine {
   taxAmount: number;
   total: number;
   reservedStock: boolean;
+  // B2C extension — see B2CLineFields
+  barcode?: string;
+  customization?: string;
+  units?: number;
+  netAmount?: number;
+  gstRate?: number;
+  cgstAmount?: number;
+  sgstAmount?: number;
+  igstAmount?: number;
+  perLineDiscountType?: LinePerLineDiscountType;
+  discountValue?: number;
+  discountAmount?: number;
+  finalAmount?: number;
 }
 
 export interface OrderActivity {
@@ -112,7 +244,7 @@ export interface OrderActivity {
   timestamp: string;
 }
 
-export interface SalesOrder {
+export interface SalesOrder extends B2CAddressFields, B2COrderSummary {
   id: string;
   reference: string;
   quotationId?: string;
