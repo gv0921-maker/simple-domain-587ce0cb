@@ -31,11 +31,13 @@ import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStudioConfig } from '@/hooks/useStudioConfig';
-import { format, parseISO, addDays } from 'date-fns';
+import { format, parseISO, addDays, differenceInDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { BillingSection } from '@/components/sales/BillingSection';
 import { DeliverySection } from '@/components/sales/DeliverySection';
 import { OrderLinesTable, type OrderSummaryValue } from '@/components/sales/OrderLinesTable';
+import type { QuotationVersion } from '@/lib/services/sales/types';
+import { History } from 'lucide-react';
 
 const PAYMENT_TERMS = [
   { value: 'immediate', label: 'Immediate Payment' },
@@ -245,6 +247,20 @@ export default function QuotationForm() {
         ...formData,
       } as Quotation;
 
+      // Snapshot a new version on every explicit save (not status-only changes).
+      if (!newStatus) {
+        const prevVersions = formData.versions || [];
+        const { versions: _v, ...dataNoVersions } = data;
+        const snapshot: QuotationVersion = {
+          version: (formData.currentVersion || 0) + 1,
+          createdAt: new Date().toISOString(),
+          createdBy: user?.name || 'System',
+          data: dataNoVersions,
+        };
+        // Cap at last 20 versions for storage hygiene.
+        data.versions = [...prevVersions, snapshot].slice(-20);
+      }
+
       saveQuotation(data);
       toast({ title: isNew ? 'Quotation Created' : 'Quotation Updated', description: `${data.reference} saved.` });
       navigate('/sales/quotations');
@@ -274,6 +290,15 @@ export default function QuotationForm() {
 
   const isEditable = formData.status === 'draft';
 
+  const versions = formData.versions || [];
+  const expiryInfo = (() => {
+    if (!formData.validUntil || formData.status !== 'sent') return null;
+    const days = differenceInDays(parseISO(formData.validUntil), new Date());
+    if (days < 0) return { kind: 'expired' as const, days: -days };
+    if (days <= 7) return { kind: 'soon' as const, days };
+    return null;
+  })();
+
   if (loading) {
     return (
       <AppLayout title="Sales" moduleNav={SALES_NAV}>
@@ -301,6 +326,18 @@ export default function QuotationForm() {
                 {!isNew && (
                   <Badge className={cn('font-normal', STATUS_CONFIG[formData.status!].className)}>
                     {STATUS_CONFIG[formData.status!].label}
+                  </Badge>
+                )}
+                {expiryInfo && (
+                  <Badge variant="outline" className={cn(
+                    'font-normal',
+                    expiryInfo.kind === 'expired'
+                      ? 'text-destructive border-destructive bg-destructive/10'
+                      : 'text-warning-foreground border-warning bg-warning/10'
+                  )}>
+                    {expiryInfo.kind === 'expired'
+                      ? `Expired ${expiryInfo.days}d ago`
+                      : `Expires in ${expiryInfo.days}d`}
                   </Badge>
                 )}
               </div>
@@ -493,6 +530,31 @@ export default function QuotationForm() {
                     onClick={() => navigate(`/sales/orders/${formData.convertedToOrderId}`)}>
                     <FileText className="h-4 w-4 mr-2" /> View Sales Order
                   </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {!isNew && versions.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <History className="h-4 w-4" /> Version History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 max-h-72 overflow-auto">
+                  {versions.slice().reverse().map((v) => (
+                    <div key={v.version} className="flex items-center justify-between p-2 border rounded-md text-xs">
+                      <div>
+                        <div className="font-medium">v{v.version}</div>
+                        <div className="text-muted-foreground">
+                          {format(parseISO(v.createdAt), 'MMM d, HH:mm')} · {v.createdBy}
+                        </div>
+                      </div>
+                      <div className="text-right font-medium">
+                        {formatINR(v.data.total || 0)}
+                      </div>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             )}

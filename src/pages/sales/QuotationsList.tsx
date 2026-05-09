@@ -52,7 +52,7 @@ import type { Quotation, QuotationStatus } from '@/lib/services/sales/types';
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { format, parseISO, isPast } from 'date-fns';
+import { format, parseISO, isPast, differenceInDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { autoExpireQuotations } from '@/lib/sales/automation';
 import { SalesImportExport } from '@/components/sales/SalesImportExport';
@@ -350,6 +350,16 @@ ${quotation.termsAndConditions || ''}
                         )}>
                           <Clock className="h-3 w-3" />
                           {format(parseISO(quotation.validUntil), 'MMM d, yyyy')}
+                          {(() => {
+                            if (quotation.status !== 'sent') return null;
+                            const days = differenceInDays(parseISO(quotation.validUntil), new Date());
+                            if (days < 0 || days > 7) return null;
+                            return (
+                              <Badge variant="outline" className="ml-1 text-[10px] text-warning-foreground border-warning bg-warning/10">
+                                {days === 0 ? 'today' : `${days}d`}
+                              </Badge>
+                            );
+                          })()}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
