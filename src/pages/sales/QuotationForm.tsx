@@ -250,11 +250,12 @@ export default function QuotationForm() {
       // Snapshot a new version on every explicit save (not status-only changes).
       if (!newStatus) {
         const prevVersions = formData.versions || [];
+        const { versions: _v, ...dataNoVersions } = data;
         const snapshot: QuotationVersion = {
           version: (formData.currentVersion || 0) + 1,
           createdAt: new Date().toISOString(),
           createdBy: user?.name || 'System',
-          data: { ...data, versions: undefined as any },
+          data: dataNoVersions,
         };
         // Cap at last 20 versions for storage hygiene.
         data.versions = [...prevVersions, snapshot].slice(-20);
