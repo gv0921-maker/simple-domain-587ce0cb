@@ -7,5 +7,6 @@ export const SALES_NAV = [
   { label: 'Customers', href: '/sales/customers' },
   { label: 'Pricelists', href: '/sales/pricelists' },
   { label: 'Promotions', href: '/sales/promotions' },
+  { label: 'Fiscal Positions', href: '/sales/fiscal-positions' },
   { label: 'Reports', href: '/sales/reports' },
 ];
