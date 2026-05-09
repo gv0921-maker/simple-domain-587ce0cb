@@ -34,6 +34,8 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { getSubscriptions, saveSubscription } from '@/lib/services/sales/storage';
+import { renewSubscription, autoRenewDueSubscriptions } from '@/lib/sales/automation';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Subscription, SubscriptionStatus, BillingCycle } from '@/lib/services/sales/types';
 
 import { SALES_NAV } from '@/lib/navigation/sales';
@@ -58,6 +60,7 @@ export default function SubscriptionsList() {
   const navigate = useNavigate();
   const { toast } = useToast();
   
+  const { user } = useAuth();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(() => getSubscriptions());
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<SubscriptionStatus | 'all'>('all');
@@ -102,6 +105,27 @@ export default function SubscriptionsList() {
     setSubscriptions(getSubscriptions());
     toast({ title: `Subscription ${status}` });
   }, [subscriptions, toast]);
+
+  const handleRenew = useCallback((id: string) => {
+    const order = renewSubscription(id, user?.id || '1', user?.name || 'System');
+    if (order) {
+      setSubscriptions(getSubscriptions());
+      toast({ title: 'Subscription renewed', description: `${order.reference} created` });
+      navigate(`/sales/orders/${order.id}`);
+    } else {
+      toast({ title: 'Renewal failed', description: 'Subscription must be active', variant: 'destructive' });
+    }
+  }, [navigate, toast, user]);
+
+  const handleRenewAllDue = useCallback(() => {
+    const n = autoRenewDueSubscriptions(user?.id || '1', user?.name || 'System');
+    setSubscriptions(getSubscriptions());
+    toast({ title: n > 0 ? `Renewed ${n} subscription${n > 1 ? 's' : ''}` : 'No subscriptions are due' });
+  }, [toast, user]);
+
+  const today = new Date().toISOString().split('T')[0];
+  const dueCount = subscriptions.filter((s) => s.status === 'active' && s.nextBillingDate && s.nextBillingDate <= today).length;
+
   return (
     <AppLayout title="Sales" moduleNav={SALES_NAV}>
       <div className="p-6 space-y-6">
@@ -115,6 +139,12 @@ export default function SubscriptionsList() {
             <Plus className="h-4 w-4" />
             New Subscription
           </Button>
+          {dueCount > 0 && (
+            <Button variant="outline" onClick={handleRenewAllDue} className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Renew {dueCount} Due
+            </Button>
+          )}
         </div>
 
         {/* Stats */}
@@ -228,6 +258,11 @@ export default function SubscriptionsList() {
                       <div className="flex items-center gap-1 text-sm">
                         <Calendar className="h-3 w-3 text-muted-foreground" />
                         {format(parseISO(sub.nextBillingDate), 'MMM d, yyyy')}
+                        {sub.status === 'active' && sub.nextBillingDate <= today && (
+                          <Badge variant="outline" className="ml-1 text-[10px] text-warning-foreground border-warning bg-warning/10">
+                            Due
+                          </Badge>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -254,6 +289,12 @@ export default function SubscriptionsList() {
                             View/Edit
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
+                          {sub.status === 'active' && (
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleRenew(sub.id); }}>
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                              Renew Now
+                            </DropdownMenuItem>
+                          )}
                           {sub.status === 'draft' && (
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleUpdateStatus(sub.id, 'active'); }}>
                               <Play className="h-4 w-4 mr-2" />
