@@ -22,6 +22,7 @@ import {
   MessageSquare,
   Loader2,
   Pencil,
+  Award,
 } from 'lucide-react';
 import { type Note } from '@/lib/services/crm';
 import {
@@ -399,6 +400,36 @@ export default function CRMContactDetail() {
                 </div>
               </CardContent>
             </Card>
+
+            {(contact.loyaltyTier || (contact.loyaltyPoints ?? 0) > 0 || (contact.totalLifetimeSpend ?? 0) > 0) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Award className="h-4 w-4" /> Loyalty
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Tier</span>
+                    <Badge className={
+                      contact.loyaltyTier === 'gold' ? 'bg-yellow-500/20 text-yellow-700 border-yellow-500'
+                      : contact.loyaltyTier === 'silver' ? 'bg-gray-400/20 text-gray-700 border-gray-400'
+                      : 'bg-orange-500/20 text-orange-700 border-orange-500'
+                    }>
+                      {(contact.loyaltyTier || 'bronze').toUpperCase()}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Points</span>
+                    <span className="font-semibold">{(contact.loyaltyPoints ?? 0).toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Lifetime Spend</span>
+                    <span className="font-semibold">₹{(contact.totalLifetimeSpend ?? 0).toLocaleString('en-IN')}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardHeader>
