@@ -533,6 +533,31 @@ export default function QuotationForm() {
                 </CardContent>
               </Card>
             )}
+
+            {!isNew && versions.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <History className="h-4 w-4" /> Version History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 max-h-72 overflow-auto">
+                  {versions.slice().reverse().map((v) => (
+                    <div key={v.version} className="flex items-center justify-between p-2 border rounded-md text-xs">
+                      <div>
+                        <div className="font-medium">v{v.version}</div>
+                        <div className="text-muted-foreground">
+                          {format(parseISO(v.createdAt), 'MMM d, HH:mm')} · {v.createdBy}
+                        </div>
+                      </div>
+                      <div className="text-right font-medium">
+                        {formatINR(v.data.total || 0)}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
