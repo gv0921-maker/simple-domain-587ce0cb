@@ -27,7 +27,7 @@ export function syncPromotionUpsert(p: SeasonalPromotion): void {
       {
         client_id: p.id,
         name: p.name,
-        description: p.description ?? null,
+        description: (p as any).description ?? null,
         start_date: p.startDate,
         end_date: p.endDate,
         discount_type: p.discountType,
