@@ -625,6 +625,126 @@ export type Database = {
         }
         Relationships: []
       }
+      sales_fiscal_positions: {
+        Row: {
+          client_id: string
+          code: string
+          country_code: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          tax_mappings: Json
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          code: string
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          tax_mappings?: Json
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          code?: string
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          tax_mappings?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sales_loyalty_transactions: {
+        Row: {
+          amount: number
+          contact_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          order_id: string | null
+          points: number
+          txn_type: string
+        }
+        Insert: {
+          amount?: number
+          contact_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          points?: number
+          txn_type: string
+        }
+        Update: {
+          amount?: number
+          contact_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          points?: number
+          txn_type?: string
+        }
+        Relationships: []
+      }
+      sales_seasonal_promotions: {
+        Row: {
+          active: boolean
+          applicable_product_ids: Json
+          client_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          discount_type: string
+          discount_value: number
+          end_date: string
+          id: string
+          name: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          applicable_product_ids?: Json
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_type: string
+          discount_value: number
+          end_date: string
+          id?: string
+          name: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          applicable_product_ids?: Json
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          end_date?: string
+          id?: string
+          name?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
