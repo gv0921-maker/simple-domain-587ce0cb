@@ -1,11 +1,13 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, Plus, GripVertical } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Trash2, Plus, GripVertical, Lock, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   calculateLineTax,
@@ -20,7 +22,6 @@ import type {
 } from '@/lib/services/sales/types';
 import { getProducts } from '@/lib/services/inventory';
 import { getSeasonalDiscountPct } from '@/lib/sales/seasonalPricing';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export type AnyLine = QuotationLine | SalesOrderLine;
 
@@ -44,37 +45,29 @@ export interface OrderSummaryValue {
 interface Props<L extends AnyLine> {
   lines: L[];
   onChange: (next: L[]) => void;
-  /** GST type derived from billing/company state. */
   gstType: GSTType;
-  /** Default GST rate applied when adding a new line (e.g. 18). */
   defaultGstRate?: number;
-  /** Order-level discount controls. */
   orderDiscountType: OrderDiscountType;
   orderDiscountValue: number;
   onOrderDiscountChange: (type: OrderDiscountType, value: number) => void;
-  /** Loyalty redemption (optional). */
   pointsAvailable?: number;
   pointsRedeemed?: number;
   onPointsRedeemedChange?: (points: number) => void;
-  /** Role gating. */
   canApplyOrderDiscount: boolean;
-  /** Allowed per-line discount types for the active role. */
   allowedLineDiscountTypes?: LinePerLineDiscountType[];
   disabled?: boolean;
-  /** Notifies the parent of computed totals (so it can persist them). */
   onTotalsChange?: (totals: OrderSummaryValue) => void;
-  /** Factory for a new line (so caller can provide order-line specifics). */
   newLine: (id: string) => L;
 }
 
 const formatINR = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n || 0);
 
-const ALL_LINE_DISCOUNT_TYPES: { value: Exclude<LinePerLineDiscountType, null>; label: string }[] = [
-  { value: 'flat_order', label: 'Flat Order' },
-  { value: 'item', label: 'Item Discount' },
-  { value: 'loyalty', label: 'Loyalty Price' },
-  { value: 'seasonal', label: 'Seasonal Price' },
+const COMMON_GST_RATES = [0, 5, 12, 18, 28];
+const LINE_DISCOUNT_OPTIONS: { value: Exclude<LinePerLineDiscountType, null | 'flat_order'>; label: string }[] = [
+  { value: 'item', label: 'Item %' },
+  { value: 'loyalty', label: 'Loyalty' },
+  { value: 'seasonal', label: 'Seasonal' },
 ];
 
 function recomputeLine<L extends AnyLine>(line: L, gstType: GSTType): L {
@@ -84,10 +77,8 @@ function recomputeLine<L extends AnyLine>(line: L, gstType: GSTType): L {
   const gstRate = line.gstRate ?? 0;
   const tax = calculateLineTax(netAmount, gstRate, gstType);
 
-  // Discount
   let discountAmount = 0;
   if (line.perLineDiscountType === 'item') {
-    // discountValue interpreted as % when <=100, else flat ₹ for simplicity
     const v = line.discountValue || 0;
     discountAmount = v <= 100 ? netAmount * (v / 100) : v;
   } else if (line.perLineDiscountType === 'loyalty' || line.perLineDiscountType === 'seasonal') {
@@ -136,15 +127,17 @@ export function OrderLinesTable<L extends AnyLine>({
     return m;
   }, [products]);
 
-  const totals = useMemo(() => {
-    const t = calculateOrderTotals(lines, gstType, orderDiscountType, orderDiscountValue);
-    return t;
-  }, [lines, gstType, orderDiscountType, orderDiscountValue]);
+  const totals = useMemo(
+    () => calculateOrderTotals(lines, gstType, orderDiscountType, orderDiscountValue),
+    [lines, gstType, orderDiscountType, orderDiscountValue],
+  );
 
   const grandAfterPoints = Math.max(0, totals.grandTotal - (pointsRedeemed || 0));
 
-  // Notify parent of totals (in an effect-free, render-cycle-safe way)
   useMemoNotify(totals, grandAfterPoints, onTotalsChange);
+
+  const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
+  const [focusedRowId, setFocusedRowId] = useState<string | null>(null);
 
   const updateLine = useCallback(
     (id: string, patch: Partial<L>) => {
@@ -183,7 +176,6 @@ export function OrderLinesTable<L extends AnyLine>({
     } as Partial<L>);
   };
 
-  /** When the user picks "seasonal" for a line, auto-resolve the best active promo. */
   const applySeasonalForLine = (line: L) => {
     if (!line.productId) return { discountValue: 0, name: undefined as string | undefined };
     const { pct, promotion } = getSeasonalDiscountPct(line.productId, line.unitPrice);
@@ -204,291 +196,442 @@ export function OrderLinesTable<L extends AnyLine>({
     }
   };
 
-  const allowedTypes = allowedLineDiscountTypes ?? ALL_LINE_DISCOUNT_TYPES.map((t) => t.value);
+  const allowedTypes = allowedLineDiscountTypes ?? LINE_DISCOUNT_OPTIONS.map((t) => t.value);
+  const canDiscount = allowedTypes.length > 0;
 
-  return (
-    <div className="space-y-4">
-      <div className="border border-border rounded-md overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-8" />
-              <TableHead className="w-10">#</TableHead>
-              <TableHead className="min-w-[260px]">Product</TableHead>
-              <TableHead className="w-20">Units</TableHead>
-              <TableHead className="w-28">Unit Price</TableHead>
-              <TableHead className="w-28">Net</TableHead>
-              <TableHead className="w-16">GST%</TableHead>
-              {gstType === 'cgst_sgst' ? (
-                <>
-                  <TableHead className="w-24">CGST</TableHead>
-                  <TableHead className="w-24">SGST</TableHead>
-                </>
-              ) : (
-                <TableHead className="w-24">IGST</TableHead>
-              )}
-              <TableHead className="min-w-[200px]">Discount</TableHead>
-              <TableHead className="w-28 text-right">Final</TableHead>
-              <TableHead className="w-10" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {lines.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={gstType === 'cgst_sgst' ? 12 : 11} className="text-center text-muted-foreground py-6">
-                  No lines yet. Click "Add Line" below.
-                </TableCell>
-              </TableRow>
-            )}
-            {lines.map((line, idx) => (
-              <TableRow key={line.id} className="align-top">
-                <TableCell className="pt-3">
+  // Most-common GST rate for summary labels
+  const summaryGstRate = useMemo(() => {
+    const counts = new Map<number, number>();
+    lines.forEach((l) => {
+      const r = l.gstRate ?? 0;
+      counts.set(r, (counts.get(r) || 0) + 1);
+    });
+    let top = 0; let topCount = 0;
+    counts.forEach((c, r) => { if (c > topCount) { topCount = c; top = r; } });
+    return top;
+  }, [lines]);
+
+  const renderRow = (line: L, idx: number) => {
+    const isActive = hoveredRowId === line.id || focusedRowId === line.id;
+    const hasBarcode = !!(line.barcode && line.barcode.length > 0);
+    const hasCustomization = !!(line.customization && line.customization.length > 0);
+    const showBarcode = isActive || hasBarcode;
+    const showCustomization = isActive || hasCustomization;
+    const isReadOnlyDiscount = line.perLineDiscountType === 'loyalty' || line.perLineDiscountType === 'seasonal';
+    const seasonal = line.perLineDiscountType === 'seasonal' ? applySeasonalForLine(line) : null;
+    const showDiscountSelector = isActive || !!line.perLineDiscountType;
+    const netAmount = line.netAmount || 0;
+    const gstRate = line.gstRate ?? 0;
+    const gstAmount = (line.cgstAmount || 0) + (line.sgstAmount || 0) + (line.igstAmount || 0);
+    const discAmount = line.discountAmount || 0;
+    const finalAmount = line.finalAmount || line.total || 0;
+
+    return (
+      <tr
+        key={line.id}
+        className={cn(
+          'border-b border-border align-top transition-colors',
+          isActive && 'bg-muted/30',
+        )}
+        onMouseEnter={() => setHoveredRowId(line.id)}
+        onMouseLeave={() => setHoveredRowId((id) => (id === line.id ? null : id))}
+        onFocusCapture={() => setFocusedRowId(line.id)}
+        onBlurCapture={(e) => {
+          const next = e.relatedTarget as Node | null;
+          if (!next || !(e.currentTarget as HTMLElement).contains(next)) {
+            setFocusedRowId((id) => (id === line.id ? null : id));
+          }
+        }}
+      >
+        {/* Drag handle */}
+        <td className="py-2 pl-2 pr-1 w-6 align-top">
+          {isActive ? (
+            <button
+              type="button"
+              className="text-muted-foreground hover:text-foreground cursor-grab mt-2"
+              onClick={() => moveLine(idx, idx + 1)}
+              title="Move down"
+            >
+              <GripVertical className="h-4 w-4" />
+            </button>
+          ) : (
+            <div className="h-4 w-4 mt-2" />
+          )}
+        </td>
+
+        {/* Product cell */}
+        <td className="py-2 pr-2 align-top">
+          <div className="space-y-1">
+            <Select
+              value={line.productId || ''}
+              onValueChange={(v) => onProductSelect(line, v)}
+              disabled={disabled}
+            >
+              <SelectTrigger className="h-8 border-transparent hover:border-input focus:border-input bg-transparent text-sm font-medium px-2">
+                <SelectValue placeholder="Search product..." />
+              </SelectTrigger>
+              <SelectContent>
+                {products.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center gap-2 px-2">
+              <Popover>
+                <PopoverTrigger asChild>
                   <button
                     type="button"
-                    className="text-muted-foreground cursor-grab"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => moveLine(idx, idx + 1)}
-                    title="Move down (click) — drag handle"
+                    className="text-[10px] bg-muted hover:bg-muted/80 px-1.5 py-0.5 rounded text-muted-foreground font-medium"
+                    disabled={disabled}
                   >
-                    <GripVertical className="h-4 w-4" />
+                    GST {gstRate}%
                   </button>
-                </TableCell>
-                <TableCell className="pt-3 text-muted-foreground">{idx + 1}</TableCell>
-                <TableCell className="space-y-1.5">
-                  <Select
-                    value={line.productId || ''}
-                    onValueChange={(v) => onProductSelect(line, v)}
-                    disabled={disabled}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Select product" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    value={line.barcode || ''}
-                    onChange={(e) => onBarcodeChange(line, e.target.value)}
-                    placeholder=""
-                    className="h-8 text-xs font-mono"
-                    disabled={disabled}
-                  />
-                  <Textarea
-                    value={line.customization || ''}
-                    onChange={(e) => updateLine(line.id, { customization: e.target.value } as Partial<L>)}
-                    placeholder=""
-                    rows={1}
-                    className="text-xs min-h-[28px]"
-                    disabled={disabled}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number" min={0}
-                    value={line.units ?? 0}
-                    onChange={(e) => updateLine(line.id, { units: Number(e.target.value), quantity: Number(e.target.value) } as Partial<L>)}
-                    className="h-9"
-                    disabled={disabled}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number" min={0} step="0.01"
-                    value={line.unitPrice ?? 0}
-                    onChange={(e) => updateLine(line.id, { unitPrice: Number(e.target.value) } as Partial<L>)}
-                    className="h-9"
-                    disabled={disabled}
-                  />
-                </TableCell>
-                <TableCell className="pt-3 text-sm">{formatINR(line.netAmount || 0)}</TableCell>
-                <TableCell>
-                  <Input
-                    type="number" min={0} max={50}
-                    value={line.gstRate ?? 0}
-                    onChange={(e) => updateLine(line.id, { gstRate: Number(e.target.value) } as Partial<L>)}
-                    className="h-9"
-                    disabled={disabled}
-                  />
-                </TableCell>
-                {gstType === 'cgst_sgst' ? (
-                  <>
-                    <TableCell className="pt-3 text-sm">{formatINR(line.cgstAmount || 0)}</TableCell>
-                    <TableCell className="pt-3 text-sm">{formatINR(line.sgstAmount || 0)}</TableCell>
-                  </>
-                ) : (
-                  <TableCell className="pt-3 text-sm">{formatINR(line.igstAmount || 0)}</TableCell>
-                )}
-                <TableCell>
-                  <div className="flex flex-col gap-1">
-                    <Select
-                      value={line.perLineDiscountType ?? 'none'}
-                      onValueChange={(v) =>
-                        {
-                          const next = v === 'none' ? null : (v as LinePerLineDiscountType);
-                          let discountValue = v === 'none' ? 0 : line.discountValue ?? 0;
-                          if (next === 'seasonal') {
-                            discountValue = applySeasonalForLine(line).discountValue;
-                          }
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-3" align="start">
+                  <div className="space-y-2">
+                    <Label className="text-xs">GST Rate</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={50}
+                        value={gstRate}
+                        onChange={(e) => updateLine(line.id, { gstRate: Number(e.target.value) } as Partial<L>)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                        className="h-8"
+                      />
+                      <span className="text-sm text-muted-foreground">%</span>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wide">Common</div>
+                      <div className="flex gap-1">
+                        {COMMON_GST_RATES.map((r) => (
+                          <button
+                            key={r}
+                            type="button"
+                            onClick={() => updateLine(line.id, { gstRate: r } as Partial<L>)}
+                            className={cn(
+                              'h-7 px-2 text-xs rounded border border-border hover:bg-muted',
+                              gstRate === r && 'bg-primary text-primary-foreground border-primary',
+                            )}
+                          >
+                            {r}%
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {showBarcode && (
+              <Input
+                value={line.barcode || ''}
+                onChange={(e) => onBarcodeChange(line, e.target.value)}
+                placeholder="Barcode"
+                className="h-6 text-xs font-mono border-transparent hover:border-input focus:border-input bg-transparent px-2"
+                disabled={disabled}
+              />
+            )}
+            {showCustomization && (
+              <Textarea
+                value={line.customization || ''}
+                onChange={(e) => updateLine(line.id, { customization: e.target.value } as Partial<L>)}
+                placeholder="Add customization..."
+                rows={1}
+                className="text-xs min-h-[24px] py-1 italic text-muted-foreground border-transparent hover:border-input focus:border-input bg-transparent px-2"
+                disabled={disabled}
+              />
+            )}
+          </div>
+        </td>
+
+        {/* Qty */}
+        <td className="py-2 px-1 w-20 align-top">
+          <Input
+            type="number"
+            min={0}
+            step="0.01"
+            value={line.units ?? 0}
+            onChange={(e) => updateLine(line.id, { units: Number(e.target.value), quantity: Number(e.target.value) } as Partial<L>)}
+            className="h-8 text-center border-transparent hover:border-input focus:border-input bg-transparent"
+            disabled={disabled}
+          />
+        </td>
+
+        {/* Unit price */}
+        <td className="py-2 px-1 w-[110px] align-top">
+          <Input
+            type="number"
+            min={0}
+            step="0.01"
+            value={line.unitPrice ?? 0}
+            onChange={(e) => updateLine(line.id, { unitPrice: Number(e.target.value) } as Partial<L>)}
+            className="h-8 text-right border-transparent hover:border-input focus:border-input bg-transparent"
+            disabled={disabled}
+          />
+        </td>
+
+        {/* Discount */}
+        <td className="py-2 px-1 w-20 align-top">
+          {!canDiscount ? (
+            <div className="h-8 flex items-center justify-center text-muted-foreground">
+              <Lock className="h-3.5 w-3.5" />
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={line.discountValue ?? 0}
+                      readOnly={isReadOnlyDiscount}
+                      onChange={(e) => updateLine(line.id, { discountValue: Number(e.target.value) } as Partial<L>)}
+                      className="h-8 text-center border-transparent hover:border-input focus:border-input bg-transparent"
+                      disabled={disabled}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent>Item discount %</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              {showDiscountSelector && (
+                <div className="flex gap-0.5 rounded border border-border overflow-hidden">
+                  {LINE_DISCOUNT_OPTIONS.filter((o) => allowedTypes.includes(o.value)).map((o) => {
+                    const active = (line.perLineDiscountType ?? 'item') === o.value;
+                    return (
+                      <button
+                        key={o.value}
+                        type="button"
+                        onClick={() => {
+                          let discountValue = line.discountValue ?? 0;
+                          if (o.value === 'seasonal') discountValue = applySeasonalForLine(line).discountValue;
                           updateLine(line.id, {
-                            perLineDiscountType: next,
+                            perLineDiscountType: o.value as LinePerLineDiscountType,
                             discountValue,
                           } as Partial<L>);
+                        }}
+                        className={cn(
+                          'flex-1 text-[10px] py-0.5 transition-colors',
+                          active ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-muted',
+                        )}
+                        disabled={disabled}
+                      >
+                        {o.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {seasonal?.name && (
+                <div className="text-[10px] text-muted-foreground truncate px-1">{seasonal.name}</div>
+              )}
+            </div>
+          )}
+        </td>
+
+        {/* Amount */}
+        <td className="py-2 px-2 w-[100px] align-top text-right">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="h-8 flex items-center justify-end font-medium text-sm cursor-help">
+                  {formatINR(finalAmount)}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="space-y-0.5 text-xs">
+                  <div className="flex justify-between gap-4"><span>Net:</span><span>{formatINR(netAmount)}</span></div>
+                  <div className="flex justify-between gap-4"><span>GST ({gstRate}%):</span><span>{formatINR(gstAmount)}</span></div>
+                  <div className="flex justify-between gap-4"><span>Discount:</span><span>- {formatINR(discAmount)}</span></div>
+                  <div className="flex justify-between gap-4 pt-0.5 border-t border-border font-semibold"><span>Total:</span><span>{formatINR(finalAmount)}</span></div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </td>
+
+        {/* Delete */}
+        <td className="py-2 pl-1 pr-2 w-8 align-top">
+          {isActive && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+              onClick={() => removeLine(line.id)}
+              disabled={disabled}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </td>
+      </tr>
+    );
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <ShoppingCart className="h-4 w-4" />
+          Order Lines
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="w-full">
+          <table className="w-full table-fixed border-collapse">
+            <colgroup>
+              <col style={{ width: 24 }} />
+              <col />
+              <col style={{ width: 80 }} />
+              <col style={{ width: 110 }} />
+              <col style={{ width: 80 }} />
+              <col style={{ width: 100 }} />
+              <col style={{ width: 32 }} />
+            </colgroup>
+            <thead>
+              <tr className="border-b border-border">
+                <th className="pl-2 pr-1 py-2"></th>
+                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide pb-2 pt-2 px-2">Product</th>
+                <th className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide pb-2 pt-2 px-1">Qty</th>
+                <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide pb-2 pt-2 px-1">Unit Price</th>
+                <th className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide pb-2 pt-2 px-1">Disc.%</th>
+                <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide pb-2 pt-2 px-2">Amount</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {lines.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="text-center text-muted-foreground py-6 text-sm">
+                    No lines yet. Click "Add a product" below.
+                  </td>
+                </tr>
+              )}
+              {lines.map((line, idx) => renderRow(line, idx))}
+            </tbody>
+          </table>
+
+          <div className="px-4 py-3">
+            <button
+              type="button"
+              onClick={addLine}
+              disabled={disabled}
+              className="text-primary text-sm font-medium hover:underline inline-flex items-center gap-1 disabled:opacity-50"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add a product
+            </button>
+          </div>
+
+          {/* Summary */}
+          <div className="px-4 pb-4">
+            <div className="max-w-sm ml-auto space-y-1 text-sm">
+              <SummaryRow label="Total Untaxed Amount" value={formatINR(totals.totalUntaxed)} />
+              <div className="border-t border-border" />
+              {gstType === 'cgst_sgst' ? (
+                <>
+                  <SummaryRow label={`CGST (${(summaryGstRate / 2) || 0}%)`} value={formatINR(totals.totalCGST)} muted />
+                  <SummaryRow label={`SGST (${(summaryGstRate / 2) || 0}%)`} value={formatINR(totals.totalSGST)} muted />
+                </>
+              ) : (
+                <SummaryRow label={`IGST (${summaryGstRate}%)`} value={formatINR(totals.totalIGST)} muted />
+              )}
+              <SummaryRow label="Total GST" value={formatINR(totals.totalGST)} />
+
+              {canApplyOrderDiscount && (
+                <>
+                  <div className="border-t border-border" />
+                  <div className="flex items-center justify-between py-1.5 gap-2">
+                    <Label className="text-sm text-muted-foreground">Order Discount</Label>
+                    <div className="flex items-center gap-1">
+                      <Select
+                        value={orderDiscountType ?? 'none'}
+                        onValueChange={(v) =>
+                          onOrderDiscountChange(v === 'none' ? null : (v as OrderDiscountType), v === 'none' ? 0 : orderDiscountValue)
                         }
-                      }
-                      disabled={disabled}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {ALL_LINE_DISCOUNT_TYPES.filter((t) => t.value !== 'flat_order' && allowedTypes.includes(t.value)).map((t) => (
-                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {line.perLineDiscountType && (
-                      line.perLineDiscountType === 'seasonal' ? (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Input
-                                type="number" min={0}
-                                value={line.discountValue ?? 0}
-                                readOnly
-                                className="h-8 text-xs cursor-help"
-                                placeholder=""
-                              />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {applySeasonalForLine(line).name ?? 'No active promotion'}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ) : (
-                        <Input
-                          type="number" min={0}
-                          value={line.discountValue ?? 0}
-                          onChange={(e) => updateLine(line.id, { discountValue: Number(e.target.value) } as Partial<L>)}
-                          className="h-8 text-xs"
-                          disabled={disabled}
-                          placeholder=""
-                        />
-                      )
-                    )}
+                        disabled={disabled}
+                      >
+                        <SelectTrigger className="h-7 w-14 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">—</SelectItem>
+                          <SelectItem value="percent">%</SelectItem>
+                          <SelectItem value="amount">₹</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={orderDiscountValue || 0}
+                        onChange={(e) => onOrderDiscountChange(orderDiscountType, Number(e.target.value))}
+                        className="h-7 w-20 text-right text-sm"
+                        disabled={disabled || !orderDiscountType}
+                      />
+                    </div>
                   </div>
-                </TableCell>
-                <TableCell className="pt-3 text-sm font-medium text-right">{formatINR(line.finalAmount || line.total || 0)}</TableCell>
-                <TableCell className="pt-2">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeLine(line.id)} disabled={disabled}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                  {totals.orderDiscountAmount > 0 && (
+                    <SummaryRow label="Discount" value={`- ${formatINR(totals.orderDiscountAmount)}`} muted />
+                  )}
+                </>
+              )}
 
-      <Button type="button" variant="outline" onClick={addLine} disabled={disabled} className="gap-2">
-        <Plus className="h-4 w-4" /> Add Line
-      </Button>
+              {pointsAvailable > 0 && onPointsRedeemedChange && (
+                <>
+                  <div className="border-t border-border" />
+                  <div className="flex items-center justify-between py-1 text-xs text-muted-foreground">
+                    <span>Points Available</span>
+                    <span>{pointsAvailable.toLocaleString('en-IN')} pts ({formatINR(pointsAvailable)})</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 py-1">
+                    <Label className="text-sm text-muted-foreground">Redeem</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={Math.min(pointsAvailable, Math.floor(totals.grandTotal * 0.2))}
+                      value={pointsRedeemed || 0}
+                      onChange={(e) =>
+                        onPointsRedeemedChange(
+                          Math.min(Number(e.target.value), pointsAvailable, Math.floor(totals.grandTotal * 0.2)),
+                        )
+                      }
+                      className="h-7 w-24 text-right text-sm"
+                      disabled={disabled}
+                    />
+                  </div>
+                  {pointsRedeemed > 0 && <SummaryRow label="Points Redeemed" value={`- ${formatINR(pointsRedeemed)}`} muted />}
+                </>
+              )}
 
-      {/* Summary */}
-      <div className="flex justify-end">
-        <div className="w-full sm:w-96 space-y-2 text-sm">
-          <SummaryRow label="Total Untaxed" value={formatINR(totals.totalUntaxed)} />
-          {gstType === 'cgst_sgst' ? (
-            <>
-              <SummaryRow label="CGST" value={formatINR(totals.totalCGST)} muted />
-              <SummaryRow label="SGST" value={formatINR(totals.totalSGST)} muted />
-            </>
-          ) : (
-            <SummaryRow label="IGST" value={formatINR(totals.totalIGST)} muted />
-          )}
-          <SummaryRow label="Total GST" value={formatINR(totals.totalGST)} />
-
-          {canApplyOrderDiscount && (
-            <div className="flex items-center justify-between gap-2 py-1 border-t border-border">
-              <Label className="text-muted-foreground">Order Discount</Label>
-              <div className="flex items-center gap-1">
-                <Select
-                  value={orderDiscountType ?? 'none'}
-                  onValueChange={(v) => onOrderDiscountChange(v === 'none' ? null : (v as OrderDiscountType), v === 'none' ? 0 : orderDiscountValue)}
-                  disabled={disabled}
-                >
-                  <SelectTrigger className="h-8 w-20 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">—</SelectItem>
-                    <SelectItem value="percent">%</SelectItem>
-                    <SelectItem value="amount">₹</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input
-                  type="number" min={0}
-                  value={orderDiscountValue || 0}
-                  onChange={(e) => onOrderDiscountChange(orderDiscountType, Number(e.target.value))}
-                  className="h-8 w-24 text-xs"
-                  disabled={disabled || !orderDiscountType}
-                  placeholder=""
-                />
+              <div className="border-t-2 border-border" />
+              <div className="flex items-center justify-between pt-2 pb-1 text-base font-bold text-primary">
+                <span>Grand Total</span>
+                <span>{formatINR(grandAfterPoints)}</span>
               </div>
             </div>
-          )}
-          {totals.orderDiscountAmount > 0 && (
-            <SummaryRow label="Discount" value={`- ${formatINR(totals.orderDiscountAmount)}`} muted />
-          )}
-
-          {pointsAvailable > 0 && onPointsRedeemedChange && (
-            <div className="flex flex-col gap-1 py-1 border-t border-border">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Loyalty Points Available</span>
-                <span>{pointsAvailable.toLocaleString('en-IN')} pts ({formatINR(pointsAvailable)})</span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <Label className="text-xs">Redeem</Label>
-                <Input
-                  type="number" min={0} max={Math.min(pointsAvailable, Math.floor(totals.grandTotal * 0.2))}
-                  value={pointsRedeemed || 0}
-                  onChange={(e) => onPointsRedeemedChange(Math.min(Number(e.target.value), pointsAvailable, Math.floor(totals.grandTotal * 0.2)))}
-                  className="h-8 w-28 text-xs"
-                  disabled={disabled}
-                  placeholder=""
-                />
-              </div>
-              {pointsRedeemed > 0 && <SummaryRow label="Points Redeemed" value={`- ${formatINR(pointsRedeemed)}`} muted />}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between pt-2 border-t-2 border-border text-base font-semibold">
-            <span>Grand Total</span>
-            <span>{formatINR(grandAfterPoints)}</span>
           </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
 function SummaryRow({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
-    <div className={cn('flex items-center justify-between py-1', muted && 'text-muted-foreground')}>
+    <div className={cn('flex items-center justify-between py-1.5', muted && 'text-muted-foreground')}>
       <span>{label}</span>
-      <span>{value}</span>
+      <span className="text-right">{value}</span>
     </div>
   );
 }
 
-/** Tiny shim: emit totals to parent without an effect (avoids stale callback closures). */
 function useMemoNotify(
   totals: OrderSummaryValue,
   grandAfterPoints: number,
   cb?: (t: OrderSummaryValue) => void,
 ) {
-  // Use a microtask so we don't call setState during render of the parent.
   if (cb) {
     queueMicrotask(() => cb({ ...totals, grandTotal: grandAfterPoints }));
   }
