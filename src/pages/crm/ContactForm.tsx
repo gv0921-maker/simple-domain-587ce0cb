@@ -29,6 +29,11 @@ import { useContacts, useSaveContact } from '@/hooks/crm/useCRMQueries';
 import { CRM_NAV } from '@/lib/navigation/crm';
 import { useToast } from '@/hooks/use-toast';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import {
+  buildContactPopulationFields,
+  readSalesReturnContext,
+  clearSalesReturnContext,
+} from '@/lib/sales/contactPopulation';
 
 type EmailEntry = { email: string; type: string };
 type PhoneEntry = { phone: string; type: string };
@@ -55,6 +60,7 @@ export default function ContactForm() {
     if (!rc) return null;
     try { return JSON.parse(decodeURIComponent(rc)); } catch { return null; }
   })();
+  const returnToSales = searchParams.get('returnTo') === 'sales_form';
 
   const [formData, setFormData] = useState({
     type: 'individual' as Contact['type'],
@@ -242,6 +248,22 @@ export default function ContactForm() {
       onSuccess: (saved) => {
         toast({ title: isEdit ? 'Contact updated' : 'Contact created' });
 
+        // When invoked from a Sales form, always return there — even on
+        // "Save & New" — instead of creating yet another blank contact.
+        if (returnToSales) {
+          const ctx = readSalesReturnContext();
+          clearSalesReturnContext();
+          const populated = buildContactPopulationFields(saved);
+          const target = ctx?.returnTo || '/sales/quotations/new';
+          navigate(target, {
+            state: {
+              restoredFormData: { ...(ctx?.formData || {}), ...populated },
+              newContactId: saved.id,
+            },
+          });
+          return;
+        }
+
         if (action === 'new') {
           setFormData({
             type: 'individual', firstName: '', lastName: '',
@@ -294,6 +316,13 @@ export default function ContactForm() {
             {isFetching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           </h1>
         </div>
+
+        {/* Return-to-sales banner */}
+        {returnToSales && (
+          <div className="bg-blue-50 border-l-4 border-blue-500 text-blue-700 px-4 py-2 text-sm">
+            ← Creating contact for Sales Order — Save & Return when done
+          </div>
+        )}
 
         {/* Duplicate warning */}
         {duplicates.length > 0 && (
@@ -695,12 +724,22 @@ export default function ContactForm() {
         {/* Bottom actions */}
         <div className="flex items-center gap-2">
           <Button onClick={() => handleSubmit('close')} className="bg-primary hover:bg-primary/90">
-            Save & Close
+            {returnToSales ? 'Save & Return to Order' : 'Save & Close'}
           </Button>
-          <Button onClick={() => handleSubmit('new')} variant="secondary">
-            Save & New
-          </Button>
+          {!returnToSales && (
+            <Button onClick={() => handleSubmit('new')} variant="secondary">
+              Save & New
+            </Button>
+          )}
           <Button variant="outline" onClick={() => {
+            if (returnToSales) {
+              const ctx = readSalesReturnContext();
+              clearSalesReturnContext();
+              navigate(ctx?.returnTo || '/sales/quotations/new', {
+                state: ctx?.formData ? { restoredFormData: ctx.formData } : undefined,
+              });
+              return;
+            }
             if (parsedReturn?.returnTo) {
               navigate(parsedReturn.returnTo);
             } else {
