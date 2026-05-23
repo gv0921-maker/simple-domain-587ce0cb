@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Trash2, Plus, GripVertical, Lock, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ProductCombobox } from './ProductCombobox';
 import {
   calculateLineTax,
   calculateOrderTotals,
@@ -270,20 +271,13 @@ export function OrderLinesTable<L extends AnyLine>({
         {/* Product cell */}
         <td className="py-2 pr-2 align-top">
           <div className="space-y-1">
-            <Select
-              value={line.productId || ''}
-              onValueChange={(v) => onProductSelect(line, v)}
+            <ProductCombobox
+              products={products}
+              value={line.productId}
+              selectedName={line.productName}
+              onSelect={(id) => onProductSelect(line, id)}
               disabled={disabled}
-            >
-              <SelectTrigger className="h-8 border-transparent hover:border-input focus:border-input bg-transparent text-sm font-medium px-2">
-                <SelectValue placeholder="Search product..." />
-              </SelectTrigger>
-              <SelectContent>
-                {products.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
 
             <div className="flex items-center gap-2 px-2">
               <Popover>
