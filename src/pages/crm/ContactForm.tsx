@@ -317,6 +317,13 @@ export default function ContactForm() {
           </h1>
         </div>
 
+        {/* Return-to-sales banner */}
+        {returnToSales && (
+          <div className="bg-blue-50 border-l-4 border-blue-500 text-blue-700 px-4 py-2 text-sm">
+            ← Creating contact for Sales Order — Save & Return when done
+          </div>
+        )}
+
         {/* Duplicate warning */}
         {duplicates.length > 0 && (
           <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
@@ -717,12 +724,22 @@ export default function ContactForm() {
         {/* Bottom actions */}
         <div className="flex items-center gap-2">
           <Button onClick={() => handleSubmit('close')} className="bg-primary hover:bg-primary/90">
-            Save & Close
+            {returnToSales ? 'Save & Return to Order' : 'Save & Close'}
           </Button>
-          <Button onClick={() => handleSubmit('new')} variant="secondary">
-            Save & New
-          </Button>
+          {!returnToSales && (
+            <Button onClick={() => handleSubmit('new')} variant="secondary">
+              Save & New
+            </Button>
+          )}
           <Button variant="outline" onClick={() => {
+            if (returnToSales) {
+              const ctx = readSalesReturnContext();
+              clearSalesReturnContext();
+              navigate(ctx?.returnTo || '/sales/quotations/new', {
+                state: ctx?.formData ? { restoredFormData: ctx.formData } : undefined,
+              });
+              return;
+            }
             if (parsedReturn?.returnTo) {
               navigate(parsedReturn.returnTo);
             } else {
