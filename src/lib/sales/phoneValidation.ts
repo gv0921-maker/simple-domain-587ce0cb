@@ -29,7 +29,18 @@ export function formatPhone(phone: string): string {
 export function splitPhone(phone: string): { prefix: string; number: string } {
   if (!phone) return { prefix: '+91', number: '' };
   const cleaned = phone.trim();
+  if (!cleaned.startsWith('+')) {
+    return { prefix: '+91', number: cleaned.replace(/\D/g, '') };
+  }
+  // Match against known prefixes (longest first) to handle "+919876543210".
+  const codes = [...PHONE_PREFIXES].map(p => p.code).sort((a, b) => b.length - a.length);
+  for (const code of codes) {
+    if (cleaned.startsWith(code)) {
+      const rest = cleaned.slice(code.length).replace(/\s/g, '').replace(/\D/g, '');
+      return { prefix: code, number: rest };
+    }
+  }
   const match = cleaned.match(/^(\+\d{1,3})\s?(.*)$/);
-  if (!match) return { prefix: '+91', number: cleaned };
-  return { prefix: match[1], number: match[2].replace(/\s/g, '') };
+  if (!match) return { prefix: '+91', number: cleaned.replace(/\D/g, '') };
+  return { prefix: match[1], number: match[2].replace(/\D/g, '') };
 }
