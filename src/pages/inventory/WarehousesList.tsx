@@ -31,7 +31,8 @@ import {
   MapPin,
   Package,
 } from 'lucide-react';
-import { getWarehouses, saveWarehouse, deleteWarehouse, type Warehouse as WarehouseType } from '@/lib/services/inventory';
+import { useWarehouses, useSaveWarehouse, useDeleteWarehouse } from '@/hooks/inventory';
+import type { Warehouse as WarehouseType } from '@/lib/services/inventory';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -52,7 +53,9 @@ const initialFormData: WarehouseFormData = {
 
 export default function WarehousesList() {
   const { toast } = useToast();
-  const [warehouses, setWarehouses] = useState<WarehouseType[]>(getWarehouses());
+  const { data: warehouses = [] } = useWarehouses();
+  const saveMut = useSaveWarehouse();
+  const deleteMut = useDeleteWarehouse();
   const [search, setSearch] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<WarehouseType | null>(null);
@@ -98,19 +101,20 @@ export default function WarehousesList() {
       isActive: formData.isActive,
     };
 
-    saveWarehouse(warehouseData);
-    setWarehouses(getWarehouses());
-    setIsDialogOpen(false);
-    toast({
-      title: editingWarehouse ? 'Warehouse Updated' : 'Warehouse Created',
-      description: `${formData.name} has been ${editingWarehouse ? 'updated' : 'created'} successfully.`,
+    saveMut.mutate(warehouseData, {
+      onSuccess: () => {
+        setIsDialogOpen(false);
+        toast({ title: editingWarehouse ? 'Warehouse Updated' : 'Warehouse Created', description: `${formData.name} has been saved successfully.` });
+      },
+      onError: (e: any) => toast({ title: 'Save failed', description: e?.message, variant: 'destructive' }),
     });
   };
 
   const handleDelete = (id: string) => {
-    deleteWarehouse(id);
-    setWarehouses(getWarehouses());
-    toast({ title: 'Warehouse Deleted' });
+    deleteMut.mutate(id, {
+      onSuccess: () => toast({ title: 'Warehouse Deleted' }),
+      onError: (e: any) => toast({ title: 'Delete failed', description: e?.message, variant: 'destructive' }),
+    });
   };
 
   return (

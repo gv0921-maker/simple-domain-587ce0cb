@@ -83,7 +83,8 @@ import { RichComposer, RichContent, type RichComposerValue } from '@/components/
 import { useAuth } from '@/contexts/AuthContext';
 import { TiptapNotesEditor } from '@/components/ui/tiptap-notes-editor';
 import { getQuotations, getSalesOrders } from '@/lib/services/sales/storage';
-import { getStockMoves } from '@/lib/services/inventory';
+import { useStockMoves } from '@/hooks/inventory';
+import type { StockMove } from '@/lib/data/inventory/types';
 
 // Format elapsed time: <1h → "Xm", <24h → "Xh", else → "Xd"
 function formatElapsed(ms: number): string {
@@ -183,6 +184,7 @@ export default function OpportunityDetail() {
   useActivitiesRealtime(id);
   const { data: linkedContact } = useContact(opportunity?.contactId);
   const { data: allContacts = [] } = useContacts();
+  const { data: allStockMoves = [] } = useStockMoves();
 
   // Cross-module related records (same contact across Sales, Inventory, etc.)
   const relatedRecords = useMemo(() => {
@@ -201,18 +203,18 @@ export default function OpportunityDetail() {
     };
     let quotations: ReturnType<typeof getQuotations> = [];
     let salesOrders: ReturnType<typeof getSalesOrders> = [];
-    let stockMoves: ReturnType<typeof getStockMoves> = [];
+    let stockMoves: StockMove[] = [];
     try { quotations = getQuotations().filter(matchByContact); } catch { /* noop */ }
     try { salesOrders = getSalesOrders().filter(matchByContact); } catch { /* noop */ }
     try {
-      stockMoves = getStockMoves().filter(m => {
+      stockMoves = (allStockMoves ?? []).filter(m => {
         if (cId && m.partnerId === cId) return true;
         if (cName && (m.partnerName || '').trim().toLowerCase() === cName) return true;
         return false;
       });
     } catch { /* noop */ }
     return { quotations, salesOrders, stockMoves };
-  }, [opportunity?.contactId, opportunity?.contactName]);
+  }, [opportunity?.contactId, opportunity?.contactName, allStockMoves]);
 
   // refreshChatter now invalidates the React Query cache instead of calling
   // localStorage helpers directly. The hooks above re-render automatically.

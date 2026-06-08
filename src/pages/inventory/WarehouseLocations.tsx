@@ -47,7 +47,8 @@ import {
   FolderTree,
   Route,
 } from 'lucide-react';
-import { getWarehouses, type Warehouse } from '@/lib/services/inventory';
+import { useWarehouses } from '@/hooks/inventory';
+import type { Warehouse } from '@/lib/services/inventory';
 import { getItem, setItem } from '@/lib/storage';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -87,7 +88,7 @@ const LOCATION_TYPES = [
 
 export default function WarehouseLocations() {
   const { toast } = useToast();
-  const [warehouses] = useState(getWarehouses());
+  const { data: warehouses = [] } = useWarehouses();
   const [locations, setLocations] = useState<Location[]>(
     getItem('warehouse_locations', DEFAULT_LOCATIONS)
   );

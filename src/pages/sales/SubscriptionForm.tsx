@@ -11,7 +11,7 @@ import { ArrowLeft } from 'lucide-react';
 import { getContacts } from '@/lib/services/sales';
 import { getSubscriptions, saveSubscription } from '@/lib/services/sales/storage';
 import type { Subscription, BillingCycle } from '@/lib/services/sales/types';
-import { getProducts } from '@/lib/services/inventory';
+import { useProducts } from '@/hooks/inventory';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { addMonths, addQuarters, addYears } from 'date-fns';
@@ -24,7 +24,7 @@ export default function SubscriptionForm() {
   const isEdit = !!id;
 
   const [contacts] = useState(() => getContacts());
-  const [products] = useState(() => getProducts());
+  const { data: products = [] } = useProducts();
   const [editingSub, setEditingSub] = useState<Subscription | null>(null);
 
   const [formData, setFormData] = useState({

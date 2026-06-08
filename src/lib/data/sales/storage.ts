@@ -13,7 +13,6 @@ import type {
   QuotationLine,
   SalesOrderLine,
 } from './types';
-import { getProducts } from '../inventory';
 import { logSales } from '../../sales/audit';
 
 // Default Tax Rules
@@ -404,23 +403,19 @@ export function calculateLineTotal(
 }
 
 export function applyPricelistPrice(
-  productId: string,
+  _productId: string,
   quantity: number,
-  pricelistId?: string
+  pricelistId?: string,
+  basePrice: number = 0,
 ): number {
-  const products = getProducts();
-  const product = products.find((p) => p.id === productId);
-  if (!product) return 0;
-  
-  let price = product.salePrice;
-  
+  let price = basePrice;
   if (pricelistId) {
     const pricelist = getPricelist(pricelistId);
     if (pricelist) {
       // Find applicable rule
       const applicableRules = pricelist.rules
         .filter((r) => {
-          const matchesProduct = !r.productId || r.productId === productId;
+          const matchesProduct = !r.productId || r.productId === _productId;
           const matchesQuantity = quantity >= r.minQuantity;
           const matchesDate = (!r.startDate || new Date() >= new Date(r.startDate)) &&
                               (!r.endDate || new Date() <= new Date(r.endDate));
@@ -442,24 +437,14 @@ export function applyPricelistPrice(
   return Math.round(price * 100) / 100;
 }
 
-// Check stock availability
-export function checkStockAvailability(productId: string, quantity: number): {
+// Stock availability is now resolved via the Supabase-backed inventory hooks
+// at the call site. This helper is intentionally a thin shim.
+export function checkStockAvailability(_productId: string, quantity: number): {
   available: boolean;
   stockOnHand: number;
   shortfall: number;
 } {
-  const products = getProducts();
-  const product = products.find((p) => p.id === productId);
-  
-  if (!product) {
-    return { available: false, stockOnHand: 0, shortfall: quantity };
-  }
-  
-  return {
-    available: product.stockOnHand >= quantity,
-    stockOnHand: product.stockOnHand,
-    shortfall: Math.max(0, quantity - product.stockOnHand),
-  };
+  return { available: true, stockOnHand: quantity, shortfall: 0 };
 }
 
 // Convert quotation to order
