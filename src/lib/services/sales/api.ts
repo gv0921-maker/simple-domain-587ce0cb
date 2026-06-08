@@ -535,16 +535,25 @@ export async function deletePricelist(id: string): Promise<void> {
 
 // ---------- Subscriptions ----------
 export async function listSubscriptions(): Promise<SbSubscription[]> {
-  const { data, error } = await supabase.from('subscriptions' as any).select('*').order('created_at', { ascending: false });
+  const { data, error } = await supabase
+    .from('subscriptions' as any)
+    .select('*, subscription_lines(*)')
+    .order('created_at', { ascending: false });
   if (error) throw error;
   return (data ?? []).map(mapSubscription);
 }
 export async function getSubscription(id: string): Promise<SbSubscription | null> {
-  const { data, error } = await supabase.from('subscriptions' as any).select('*').eq('id', id).maybeSingle();
+  const { data, error } = await supabase
+    .from('subscriptions' as any)
+    .select('*, subscription_lines(*)')
+    .eq('id', id).maybeSingle();
   if (error) throw error;
   return data ? mapSubscription(data) : null;
 }
-export async function saveSubscription(input: Partial<SbSubscription>): Promise<SbSubscription> {
+export async function saveSubscription(
+  input: Partial<SbSubscription>,
+  lines?: Array<Omit<SbSubscriptionLine, 'id' | 'subscriptionId'>>,
+): Promise<SbSubscription> {
   const uid = await currentUserId();
   const payload: any = {
     customer_id: input.customerId ?? null,
@@ -554,18 +563,96 @@ export async function saveSubscription(input: Partial<SbSubscription>): Promise<
     status: input.status ?? 'active',
     price: input.price ?? 0,
     billing_period: input.billingPeriod ?? 'monthly',
+    reference: input.reference ?? null,
+    customer_name: input.customerName ?? null,
+    billing_cycle: input.billingCycle ?? 'monthly',
+    end_date: input.endDate ?? null,
+    subtotal: input.subtotal ?? 0,
+    tax_amount: input.taxAmount ?? 0,
+    total: input.total ?? 0,
+    currency: input.currency ?? 'INR',
+    payment_terms: input.paymentTerms ?? null,
+    last_order_id: input.lastOrderId ?? null,
+    order_history: input.orderHistory ?? [],
   };
-  if (input.id) {
-    const { data, error } = await supabase.from('subscriptions' as any).update(payload).eq('id', input.id).select('*').single();
+  let subscriptionId = input.id;
+  if (subscriptionId) {
+    const { error } = await supabase.from('subscriptions' as any).update(payload).eq('id', subscriptionId);
     if (error) throw error;
-    return mapSubscription(data);
+  } else {
+    payload.created_by = uid;
+    const { data, error } = await supabase.from('subscriptions' as any).insert(payload).select('id').single();
+    if (error) throw error;
+    subscriptionId = (data as any).id;
   }
-  payload.created_by = uid;
-  const { data, error } = await supabase.from('subscriptions' as any).insert(payload).select('*').single();
-  if (error) throw error;
-  return mapSubscription(data);
+  if (lines) {
+    await supabase.from('subscription_lines' as any).delete().eq('subscription_id', subscriptionId);
+    if (lines.length) {
+      const rows = lines.map(l => ({
+        subscription_id: subscriptionId,
+        product_id: l.productId,
+        product_name: l.productName,
+        quantity: l.quantity,
+        unit_price: l.unitPrice,
+        discount: l.discount,
+      }));
+      const { error } = await supabase.from('subscription_lines' as any).insert(rows);
+      if (error) throw error;
+    }
+  }
+  const result = await getSubscription(subscriptionId!);
+  return result!;
 }
 export async function deleteSubscription(id: string): Promise<void> {
   const { error } = await supabase.from('subscriptions' as any).delete().eq('id', id);
   if (error) throw error;
+}
+
+// ---------- Order Activities ----------
+export async function listOrderActivities(orderId: string): Promise<SbOrderActivity[]> {
+  const { data, error } = await supabase
+    .from('order_activities' as any)
+    .select('*').eq('order_id', orderId)
+    .order('timestamp', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(mapOrderActivity);
+}
+export async function addOrderActivity(
+  input: Omit<SbOrderActivity, 'id' | 'timestamp'> & { timestamp?: string },
+): Promise<SbOrderActivity> {
+  const payload: any = {
+    order_id: input.orderId,
+    user_id: input.userId ?? null,
+    user_name: input.userName ?? null,
+    action: input.action,
+    details: input.details ?? null,
+  };
+  if (input.timestamp) payload.timestamp = input.timestamp;
+  const { data, error } = await supabase.from('order_activities' as any).insert(payload).select('*').single();
+  if (error) throw error;
+  return mapOrderActivity(data);
+}
+
+// ---------- Quotation Versions ----------
+export async function listQuotationVersions(quotationId: string): Promise<SbQuotationVersion[]> {
+  const { data, error } = await supabase
+    .from('quotation_versions' as any)
+    .select('*').eq('quotation_id', quotationId)
+    .order('version', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(mapQuotationVersion);
+}
+export async function addQuotationVersion(
+  input: Omit<SbQuotationVersion, 'id' | 'createdAt' | 'createdBy'> & { createdBy?: string | null },
+): Promise<SbQuotationVersion> {
+  const uid = input.createdBy ?? (await currentUserId());
+  const { data, error } = await supabase.from('quotation_versions' as any).insert({
+    quotation_id: input.quotationId,
+    version: input.version,
+    data: input.data as any,
+    change_notes: input.changeNotes ?? null,
+    created_by: uid,
+  }).select('*').single();
+  if (error) throw error;
+  return mapQuotationVersion(data);
 }
