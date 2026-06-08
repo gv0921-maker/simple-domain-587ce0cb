@@ -84,6 +84,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { TiptapNotesEditor } from '@/components/ui/tiptap-notes-editor';
 import { getQuotations, getSalesOrders } from '@/lib/services/sales/storage';
 import { useStockMoves } from '@/hooks/inventory';
+import type { StockMove } from '@/lib/data/inventory/types';
 
 // Format elapsed time: <1h → "Xm", <24h → "Xh", else → "Xd"
 function formatElapsed(ms: number): string {
@@ -201,11 +202,11 @@ export default function OpportunityDetail() {
     };
     let quotations: ReturnType<typeof getQuotations> = [];
     let salesOrders: ReturnType<typeof getSalesOrders> = [];
-    let stockMoves: ReturnType<typeof getStockMoves> = [];
+    let stockMoves: StockMove[] = [];
     try { quotations = getQuotations().filter(matchByContact); } catch { /* noop */ }
     try { salesOrders = getSalesOrders().filter(matchByContact); } catch { /* noop */ }
     try {
-      stockMoves = getStockMoves().filter(m => {
+      stockMoves = (allStockMoves ?? []).filter(m => {
         if (cId && m.partnerId === cId) return true;
         if (cName && (m.partnerName || '').trim().toLowerCase() === cName) return true;
         return false;
