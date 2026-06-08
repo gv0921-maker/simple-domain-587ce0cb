@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ArrowLeft, Save, XCircle, ShoppingCart, CreditCard, FileText, CheckCircle2 } from 'lucide-react';
 import { RecordPaymentDialog } from '@/components/sales/RecordPaymentDialog';
+import { useGenerateInvoiceFromOrder } from '@/hooks/invoicing';
 import {
   useSalesOrderRich, useSaveSalesOrderRich, usePricelists, useFiscalPositions,
 } from '@/hooks/sales';
@@ -58,6 +59,7 @@ const STATUS_CONFIG: Record<SalesOrderStatus, { label: string; className: string
   estimate: { label: 'Estimate', className: 'bg-muted text-muted-foreground' },
   confirmed: { label: 'Confirmed', className: 'bg-success/20 text-success border-success' },
   paid: { label: 'Paid', className: 'bg-success/20 text-success border-success' },
+  invoiced: { label: 'Invoiced', className: 'bg-primary/20 text-primary border-primary' },
   ready_to_pick: { label: 'Ready to Pick', className: 'bg-info/20 text-info border-info' },
   dispatched: { label: 'Dispatched', className: 'bg-primary/20 text-primary border-primary' },
   delivered: { label: 'Delivered', className: 'bg-success/20 text-success border-success' },
@@ -91,6 +93,7 @@ export default function SalesOrderForm() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<'cancel' | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const generateInvoiceMut = useGenerateInvoiceFromOrder();
   const billingRef = useRef<HTMLDivElement | null>(null);
 
   const [formData, setFormData] = useState<Partial<SalesOrder>>({
@@ -400,12 +403,26 @@ export default function SalesOrderForm() {
                 <CreditCard className="h-4 w-4 mr-2" /> Record Payment
               </Button>
             )}
-            {status === 'paid' && !isNew && (
+            {status === 'paid' && !isNew && id && (
               <Button
                 variant="outline"
-                onClick={() => navigate(`/invoicing/invoices/new?orderId=${id}`)}
+                disabled={generateInvoiceMut.isPending}
+                onClick={async () => {
+                  try {
+                    const res = await generateInvoiceMut.mutateAsync(id);
+                    toast({ title: 'Invoice generated successfully' });
+                    navigate(`/invoicing/invoices/${res.invoiceId}`);
+                  } catch (e: any) {
+                    toast({
+                      title: 'Failed to generate invoice',
+                      description: e?.message ?? String(e),
+                      variant: 'destructive',
+                    });
+                  }
+                }}
               >
-                <FileText className="h-4 w-4 mr-2" /> Generate Invoice
+                <FileText className="h-4 w-4 mr-2" />
+                {generateInvoiceMut.isPending ? 'Generating…' : 'Generate Invoice'}
               </Button>
             )}
             {status !== 'cancelled' && status !== 'delivered' && status !== 'paid' && !isNew && (

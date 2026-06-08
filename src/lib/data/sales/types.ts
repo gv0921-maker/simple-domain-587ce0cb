@@ -7,6 +7,7 @@ export type SalesOrderStatus =
   | 'estimate'
   | 'confirmed'
   | 'paid'
+  | 'invoiced'
   | 'ready_to_pick'
   | 'dispatched'
   | 'delivered'
