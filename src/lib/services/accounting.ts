@@ -111,7 +111,15 @@ export async function createInvoice(input: Omit<Invoice, 'id' | 'number'>): Prom
 }
 
 export async function updateInvoice(id: string, data: Partial<Invoice>): Promise<Invoice | undefined> {
-  const patch: Record<string, unknown> = {};
+  const patch: {
+    status?: string;
+    paid_amount?: number;
+    subtotal?: number;
+    tax_amount?: number;
+    total?: number;
+    issue_date?: string;
+    due_date?: string;
+  } = {};
   if (data.status !== undefined) patch.status = data.status;
   if (data.amountPaid !== undefined) patch.paid_amount = data.amountPaid;
   if (data.subtotal !== undefined) patch.subtotal = data.subtotal;
