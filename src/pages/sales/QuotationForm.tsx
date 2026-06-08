@@ -57,6 +57,7 @@ const STATUS_CONFIG: Record<QuotationStatus, { label: string; className: string 
   draft: { label: 'Draft', className: 'bg-muted text-muted-foreground' },
   sent: { label: 'Sent', className: 'bg-info/20 text-info border-info' },
   accepted: { label: 'Accepted', className: 'bg-success/20 text-success border-success' },
+  converted: { label: 'Converted', className: 'bg-primary/20 text-primary border-primary' },
   expired: { label: 'Expired', className: 'bg-warning/20 text-warning-foreground border-warning' },
   cancelled: { label: 'Cancelled', className: 'bg-destructive/20 text-destructive border-destructive' },
 };
@@ -417,9 +418,13 @@ export default function QuotationForm() {
                 </Button>
               </>
             )}
-            {formData.status === 'accepted' && !formData.convertedToOrderId && (
-              <Button onClick={() => { setConfirmAction('convert'); setConfirmDialogOpen(true); }}>
-                <ArrowRight className="h-4 w-4 mr-2" /> Convert to Order
+            {(formData.status === 'sent' || formData.status === 'accepted') && !formData.convertedToOrderId && (
+              <Button
+                size="lg"
+                onClick={() => { setConfirmAction('convert'); setConfirmDialogOpen(true); }}
+                className="bg-primary hover:bg-primary/90 shadow-md"
+              >
+                <ArrowRight className="h-4 w-4 mr-2" /> Convert to Sales Order
               </Button>
             )}
           </div>
