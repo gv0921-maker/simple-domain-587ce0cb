@@ -63,7 +63,7 @@ export default function InvoiceForm() {
     }
 
     createInvoice({
-      customerId: `CUST-${Date.now()}`,
+      customerId: '',
       customerName: formData.customerName,
       date: formData.date,
       dueDate: formData.dueDate,
@@ -74,9 +74,12 @@ export default function InvoiceForm() {
       total,
       amountPaid: 0,
       amountDue: total,
-    });
-    toast.success('Invoice created');
-    navigate('/invoicing');
+    })
+      .then(() => {
+        toast.success('Invoice created');
+        navigate('/invoicing');
+      })
+      .catch(() => toast.error('Failed to create invoice'));
   };
 
   return (

@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { INVOICING_NAV } from '@/lib/navigation/invoicing';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getPayments } from '@/lib/services/accounting';
+import { getPayments, type Payment } from '@/lib/services/accounting';
 import { Search, Wallet } from 'lucide-react';
 
 const statusColors: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -15,8 +15,12 @@ const statusColors: Record<string, 'default' | 'secondary' | 'destructive' | 'ou
 };
 
 export default function PaymentsList() {
-  const [payments] = useState(getPayments());
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    getPayments().then(setPayments).catch(() => setPayments([]));
+  }, []);
 
   const filtered = payments.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||

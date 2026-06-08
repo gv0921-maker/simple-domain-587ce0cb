@@ -90,11 +90,7 @@ let accounts: Account[] = [];
 
 let journalEntries: JournalEntry[] = [];
 
-let invoices: Invoice[] = [];
-
 let bills: Bill[] = [];
-
-let payments: Payment[] = [];
 
 // CRUD operations
 export function getAccounts() {
@@ -137,47 +133,8 @@ export function updateJournalEntry(id: string, data: Partial<JournalEntry>) {
   return journalEntries.find(je => je.id === id);
 }
 
-export function getInvoices() {
-  return [...invoices];
-}
-
-export function getInvoice(id: string) {
-  return invoices.find(inv => inv.id === id);
-}
-
-export function createInvoice(data: Omit<Invoice, 'id' | 'number'>) {
-  const newId = `INV-${String(invoices.length + 1).padStart(3, '0')}`;
-  const newInvoice: Invoice = {
-    ...data,
-    id: newId,
-    number: `INV/2024/${String(invoices.length + 1).padStart(4, '0')}`,
-  };
-  invoices = [...invoices, newInvoice];
-  return newInvoice;
-}
-
-export function updateInvoice(id: string, data: Partial<Invoice>) {
-  invoices = invoices.map(inv => inv.id === id ? { ...inv, ...data } : inv);
-  return invoices.find(inv => inv.id === id);
-}
-
 export function getBills() {
   return [...bills];
-}
-
-export function getPayments() {
-  return [...payments];
-}
-
-export function createPayment(data: Omit<Payment, 'id' | 'name'>) {
-  const newId = `PAY-${String(payments.length + 1).padStart(3, '0')}`;
-  const newPayment: Payment = {
-    ...data,
-    id: newId,
-    name: `PAY/2024/${String(payments.length + 1).padStart(4, '0')}`,
-  };
-  payments = [...payments, newPayment];
-  return newPayment;
 }
 
 // Financial metrics
@@ -189,7 +146,7 @@ export function getFinancialSummary() {
   const totalExpenses = accounts.filter(a => a.type === 'expense').reduce((sum, a) => sum + a.balance, 0);
   const netIncome = totalRevenue - totalExpenses;
   
-  const receivables = invoices.filter(i => i.status !== 'paid' && i.status !== 'cancelled').reduce((sum, i) => sum + i.amountDue, 0);
+  const receivables = 0;
   const payables = bills.filter(b => b.status !== 'paid').reduce((sum, b) => sum + (b.total - b.amountPaid), 0);
 
   return {
