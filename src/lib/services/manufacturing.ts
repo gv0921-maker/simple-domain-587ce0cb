@@ -195,7 +195,7 @@ export async function updateWorkOrder(
   }
   const { data: row, error } = await supabase
     .from('work_orders')
-    .update(payload)
+    .update(payload as never)
     .eq('id', id)
     .select('*, products:product_id(name), work_centers:work_center_id(name)')
     .maybeSingle();
@@ -268,7 +268,7 @@ export async function updateBOM(
   if (data.status !== undefined) payload.is_active = data.status !== 'archived';
 
   if (Object.keys(payload).length) {
-    const { error } = await supabase.from('bom').update(payload).eq('id', id);
+    const { error } = await supabase.from('bom').update(payload as never).eq('id', id);
     if (error) throw error;
   }
 
@@ -336,7 +336,7 @@ export async function updateWorkCenter(
 
   const { data: row, error } = await supabase
     .from('work_centers')
-    .update(payload)
+    .update(payload as never)
     .eq('id', id)
     .select()
     .maybeSingle();
