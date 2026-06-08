@@ -1,112 +1,50 @@
-# Sales Module — Supabase Migration (Phase 2)
 
 ## Goal
-Re-point all sales pages from legacy `localStorage` storage to the Supabase-backed `@/hooks/sales` layer with **zero feature loss**. Skip CRM-backed and already-Supabase pages. Delete legacy storage once the build is clean.
+Migrate the 6 sales pages you listed to the Supabase hooks, then dismantle the legacy localStorage layer without breaking the ~30 other files that still consume the rich legacy types and helpers.
 
-## Scope
+## Reality check (why this can't be a clean delete)
 
-### Pages to migrate (14)
-SalesOverview, CustomersList, CustomerForm, QuotationsList, QuotationForm, SalesOrdersList, SalesOrderForm, SubscriptionsList, SubscriptionForm, PricelistsPage, PricelistForm, SalesReports, CustomerPortal, CustomerPortalQuotation.
+Searching `src/`, the legacy modules are referenced by far more than just the 6 pages:
 
-### Skipped (already correct)
-- `OpportunitiesList`, `SalesPipeline`, `LeadDetail` — already on `@/hooks/crm`.
-- `FiscalPositionsPage`, `PromotionsPage` — already on their own Supabase tables (`sales_fiscal_positions`, `sales_seasonal_promotions`).
+- **`src/lib/data/sales.ts`** (Contact/Lead/Opportunity/SalesOrder for CRM-side) — imported by `OpportunitiesList`, `LeadDetail`, `SalesPipeline`, `CRMContactDetail`, `crm/OpportunityDetail`, `SalesOverview`, `SalesReports`, `SalesImportExport`, plus several `lib/sales/*` engines. These pages are explicitly **out of scope** (CRM-backed / not in this batch).
+- **`src/lib/data/sales/storage.ts`** + **`types.ts`** — used by `FiscalPositionsPage`, `PromotionsPage`, `SalesOverview`, `SalesReports`, plus `lib/sales/automation.ts`, `loyaltyEngine.ts`, `loyaltyService.ts`, `quotationPdf.ts`, `seasonalPricing.ts`, `supabaseSync.ts`, `components/sales/OrderLinesTable.tsx`, `OrderStatusChevrons.tsx`, `SalesImportExport.tsx`, `AddressBlock.tsx`, `PhoneInput.tsx`.
+- **`src/lib/sales/companySettings.ts`** — used by `gstCalculator.ts` and `quotationPdf.ts` (both used widely).
+- **`src/lib/sales/promotionStorage.ts`** — used by `PromotionsPage` and `seasonalPricing.ts`.
 
-## Step 1 — Schema expansion (migration)
+A hard delete of any of these today produces hundreds of TS errors in code we agreed not to touch in this batch.
 
-Add the missing columns so no rich field is dropped. Pure `ALTER TABLE ADD COLUMN` (nullable / sensible defaults) — no data loss, no policy changes.
+## Plan
 
-### `customers`
-- `type text default 'individual'` (individual | company)
-- `company text`, `default_billing_address text`, `default_delivery_address text`
-- `default_pricelist_id uuid`, `default_payment_terms text`, `fiscal_position_id uuid references sales_fiscal_positions(id)`
-- `salesperson_id text`, `credit_limit numeric(14,2)`
-- `portal_enabled boolean default false`, `portal_token text`
-- `tags text[] default '{}'`, `notes text`
+### Step 1 — Migrate the 6 in-scope pages
+Replace direct `getQuotations/saveQuotation/...` calls with the new TanStack Query hooks from `@/hooks/sales`, mapping between the rich legacy types (kept as types-only) and the `Sb*` DB shapes via small in-page adapters.
 
-### `quotations`
-- B2C address fields: all 40+ billing/delivery columns (`billing_customer_name`, `billing_phone_1/2`, `billing_address_line_1/2`, `billing_city/state/zip`, `billing_location_type`, `billing_road_available_for_tempo bool`, `billing_floor_number int`, `billing_cargo_elevator bool`, `billing_staircase_width/height int`, `billing_gstin`, `billing_office_*` variants; same for delivery; `delivery_same_as_billing bool`)
-- B2C summary: `total_untaxed`, `total_cgst`, `total_sgst`, `total_igst`, `total_gst`, `grand_total`, `gst_type text`, `order_discount_type text`, `order_discount_value numeric`, `order_discount_amount numeric`, `points_redeemed int`, `points_earned int`, `redemption_amount numeric`
-- Workflow: `customer_name text`, `contact_id uuid`, `contact_name text`, `opportunity_id uuid`, `valid_until date`, `salesperson_id text`, `salesperson_name text`, `sales_team text`, `pricelist_id uuid references pricelists(id)`, `payment_terms text`, `global_discount numeric default 0`, `global_discount_type text default 'percentage'`, `discount_amount numeric default 0`, `terms_and_conditions text`, `sent_at timestamptz`, `accepted_at timestamptz`, `converted_to_order_id uuid`, `current_version int default 1`
+- `SubscriptionsList` / `SubscriptionForm` → `useSubscriptions`, `useSubscription`, `useSaveSubscriptionWithLines`, `useDeleteSubscription`
+- `QuotationsList` / `QuotationForm` → `useQuotations`, `useQuotation`, `useSaveQuotation`, `useDeleteQuotation`, plus the B2C engine (`gstCalculator`, loyalty, seasonal pricing) which stays in `lib/sales/*` and is now pure compute
+- `SalesOrdersList` / `SalesOrderForm` → `useSalesOrders`, `useSalesOrder`, `useSaveSalesOrder`, `useDeleteSalesOrder`, `useOrderActivities`, `useAddOrderActivity` (powers timeline + lock/confirm flow)
+- `CustomerPortal` / `CustomerPortalQuotation` → migrated to hooks. **Portal-token flag:** these pages currently authenticate via a `portalToken` on the customer record. Today RLS only allows `authenticated` reads, so anonymous portal visitors will fail. Options:
+  1. (recommended, deferred) add a SECURITY DEFINER RPC `get_portal_quotation(token text)` and call it from the portal pages.
+  2. (interim) require the portal viewer to be signed in.
+  
+  I'll wire the pages to the new hooks and add a TODO + visible "Portal access requires sign-in" notice; **no new RPC in this batch** unless you say so.
 
-### `quotation_lines`
-- `product_name text`, `discount_type text default 'percentage'`, `tax_ids text[] default '{}'` (replaces single `tax_rate` for multi-tax workflows; keep `tax_rate` for back-compat), `tax_amount numeric default 0`, `total numeric default 0`, `stock_available numeric`
-- B2C line fields: `barcode`, `customization`, `units numeric`, `net_amount numeric`, `gst_rate numeric`, `cgst_amount numeric`, `sgst_amount numeric`, `igst_amount numeric`, `per_line_discount_type text`, `discount_value numeric`, `discount_amount numeric`, `final_amount numeric`
+### Step 2 — Shim out the localStorage modules (keep types & helpers)
 
-### `quotation_versions` (new table)
-- `id`, `quotation_id uuid references quotations(id) on delete cascade`, `version int`, `data jsonb`, `created_at`, `created_by uuid`, `change_notes text`
-- RLS mirrors `quotations` (read-all authenticated, write follows parent ownership).
+- `src/lib/services/sales/storage.ts` (2-line file) → **delete**.
+- `src/lib/services/sales/types.ts` (1-line file) → **delete**.
+- `src/lib/data/sales/storage.ts` → reduce to pure helpers (`calculateLineTotal`, `applyPricelistPrice`, `checkStockAvailability`, `generate*Reference`, `convertQuotationToOrder` rewritten as a hook). All `getItem/setItem` reads/writes removed. Sync data-fetching helpers (`getQuotations`, `getSalesOrders`, `getPricelists`, `getSubscriptions`, `getTaxRules`, `getFiscalPositions`, `getSalesRolePermissions`) are kept as **deprecated sync shims** returning `[]` plus a `console.warn`, so the out-of-scope pages still compile but visibly noop until they're migrated in a later batch. Defaults for tax rules / role permissions remain available as named exports for the engines that need them.
+- `src/lib/data/sales.ts` → keep **types only** (Contact/Lead/Opportunity/SalesOrder/OrderLine/Activity). The CRUD functions become deprecated shims returning `[]` / no-op, same as above. (Full removal lands when CRM-Sales pages migrate.)
+- `src/lib/sales/promotionStorage.ts` → convert to a no-op shim returning `[]` with a deprecation warning. Real data layer comes later when a `sales_seasonal_promotions` hook is wired (table already exists).
+- `src/lib/sales/companySettings.ts` → convert to a static config returning the constants currently in localStorage defaults (no read/write). The two consumers (`gstCalculator`, `quotationPdf`) keep working unchanged.
 
-### `sales_orders`
-- Same B2C address + summary columns as `quotations`.
-- `customer_name`, `contact_id`, `contact_name`, `commitment_date date`, `salesperson_id/name`, `sales_team`, `currency text default 'INR'`, `pricelist_id`, `payment_terms`, `fiscal_position_id uuid references sales_fiscal_positions(id)`, `discount_amount numeric default 0`
-- Workflow: `locked_at timestamptz`, `locked_by text`, `confirmed_at timestamptz`, `confirmed_by text`, `delivery_status text`, `invoice_status text`, `invoice_ids text[] default '{}'`, `delivery_address text`, `billing_address text`
-
-### `order_lines`
-- Mirror new `quotation_lines` columns: `product_name`, `discount_type`, `tax_ids text[]`, `tax_amount`, `total`, `invoiced_qty numeric default 0`, `reserved_stock bool default false`, plus all B2C line fields.
-
-### `order_activities` (new table)
-- `id`, `order_id uuid references sales_orders(id) on delete cascade`, `user_id text`, `user_name text`, `action text`, `details text`, `timestamp timestamptz default now()`
-- RLS: read-all authenticated, insert allowed for any authenticated user with `sales_rep`/`sales_manager`/`admin`.
-
-### `pricelists`
-- `code text`, `is_default bool default false`, `parent_pricelist_id uuid references pricelists(id)`
-
-### `pricelist_items`
-- `category_id uuid`, `discount_percentage numeric`, `start_date date`, `end_date date`
-- Rename concept: `pricelist_items` already stores `price`+`min_qty` — keep that, add optional discount/date for rules-style use.
-
-### `subscriptions`
-- `reference text unique`, `customer_name text`, `billing_cycle text default 'monthly'` (replaces simple `billing_period`, keep both), `end_date date`, `subtotal numeric default 0`, `tax_amount numeric default 0`, `total numeric default 0`, `currency text default 'INR'`, `payment_terms text`, `last_order_id uuid`, `order_history text[] default '{}'`
-
-### `subscription_lines` (new table)
-- `id`, `subscription_id uuid references subscriptions(id) on delete cascade`, `product_id uuid`, `product_name text`, `quantity numeric`, `unit_price numeric`, `discount numeric default 0`
-- RLS mirrors `subscriptions`.
-
-### Grants
-Every new table gets `GRANT SELECT, INSERT, UPDATE, DELETE ... TO authenticated; GRANT ALL ... TO service_role;` followed by `ALTER TABLE ... ENABLE RLS` and policies (same role pattern as Phase 1).
-
-## Step 2 — API + hooks expansion
-
-Extend `src/lib/services/sales/api.ts`:
-- Update `SbQuotation`, `SbSalesOrder`, `SbSubscription` interfaces and mappers to include every new field.
-- Add nested fetch for `quotation_versions`, `order_activities`, `subscription_lines`.
-- Add new mutations: `addOrderActivity`, `addQuotationVersion`, `saveSubscriptionLines`.
-
-Extend `src/hooks/sales/index.ts`:
-- Add `useAddOrderActivity`, `useAddQuotationVersion`, `useTaxRules` (keep static defaults until tax_rules table exists).
-
-## Step 3 — Page migration (14 pages)
-
-For each page: replace `getX()/saveX()/deleteX()` calls with `useX()/useSaveX()/useDeleteX()`. Pattern (mirrors inventory):
-- List pages: `const { data = [], isLoading } = useX()` + `useDeleteX()` mutation.
-- Form pages: `useX(id)` for load + `useSaveX()` for create/update; show toast on `onSuccess`/`onError`.
-- Detail pages: same pattern as form pages.
-
-Order of migration (least → most coupled):
-1. `CustomersList`, `CustomerForm`
-2. `PricelistsPage`, `PricelistForm`
-3. `SubscriptionsList`, `SubscriptionForm`
-4. `QuotationsList`, `QuotationForm`
-5. `SalesOrdersList`, `SalesOrderForm`
-6. `SalesOverview`, `SalesReports` (aggregates from the lists above)
-7. `CustomerPortal`, `CustomerPortalQuotation` (public-facing — must keep auth flow as-is; if portal is anonymous, may need a public RPC; flag if blocked).
-
-## Step 4 — Delete legacy
-
-After build is clean and grep confirms no remaining imports:
-- `rm src/lib/services/sales/storage.ts`
-- `rm src/lib/data/sales.ts`
-- `rm src/lib/data/sales/storage.ts` and `src/lib/data/sales/index.ts` if unreferenced
-- Audit `src/lib/sales/*` for direct localStorage reads; convert `promotionStorage.ts` and `companySettings.ts` to Supabase-backed if they're imported by surviving code, or delete if not.
-- Update `src/lib/services/sales/index.ts` to re-export only from `./api` and validators.
-
-## Step 5 — Verify
+### Step 3 — Verify
 - `tsc --noEmit` clean.
-- `rg "getQuotations\\(|getSalesOrders\\(|getCustomers\\(|getPricelists\\(|getSubscriptions\\(" src/` returns zero hits.
-- Manually sanity-check `CustomerPortal` flow since it may be anonymous.
+- No new ESLint errors.
+- Smoke check the 6 migrated pages render in preview.
 
-## Risks / Open items
-- **Customer portal**: if it serves anonymous users, RLS will block reads. May need a dedicated public RPC or a `portal_token` lookup edge function — will surface as a blocker during Step 3.7 rather than guess now.
-- **TaxRules**: not part of this migration's table set. Will keep using the existing static defaults from `companySettings`/legacy storage in `salesApi` until a future migration adds a `tax_rules` table.
-- This will take several turns; I'll work through it sequentially and report at each major checkpoint (schema migration, hooks ready, each batch of pages, deletes).
+## Out of scope for this batch (will need a follow-up)
+- `PromotionsPage`, `FiscalPositionsPage`, `SalesOverview`, `SalesReports`, CRM detail pages, `SalesImportExport`, `loyaltyService`, `supabaseSync`. These keep compiling against the deprecated shims and will be migrated in the next batch.
+- A real `get_portal_quotation` RPC for anonymous portal access.
+- A `tax_rules` Supabase table (engines keep using the static defaults).
+
+## Risk
+The shim approach means out-of-scope pages will render empty lists until their batch lands, but they will not crash and the build stays green. If you'd rather I migrate every consumer right now in one go, say the word and I'll expand the scope — but it will be a much larger change.

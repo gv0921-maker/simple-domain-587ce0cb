@@ -6,6 +6,12 @@
 // legacy exports until every consumer is moved over.
 
 import { supabase } from '@/integrations/supabase/client';
+import type {
+  Quotation, QuotationLine, QuotationVersion,
+  SalesOrder, SalesOrderLine, OrderActivity,
+  Subscription, SubscriptionLine,
+  QuotationStatus, SalesOrderStatus,
+} from '@/lib/data/sales/types';
 
 // ---------- Row shapes (DB-aligned) ----------
 export interface SbCustomer {
@@ -655,4 +661,704 @@ export async function addQuotationVersion(
   }).select('*').single();
   if (error) throw error;
   return mapQuotationVersion(data);
+}
+
+// ===========================================================================
+// RICH legacy-shape adapters
+// Round-trip the full Quotation / SalesOrder / Subscription types (B2C
+// addresses, GST splits, versions, activities) used by the pages.
+// ===========================================================================
+
+const N = (v: any, d = 0): number =>
+  v === null || v === undefined || v === '' ? d : Number(v);
+const NOrUndef = (v: any): number | undefined =>
+  v === null || v === undefined ? undefined : Number(v);
+const SOrUndef = (v: any): string | undefined =>
+  v === null || v === undefined ? undefined : (v as string);
+
+// ----- Quotation Lines -----
+function mapQuotationLineRich(r: any): QuotationLine {
+  return {
+    id: r.id,
+    productId: r.product_id ?? '',
+    productName: r.product_name ?? '',
+    description: r.description ?? undefined,
+    quantity: N(r.quantity),
+    unitPrice: N(r.unit_price),
+    discount: N(r.discount),
+    discountType: (r.discount_type ?? 'percentage') as any,
+    taxIds: Array.isArray(r.tax_ids) ? r.tax_ids : [],
+    subtotal: N(r.subtotal),
+    taxAmount: N(r.tax_amount),
+    total: N(r.total),
+    stockAvailable: NOrUndef(r.stock_available),
+    barcode: r.barcode ?? undefined,
+    customization: r.customization ?? undefined,
+    units: NOrUndef(r.units),
+    netAmount: NOrUndef(r.net_amount),
+    gstRate: NOrUndef(r.gst_rate),
+    cgstAmount: NOrUndef(r.cgst_amount),
+    sgstAmount: NOrUndef(r.sgst_amount),
+    igstAmount: NOrUndef(r.igst_amount),
+    perLineDiscountType: (r.per_line_discount_type ?? null) as any,
+    discountValue: NOrUndef(r.discount_value),
+    discountAmount: NOrUndef(r.discount_amount),
+    finalAmount: NOrUndef(r.final_amount),
+  };
+}
+function rowFromQuotationLine(l: QuotationLine, quotationId: string): any {
+  return {
+    quotation_id: quotationId,
+    product_id: l.productId || null,
+    product_name: l.productName ?? null,
+    description: l.description ?? null,
+    quantity: l.quantity ?? 0,
+    unit_price: l.unitPrice ?? 0,
+    discount: l.discount ?? 0,
+    discount_type: l.discountType ?? 'percentage',
+    tax_ids: l.taxIds ?? [],
+    subtotal: l.subtotal ?? 0,
+    tax_amount: l.taxAmount ?? 0,
+    total: l.total ?? 0,
+    tax_rate: 0,
+    barcode: l.barcode ?? null,
+    customization: l.customization ?? null,
+    units: l.units ?? null,
+    net_amount: l.netAmount ?? null,
+    gst_rate: l.gstRate ?? null,
+    cgst_amount: l.cgstAmount ?? null,
+    sgst_amount: l.sgstAmount ?? null,
+    igst_amount: l.igstAmount ?? null,
+    per_line_discount_type: l.perLineDiscountType ?? null,
+    discount_value: l.discountValue ?? null,
+    discount_amount: l.discountAmount ?? null,
+    final_amount: l.finalAmount ?? null,
+  };
+}
+
+// ----- B2C address mappers -----
+function mapB2CAddress(r: any): any {
+  return {
+    billingCustomerName: r.billing_customer_name ?? undefined,
+    billingPhone1: r.billing_phone_1 ?? undefined,
+    billingPhone2: r.billing_phone_2 ?? undefined,
+    billingName: r.billing_name ?? undefined,
+    billingAddressLine1: r.billing_address_line_1 ?? undefined,
+    billingAddressLine2: r.billing_address_line_2 ?? undefined,
+    billingCity: r.billing_city ?? undefined,
+    billingState: r.billing_state ?? undefined,
+    billingZip: r.billing_zip ?? undefined,
+    billingLocationType: r.billing_location_type ?? undefined,
+    billingRoadAvailableForTempo: r.billing_road_available_for_tempo ?? undefined,
+    billingFloorNumber: NOrUndef(r.billing_floor_number),
+    billingCargoElevator: r.billing_cargo_elevator ?? undefined,
+    billingStaircaseWidth: NOrUndef(r.billing_staircase_width),
+    billingStaircaseHeight: NOrUndef(r.billing_staircase_height),
+    billingGSTIN: r.billing_gstin ?? undefined,
+    billingOfficeFloorNumber: NOrUndef(r.billing_office_floor_number),
+    billingOfficeCargoElevator: r.billing_office_cargo_elevator ?? undefined,
+    billingOfficeStaircaseWidth: NOrUndef(r.billing_office_staircase_width),
+    billingOfficeStaircaseHeight: NOrUndef(r.billing_office_staircase_height),
+    deliverySameAsBilling: r.delivery_same_as_billing ?? undefined,
+    deliveryName: r.delivery_name ?? undefined,
+    deliveryAddressLine1: r.delivery_address_line_1 ?? undefined,
+    deliveryAddressLine2: r.delivery_address_line_2 ?? undefined,
+    deliveryCity: r.delivery_city ?? undefined,
+    deliveryState: r.delivery_state ?? undefined,
+    deliveryZip: r.delivery_zip ?? undefined,
+    deliveryLocationType: r.delivery_location_type ?? undefined,
+    deliveryRoadAvailableForTempo: r.delivery_road_available_for_tempo ?? undefined,
+    deliveryFloorNumber: NOrUndef(r.delivery_floor_number),
+    deliveryCargoElevator: r.delivery_cargo_elevator ?? undefined,
+    deliveryStaircaseWidth: NOrUndef(r.delivery_staircase_width),
+    deliveryStaircaseHeight: NOrUndef(r.delivery_staircase_height),
+    deliveryGSTIN: r.delivery_gstin ?? undefined,
+    deliveryOfficeFloorNumber: NOrUndef(r.delivery_office_floor_number),
+    deliveryOfficeCargoElevator: r.delivery_office_cargo_elevator ?? undefined,
+    deliveryOfficeStaircaseWidth: NOrUndef(r.delivery_office_staircase_width),
+    deliveryOfficeStaircaseHeight: NOrUndef(r.delivery_office_staircase_height),
+  };
+}
+function rowFromB2CAddress(d: any): any {
+  return {
+    billing_customer_name: d.billingCustomerName ?? null,
+    billing_phone_1: d.billingPhone1 ?? null,
+    billing_phone_2: d.billingPhone2 ?? null,
+    billing_name: d.billingName ?? null,
+    billing_address_line_1: d.billingAddressLine1 ?? null,
+    billing_address_line_2: d.billingAddressLine2 ?? null,
+    billing_city: d.billingCity ?? null,
+    billing_state: d.billingState ?? null,
+    billing_zip: d.billingZip ?? null,
+    billing_location_type: d.billingLocationType ?? null,
+    billing_road_available_for_tempo: d.billingRoadAvailableForTempo ?? null,
+    billing_floor_number: d.billingFloorNumber ?? null,
+    billing_cargo_elevator: d.billingCargoElevator ?? null,
+    billing_staircase_width: d.billingStaircaseWidth ?? null,
+    billing_staircase_height: d.billingStaircaseHeight ?? null,
+    billing_gstin: d.billingGSTIN ?? null,
+    billing_office_floor_number: d.billingOfficeFloorNumber ?? null,
+    billing_office_cargo_elevator: d.billingOfficeCargoElevator ?? null,
+    billing_office_staircase_width: d.billingOfficeStaircaseWidth ?? null,
+    billing_office_staircase_height: d.billingOfficeStaircaseHeight ?? null,
+    delivery_same_as_billing: d.deliverySameAsBilling ?? null,
+    delivery_name: d.deliveryName ?? null,
+    delivery_address_line_1: d.deliveryAddressLine1 ?? null,
+    delivery_address_line_2: d.deliveryAddressLine2 ?? null,
+    delivery_city: d.deliveryCity ?? null,
+    delivery_state: d.deliveryState ?? null,
+    delivery_zip: d.deliveryZip ?? null,
+    delivery_location_type: d.deliveryLocationType ?? null,
+    delivery_road_available_for_tempo: d.deliveryRoadAvailableForTempo ?? null,
+    delivery_floor_number: d.deliveryFloorNumber ?? null,
+    delivery_cargo_elevator: d.deliveryCargoElevator ?? null,
+    delivery_staircase_width: d.deliveryStaircaseWidth ?? null,
+    delivery_staircase_height: d.deliveryStaircaseHeight ?? null,
+    delivery_gstin: d.deliveryGSTIN ?? null,
+    delivery_office_floor_number: d.deliveryOfficeFloorNumber ?? null,
+    delivery_office_cargo_elevator: d.deliveryOfficeCargoElevator ?? null,
+    delivery_office_staircase_width: d.deliveryOfficeStaircaseWidth ?? null,
+    delivery_office_staircase_height: d.deliveryOfficeStaircaseHeight ?? null,
+  };
+}
+
+// ----- Quotations rich -----
+function mapQuotationRich(r: any): Quotation {
+  const versions: QuotationVersion[] = (r.quotation_versions ?? [])
+    .map((v: any) => ({
+      version: Number(v.version),
+      data: v.data,
+      createdAt: v.created_at,
+      createdBy: v.created_by ?? '',
+      changeNotes: v.change_notes ?? undefined,
+    }))
+    .sort((a: QuotationVersion, b: QuotationVersion) => a.version - b.version);
+
+  return {
+    id: r.id,
+    reference: r.reference,
+    customerId: r.customer_id ?? '',
+    customerName: r.customer_name ?? '',
+    contactId: r.contact_id ?? undefined,
+    contactName: r.contact_name ?? undefined,
+    opportunityId: r.opportunity_id ?? undefined,
+    quotationDate: r.date,
+    validUntil: r.valid_until ?? r.expiry_date ?? r.date,
+    salespersonId: r.salesperson_id ?? undefined,
+    salespersonName: r.salesperson_name ?? undefined,
+    salesTeam: r.sales_team ?? undefined,
+    currency: r.currency ?? 'INR',
+    pricelistId: r.pricelist_id ?? undefined,
+    paymentTerms: r.payment_terms ?? undefined,
+    lines: (r.quotation_lines ?? []).map(mapQuotationLineRich),
+    globalDiscount: N(r.global_discount),
+    globalDiscountType: (r.global_discount_type ?? 'percentage') as any,
+    subtotal: N(r.subtotal),
+    discountAmount: N(r.discount_amount),
+    taxAmount: N(r.tax_amount),
+    total: N(r.total),
+    notes: r.notes ?? undefined,
+    termsAndConditions: r.terms_and_conditions ?? undefined,
+    status: (r.status ?? 'draft') as QuotationStatus,
+    sentAt: r.sent_at ?? undefined,
+    acceptedAt: r.accepted_at ?? undefined,
+    convertedToOrderId: r.converted_to_order_id ?? undefined,
+    currentVersion: r.current_version ?? 1,
+    versions,
+    createdBy: r.created_by ?? '',
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    // B2C
+    ...mapB2CAddress(r),
+    totalUntaxed: NOrUndef(r.total_untaxed),
+    totalCGST: NOrUndef(r.total_cgst),
+    totalSGST: NOrUndef(r.total_sgst),
+    totalIGST: NOrUndef(r.total_igst),
+    totalGST: NOrUndef(r.total_gst),
+    grandTotal: NOrUndef(r.grand_total),
+    gstType: r.gst_type ?? undefined,
+    orderDiscountType: r.order_discount_type ?? null,
+    orderDiscountValue: NOrUndef(r.order_discount_value),
+    orderDiscountAmount: NOrUndef(r.order_discount_amount),
+    pointsRedeemed: NOrUndef(r.points_redeemed),
+    pointsEarned: NOrUndef(r.points_earned),
+    redemptionAmount: NOrUndef(r.redemption_amount),
+  } as Quotation;
+}
+
+function rowFromQuotation(q: Partial<Quotation> & { reference: string }): any {
+  return {
+    reference: q.reference,
+    customer_id: q.customerId || null,
+    customer_name: q.customerName ?? null,
+    contact_id: q.contactId ?? null,
+    contact_name: q.contactName ?? null,
+    opportunity_id: q.opportunityId ?? null,
+    date: q.quotationDate ?? new Date().toISOString().slice(0, 10),
+    valid_until: q.validUntil ?? null,
+    expiry_date: q.validUntil ?? null,
+    salesperson_id: q.salespersonId ?? null,
+    salesperson_name: q.salespersonName ?? null,
+    sales_team: q.salesTeam ?? null,
+    currency: q.currency ?? 'INR',
+    pricelist_id: q.pricelistId ?? null,
+    payment_terms: q.paymentTerms ?? null,
+    global_discount: q.globalDiscount ?? 0,
+    global_discount_type: q.globalDiscountType ?? 'percentage',
+    subtotal: q.subtotal ?? 0,
+    discount_amount: q.discountAmount ?? 0,
+    tax_amount: q.taxAmount ?? 0,
+    total: q.total ?? 0,
+    notes: q.notes ?? null,
+    terms_and_conditions: q.termsAndConditions ?? null,
+    status: q.status ?? 'draft',
+    sent_at: q.sentAt ?? null,
+    accepted_at: q.acceptedAt ?? null,
+    converted_to_order_id: q.convertedToOrderId ?? null,
+    current_version: q.currentVersion ?? 1,
+    ...rowFromB2CAddress(q),
+    total_untaxed: q.totalUntaxed ?? null,
+    total_cgst: q.totalCGST ?? null,
+    total_sgst: q.totalSGST ?? null,
+    total_igst: q.totalIGST ?? null,
+    total_gst: q.totalGST ?? null,
+    grand_total: q.grandTotal ?? null,
+    gst_type: q.gstType ?? null,
+    order_discount_type: q.orderDiscountType ?? null,
+    order_discount_value: q.orderDiscountValue ?? null,
+    order_discount_amount: q.orderDiscountAmount ?? null,
+    points_redeemed: q.pointsRedeemed ?? null,
+    points_earned: q.pointsEarned ?? null,
+    redemption_amount: q.redemptionAmount ?? null,
+  };
+}
+
+const QUOTATION_SELECT = '*, quotation_lines(*), quotation_versions(*)';
+
+export async function listQuotationsRich(): Promise<Quotation[]> {
+  const { data, error } = await supabase
+    .from('quotations' as any).select(QUOTATION_SELECT)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(mapQuotationRich);
+}
+export async function getQuotationRich(id: string): Promise<Quotation | null> {
+  const { data, error } = await supabase
+    .from('quotations' as any).select(QUOTATION_SELECT)
+    .eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data ? mapQuotationRich(data) : null;
+}
+export async function saveQuotationRich(q: Partial<Quotation> & { reference: string }): Promise<Quotation> {
+  const uid = await currentUserId();
+  const payload = rowFromQuotation(q);
+  let qid = q.id;
+  if (qid) {
+    const { error } = await supabase.from('quotations' as any).update(payload).eq('id', qid);
+    if (error) throw error;
+  } else {
+    payload.created_by = uid;
+    const { data, error } = await supabase.from('quotations' as any).insert(payload).select('id').single();
+    if (error) throw error;
+    qid = (data as any).id;
+  }
+  if (q.lines !== undefined) {
+    await supabase.from('quotation_lines' as any).delete().eq('quotation_id', qid);
+    if (q.lines.length) {
+      const rows = q.lines.map((l) => rowFromQuotationLine(l, qid!));
+      const { error } = await supabase.from('quotation_lines' as any).insert(rows);
+      if (error) throw error;
+    }
+  }
+  // Persist any new versions (snapshots) that are not yet in DB.
+  if (q.versions && q.versions.length) {
+    const { data: existing } = await supabase
+      .from('quotation_versions' as any).select('version').eq('quotation_id', qid);
+    const have = new Set((existing ?? []).map((x: any) => Number(x.version)));
+    const newOnes = q.versions.filter((v) => !have.has(v.version));
+    if (newOnes.length) {
+      const rows = newOnes.map((v) => ({
+        quotation_id: qid,
+        version: v.version,
+        data: v.data as any,
+        change_notes: v.changeNotes ?? null,
+        created_by: uid,
+      }));
+      await supabase.from('quotation_versions' as any).insert(rows);
+    }
+  }
+  return (await getQuotationRich(qid!))!;
+}
+
+// ----- Sales Orders rich -----
+function mapOrderLineRich(r: any): SalesOrderLine {
+  return {
+    id: r.id,
+    productId: r.product_id ?? '',
+    productName: r.product_name ?? '',
+    description: r.description ?? undefined,
+    quantity: N(r.quantity),
+    deliveredQuantity: N(r.delivered_qty),
+    invoicedQuantity: N(r.invoiced_qty),
+    unitPrice: N(r.unit_price),
+    discount: N(r.discount),
+    discountType: (r.discount_type ?? 'percentage') as any,
+    taxIds: Array.isArray(r.tax_ids) ? r.tax_ids : [],
+    subtotal: N(r.subtotal),
+    taxAmount: N(r.tax_amount),
+    total: N(r.total),
+    reservedStock: !!r.reserved_stock,
+    barcode: r.barcode ?? undefined,
+    customization: r.customization ?? undefined,
+    units: NOrUndef(r.units),
+    netAmount: NOrUndef(r.net_amount),
+    gstRate: NOrUndef(r.gst_rate),
+    cgstAmount: NOrUndef(r.cgst_amount),
+    sgstAmount: NOrUndef(r.sgst_amount),
+    igstAmount: NOrUndef(r.igst_amount),
+    perLineDiscountType: (r.per_line_discount_type ?? null) as any,
+    discountValue: NOrUndef(r.discount_value),
+    discountAmount: NOrUndef(r.discount_amount),
+    finalAmount: NOrUndef(r.final_amount),
+  };
+}
+function rowFromOrderLine(l: SalesOrderLine, orderId: string): any {
+  return {
+    order_id: orderId,
+    product_id: l.productId || null,
+    product_name: l.productName ?? null,
+    description: l.description ?? null,
+    quantity: l.quantity ?? 0,
+    delivered_qty: l.deliveredQuantity ?? 0,
+    invoiced_qty: l.invoicedQuantity ?? 0,
+    unit_price: l.unitPrice ?? 0,
+    discount: l.discount ?? 0,
+    discount_type: l.discountType ?? 'percentage',
+    tax_ids: l.taxIds ?? [],
+    subtotal: l.subtotal ?? 0,
+    tax_amount: l.taxAmount ?? 0,
+    total: l.total ?? 0,
+    tax_rate: 0,
+    reserved_stock: !!l.reservedStock,
+    barcode: l.barcode ?? null,
+    customization: l.customization ?? null,
+    units: l.units ?? null,
+    net_amount: l.netAmount ?? null,
+    gst_rate: l.gstRate ?? null,
+    cgst_amount: l.cgstAmount ?? null,
+    sgst_amount: l.sgstAmount ?? null,
+    igst_amount: l.igstAmount ?? null,
+    per_line_discount_type: l.perLineDiscountType ?? null,
+    discount_value: l.discountValue ?? null,
+    discount_amount: l.discountAmount ?? null,
+    final_amount: l.finalAmount ?? null,
+  };
+}
+
+function mapOrderActivityRich(r: any): OrderActivity {
+  return {
+    id: r.id,
+    userId: r.user_id ?? '',
+    userName: r.user_name ?? '',
+    action: r.action,
+    details: r.details ?? undefined,
+    timestamp: r.timestamp,
+  };
+}
+
+function mapSalesOrderRich(r: any): SalesOrder {
+  const activities: OrderActivity[] = (r.order_activities ?? [])
+    .map(mapOrderActivityRich)
+    .sort((a: OrderActivity, b: OrderActivity) => a.timestamp.localeCompare(b.timestamp));
+
+  return {
+    id: r.id,
+    reference: r.reference,
+    quotationId: r.quotation_id ?? undefined,
+    customerId: r.customer_id ?? '',
+    customerName: r.customer_name ?? '',
+    contactId: r.contact_id ?? undefined,
+    contactName: r.contact_name ?? undefined,
+    deliveryAddress: r.delivery_address ?? undefined,
+    billingAddress: r.billing_address ?? undefined,
+    orderDate: r.order_date,
+    commitmentDate: r.commitment_date ?? undefined,
+    deliveryDate: r.delivery_date ?? undefined,
+    salespersonId: r.salesperson_id ?? undefined,
+    salespersonName: r.salesperson_name ?? undefined,
+    salesTeam: r.sales_team ?? undefined,
+    currency: r.currency ?? 'INR',
+    pricelistId: r.pricelist_id ?? undefined,
+    paymentTerms: r.payment_terms ?? undefined,
+    fiscalPositionId: r.fiscal_position_id ?? undefined,
+    lines: (r.order_lines ?? []).map(mapOrderLineRich),
+    subtotal: N(r.subtotal),
+    discountAmount: N(r.discount_amount),
+    taxAmount: N(r.tax_amount),
+    total: N(r.total),
+    notes: r.notes ?? undefined,
+    status: (r.status ?? 'estimate') as SalesOrderStatus,
+    lockedAt: r.locked_at ?? undefined,
+    lockedBy: r.locked_by ?? undefined,
+    confirmedAt: r.confirmed_at ?? undefined,
+    confirmedBy: r.confirmed_by ?? undefined,
+    deliveryStatus: r.delivery_status ?? undefined,
+    invoiceStatus: r.invoice_status ?? undefined,
+    invoiceIds: Array.isArray(r.invoice_ids) ? r.invoice_ids : undefined,
+    activities,
+    createdBy: r.created_by ?? '',
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    ...mapB2CAddress(r),
+    totalUntaxed: NOrUndef(r.total_untaxed),
+    totalCGST: NOrUndef(r.total_cgst),
+    totalSGST: NOrUndef(r.total_sgst),
+    totalIGST: NOrUndef(r.total_igst),
+    totalGST: NOrUndef(r.total_gst),
+    grandTotal: NOrUndef(r.grand_total),
+    gstType: r.gst_type ?? undefined,
+    orderDiscountType: r.order_discount_type ?? null,
+    orderDiscountValue: NOrUndef(r.order_discount_value),
+    orderDiscountAmount: NOrUndef(r.order_discount_amount),
+    pointsRedeemed: NOrUndef(r.points_redeemed),
+    pointsEarned: NOrUndef(r.points_earned),
+    redemptionAmount: NOrUndef(r.redemption_amount),
+  } as SalesOrder;
+}
+
+function rowFromSalesOrder(o: Partial<SalesOrder> & { reference: string }): any {
+  return {
+    reference: o.reference,
+    quotation_id: o.quotationId ?? null,
+    customer_id: o.customerId || null,
+    customer_name: o.customerName ?? null,
+    contact_id: o.contactId ?? null,
+    contact_name: o.contactName ?? null,
+    delivery_address: o.deliveryAddress ?? null,
+    billing_address: o.billingAddress ?? null,
+    order_date: o.orderDate ?? new Date().toISOString().slice(0, 10),
+    commitment_date: o.commitmentDate ?? null,
+    delivery_date: o.deliveryDate ?? null,
+    salesperson_id: o.salespersonId ?? null,
+    salesperson_name: o.salespersonName ?? null,
+    sales_team: o.salesTeam ?? null,
+    currency: o.currency ?? 'INR',
+    pricelist_id: o.pricelistId ?? null,
+    payment_terms: o.paymentTerms ?? null,
+    fiscal_position_id: o.fiscalPositionId ?? null,
+    subtotal: o.subtotal ?? 0,
+    discount_amount: o.discountAmount ?? 0,
+    tax_amount: o.taxAmount ?? 0,
+    total: o.total ?? 0,
+    notes: o.notes ?? null,
+    status: o.status ?? 'estimate',
+    locked_at: o.lockedAt ?? null,
+    locked_by: o.lockedBy ?? null,
+    confirmed_at: o.confirmedAt ?? null,
+    confirmed_by: o.confirmedBy ?? null,
+    delivery_status: o.deliveryStatus ?? null,
+    invoice_status: o.invoiceStatus ?? null,
+    invoice_ids: o.invoiceIds ?? null,
+    ...rowFromB2CAddress(o),
+    total_untaxed: o.totalUntaxed ?? null,
+    total_cgst: o.totalCGST ?? null,
+    total_sgst: o.totalSGST ?? null,
+    total_igst: o.totalIGST ?? null,
+    total_gst: o.totalGST ?? null,
+    grand_total: o.grandTotal ?? null,
+    gst_type: o.gstType ?? null,
+    order_discount_type: o.orderDiscountType ?? null,
+    order_discount_value: o.orderDiscountValue ?? null,
+    order_discount_amount: o.orderDiscountAmount ?? null,
+    points_redeemed: o.pointsRedeemed ?? null,
+    points_earned: o.pointsEarned ?? null,
+    redemption_amount: o.redemptionAmount ?? null,
+  };
+}
+
+const ORDER_SELECT = '*, order_lines(*), order_activities(*)';
+
+export async function listSalesOrdersRich(): Promise<SalesOrder[]> {
+  const { data, error } = await supabase
+    .from('sales_orders' as any).select(ORDER_SELECT)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(mapSalesOrderRich);
+}
+export async function getSalesOrderRich(id: string): Promise<SalesOrder | null> {
+  const { data, error } = await supabase
+    .from('sales_orders' as any).select(ORDER_SELECT)
+    .eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data ? mapSalesOrderRich(data) : null;
+}
+export async function saveSalesOrderRich(o: Partial<SalesOrder> & { reference: string }): Promise<SalesOrder> {
+  const uid = await currentUserId();
+  const payload = rowFromSalesOrder(o);
+  let oid = o.id;
+  if (oid) {
+    const { error } = await supabase.from('sales_orders' as any).update(payload).eq('id', oid);
+    if (error) throw error;
+  } else {
+    payload.created_by = uid;
+    const { data, error } = await supabase.from('sales_orders' as any).insert(payload).select('id').single();
+    if (error) throw error;
+    oid = (data as any).id;
+  }
+  if (o.lines !== undefined) {
+    await supabase.from('order_lines' as any).delete().eq('order_id', oid);
+    if (o.lines.length) {
+      const rows = o.lines.map((l) => rowFromOrderLine(l, oid!));
+      const { error } = await supabase.from('order_lines' as any).insert(rows);
+      if (error) throw error;
+    }
+  }
+  // Append any new activities (ones without a server-side row yet).
+  if (o.activities && o.activities.length) {
+    const { data: existing } = await supabase
+      .from('order_activities' as any).select('id').eq('order_id', oid);
+    const have = new Set((existing ?? []).map((x: any) => x.id));
+    const newOnes = o.activities.filter((a) => !have.has(a.id));
+    if (newOnes.length) {
+      const rows = newOnes.map((a) => ({
+        id: a.id,
+        order_id: oid,
+        user_id: a.userId || null,
+        user_name: a.userName ?? null,
+        action: a.action,
+        details: a.details ?? null,
+        timestamp: a.timestamp,
+      }));
+      await supabase.from('order_activities' as any).insert(rows);
+    }
+  }
+  return (await getSalesOrderRich(oid!))!;
+}
+
+// ----- Subscription rich -----
+function mapSubscriptionRich(r: any): Subscription {
+  return {
+    id: r.id,
+    reference: r.reference ?? '',
+    customerId: r.customer_id ?? '',
+    customerName: r.customer_name ?? '',
+    status: r.status ?? 'draft',
+    billingCycle: r.billing_cycle ?? 'monthly',
+    startDate: r.start_date,
+    nextBillingDate: r.next_billing_date ?? r.start_date,
+    endDate: r.end_date ?? undefined,
+    lines: (r.subscription_lines ?? []).map((l: any) => ({
+      id: l.id,
+      productId: l.product_id ?? '',
+      productName: l.product_name ?? '',
+      quantity: N(l.quantity),
+      unitPrice: N(l.unit_price),
+      discount: N(l.discount),
+    })) as SubscriptionLine[],
+    subtotal: N(r.subtotal),
+    taxAmount: N(r.tax_amount),
+    total: N(r.total),
+    currency: r.currency ?? 'INR',
+    paymentTerms: r.payment_terms ?? undefined,
+    lastOrderId: r.last_order_id ?? undefined,
+    orderHistory: Array.isArray(r.order_history) ? r.order_history : [],
+    createdBy: r.created_by ?? '',
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+function rowFromSubscription(s: Partial<Subscription>): any {
+  return {
+    reference: s.reference ?? null,
+    customer_id: s.customerId || null,
+    customer_name: s.customerName ?? null,
+    status: s.status ?? 'draft',
+    billing_cycle: s.billingCycle ?? 'monthly',
+    billing_period: s.billingCycle ?? 'monthly',
+    start_date: s.startDate ?? new Date().toISOString().slice(0, 10),
+    next_billing_date: s.nextBillingDate ?? null,
+    end_date: s.endDate ?? null,
+    subtotal: s.subtotal ?? 0,
+    tax_amount: s.taxAmount ?? 0,
+    total: s.total ?? 0,
+    price: s.total ?? 0,
+    currency: s.currency ?? 'INR',
+    payment_terms: s.paymentTerms ?? null,
+    last_order_id: s.lastOrderId ?? null,
+    order_history: s.orderHistory ?? [],
+    product_id: s.lines && s.lines[0] ? (s.lines[0].productId || null) : null,
+  };
+}
+
+export async function listSubscriptionsRich(): Promise<Subscription[]> {
+  const { data, error } = await supabase
+    .from('subscriptions' as any).select('*, subscription_lines(*)')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(mapSubscriptionRich);
+}
+export async function getSubscriptionRich(id: string): Promise<Subscription | null> {
+  const { data, error } = await supabase
+    .from('subscriptions' as any).select('*, subscription_lines(*)')
+    .eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data ? mapSubscriptionRich(data) : null;
+}
+export async function saveSubscriptionRich(s: Partial<Subscription>): Promise<Subscription> {
+  const uid = await currentUserId();
+  const payload = rowFromSubscription(s);
+  let sid = s.id;
+  if (sid) {
+    const { error } = await supabase.from('subscriptions' as any).update(payload).eq('id', sid);
+    if (error) throw error;
+  } else {
+    payload.created_by = uid;
+    const { data, error } = await supabase.from('subscriptions' as any).insert(payload).select('id').single();
+    if (error) throw error;
+    sid = (data as any).id;
+  }
+  if (s.lines !== undefined) {
+    await supabase.from('subscription_lines' as any).delete().eq('subscription_id', sid);
+    if (s.lines.length) {
+      const rows = s.lines.map((l) => ({
+        subscription_id: sid,
+        product_id: l.productId || null,
+        product_name: l.productName ?? null,
+        quantity: l.quantity ?? 0,
+        unit_price: l.unitPrice ?? 0,
+        discount: l.discount ?? 0,
+      }));
+      const { error } = await supabase.from('subscription_lines' as any).insert(rows);
+      if (error) throw error;
+    }
+  }
+  return (await getSubscriptionRich(sid!))!;
+}
+
+export async function deleteSubscriptionRich(id: string): Promise<void> {
+  const { error } = await supabase.from('subscriptions' as any).delete().eq('id', id);
+  if (error) throw error;
+}
+
+// Reference generators (server-side count to avoid collisions).
+export async function generateQuotationReferenceRich(): Promise<string> {
+  const year = new Date().getFullYear();
+  const { count } = await supabase
+    .from('quotations' as any).select('id', { count: 'exact', head: true })
+    .ilike('reference', `QT-${year}-%`);
+  return `QT-${year}-${String((count ?? 0) + 1).padStart(4, '0')}`;
+}
+export async function generateOrderReferenceRich(): Promise<string> {
+  const year = new Date().getFullYear();
+  const { count } = await supabase
+    .from('sales_orders' as any).select('id', { count: 'exact', head: true })
+    .ilike('reference', `SO-${year}-%`);
+  return `SO-${year}-${String((count ?? 0) + 1).padStart(4, '0')}`;
+}
+export async function generateSubscriptionReferenceRich(): Promise<string> {
+  const year = new Date().getFullYear();
+  const { count } = await supabase
+    .from('subscriptions' as any).select('id', { count: 'exact', head: true })
+    .ilike('reference', `SUB-${year}-%`);
+  return `SUB-${year}-${String((count ?? 0) + 1).padStart(4, '0')}`;
 }
