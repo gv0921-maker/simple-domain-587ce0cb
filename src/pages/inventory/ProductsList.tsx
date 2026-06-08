@@ -31,14 +31,16 @@ import {
   ArrowUpDown,
   Package,
 } from 'lucide-react';
-import { getProducts, deleteProduct, type Product } from '@/lib/services/inventory';
+import { useProducts, useDeleteProduct } from '@/hooks/inventory';
+import type { Product } from '@/lib/services/inventory';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ProductsList() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [products, setProducts] = useState<Product[]>(() => getProducts());
+  const { data: products = [] } = useProducts();
+  const deleteMut = useDeleteProduct();
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<keyof Product>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
@@ -76,11 +78,9 @@ export default function ProductsList() {
   };
 
   const handleDelete = (id: string) => {
-    deleteProduct(id);
-    setProducts(getProducts());
-    toast({
-      title: 'Product deleted',
-      description: 'The product has been removed.',
+    deleteMut.mutate(id, {
+      onSuccess: () => toast({ title: 'Product deleted', description: 'The product has been removed.' }),
+      onError: (e: any) => toast({ title: 'Delete failed', description: e?.message, variant: 'destructive' }),
     });
   };
 

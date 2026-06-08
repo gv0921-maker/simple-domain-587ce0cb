@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, ChevronLeft, ChevronRight, Settings, MoreVertical, Warehouse, Package, ArrowLeftRight, BarChart3 } from 'lucide-react';
-import { getProducts, getTransfers, getWarehouses } from '@/lib/services/inventory';
+import { useProducts, useTransfers, useWarehouses } from '@/hooks/inventory';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useMemo } from 'react';
 
@@ -83,11 +83,10 @@ const DASHBOARD_CARDS = [
 export default function InventoryOverview() {
   const navigate = useNavigate();
   
+  const { data: products = [] } = useProducts();
+  const { data: transfers = [] } = useTransfers();
+  const { data: warehouses = [] } = useWarehouses();
   const stats = useMemo(() => {
-    const products = getProducts();
-    const transfers = getTransfers();
-    const warehouses = getWarehouses();
-    
     return {
       totalProducts: products.length,
       lowStock: products.filter(p => p.stockOnHand <= p.reorderLevel && p.stockOnHand > 0).length,
@@ -96,7 +95,7 @@ export default function InventoryOverview() {
       warehouseCount: warehouses.length,
       totalValue: products.reduce((sum, p) => sum + p.stockOnHand * p.costPrice, 0),
     };
-  }, []);
+  }, [products, transfers, warehouses]);
 
   return (
     <AppLayout title="Inventory" moduleNav={INVENTORY_NAV}>

@@ -33,7 +33,8 @@ import {
   History,
   Plus,
 } from 'lucide-react';
-import { getProduct, saveProduct, deleteProduct, type Product, type ProductVariant } from '@/lib/services/inventory';
+import { useProduct, useSaveProduct, useDeleteProduct } from '@/hooks/inventory';
+import type { Product, ProductVariant } from '@/lib/services/inventory';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useStudioConfig } from '@/hooks/useStudioConfig';
@@ -59,6 +60,9 @@ export default function ProductDetail() {
   const { toast } = useToast();
   const isNew = id === 'new';
   const studio = useStudioConfig('inventory', 'Product');
+  const { data: existingProduct } = useProduct(!isNew ? id : undefined);
+  const saveMut = useSaveProduct();
+  const deleteMut = useDeleteProduct();
 
   const [product, setProduct] = useState<Product>({
     id: '',
@@ -86,16 +90,11 @@ export default function ProductDetail() {
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
-    if (!isNew && id) {
-      const existingProduct = getProduct(id);
-      if (existingProduct) {
-        setProduct(existingProduct);
-        setVariants(existingProduct.variants || []);
-      } else {
-        navigate('/inventory/products');
-      }
+    if (!isNew && existingProduct) {
+      setProduct(existingProduct);
+      setVariants(existingProduct.variants || []);
     }
-  }, [id, isNew, navigate]);
+  }, [existingProduct, isNew]);
 
   const handleChange = (field: keyof Product, value: any) => {
     setProduct((prev) => ({ ...prev, [field]: value }));
@@ -144,16 +143,14 @@ export default function ProductDetail() {
       variants,
     };
 
-    saveProduct(productToSave);
-    setHasChanges(false);
-    toast({
-      title: isNew ? 'Product Created' : 'Product Updated',
-      description: `${product.name} has been saved successfully.`,
+    saveMut.mutate(productToSave, {
+      onSuccess: () => {
+        setHasChanges(false);
+        toast({ title: isNew ? 'Product Created' : 'Product Updated', description: `${product.name} has been saved successfully.` });
+        if (isNew) navigate('/inventory/products');
+      },
+      onError: (e: any) => toast({ title: 'Save failed', description: e?.message, variant: 'destructive' }),
     });
-
-    if (isNew) {
-      navigate('/inventory/products');
-    }
   };
 
   const stockStatus =
@@ -205,9 +202,13 @@ export default function ProductDetail() {
                     <AlertDialogAction
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       onClick={() => {
-                        deleteProduct(product.id);
-                        toast({ title: 'Product Deleted', description: `${product.name} has been removed.` });
-                        navigate('/inventory/products');
+                        deleteMut.mutate(product.id, {
+                          onSuccess: () => {
+                            toast({ title: 'Product Deleted', description: `${product.name} has been removed.` });
+                            navigate('/inventory/products');
+                          },
+                          onError: (e: any) => toast({ title: 'Delete failed', description: e?.message, variant: 'destructive' }),
+                        });
                       }}
                     >
                       Delete

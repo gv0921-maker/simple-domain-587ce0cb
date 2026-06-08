@@ -30,13 +30,14 @@ import {
   BarChart3,
   FileText,
 } from 'lucide-react';
-import { getProducts, getWarehouses, type Product } from '@/lib/services/inventory';
+import { useProducts, useWarehouses } from '@/hooks/inventory';
+import type { Product } from '@/lib/services/inventory';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 
 export default function InventoryReporting() {
-  const [products] = useState<Product[]>(getProducts());
-  const [warehouses] = useState(getWarehouses());
+  const { data: products = [] } = useProducts();
+  const { data: warehouses = [] } = useWarehouses();
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>('all');
   const [dateRange, setDateRange] = useState<string>('30');
 
