@@ -40,6 +40,7 @@ export default function InvoiceDetail() {
   const navigate = useNavigate();
   const { data: invoice, isLoading } = useInvoice(id);
   const { data: order } = useLinkedSalesOrder(invoice?.sales_order_id);
+  const { data: deliveryQC } = useDeliveryQC(invoice?.sales_order_id ?? undefined);
 
   if (isLoading) {
     return (
