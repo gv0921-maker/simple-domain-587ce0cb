@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { INVOICING_NAV } from '@/lib/navigation/invoicing';
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getInvoices, updateInvoice } from '@/lib/services/accounting';
+import { getInvoices, updateInvoice, type Invoice } from '@/lib/services/accounting';
 import { Plus, Search, DollarSign, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -32,10 +32,14 @@ const variantLabels: Record<string, string> = {
 
 export default function InvoicesList({ variant = 'bills', title }: InvoicesListProps = {}) {
   const navigate = useNavigate();
-  const [invoices, setInvoices] = useState(getInvoices());
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const heading = title ?? variantLabels[variant] ?? 'Bills';
+
+  useEffect(() => {
+    getInvoices().then(setInvoices).catch(() => setInvoices([]));
+  }, []);
 
   const filteredInvoices = invoices.filter(inv => {
     const matchesSearch = inv.number.toLowerCase().includes(search.toLowerCase()) ||
@@ -44,12 +48,15 @@ export default function InvoicesList({ variant = 'bills', title }: InvoicesListP
     return matchesSearch && matchesTab;
   });
 
-  const handleMarkPaid = (id: string) => {
+  const handleMarkPaid = async (id: string) => {
     const inv = invoices.find(i => i.id === id);
-    if (inv) {
-      updateInvoice(id, { status: 'paid', amountPaid: inv.total, amountDue: 0 });
-      setInvoices(getInvoices());
+    if (!inv) return;
+    try {
+      await updateInvoice(id, { status: 'paid', amountPaid: inv.total, amountDue: 0 });
+      setInvoices(await getInvoices());
       toast.success('Invoice marked as paid');
+    } catch (e) {
+      toast.error('Failed to update invoice');
     }
   };
 
