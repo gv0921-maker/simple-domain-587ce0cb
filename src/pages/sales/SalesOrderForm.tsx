@@ -15,7 +15,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Save, XCircle, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Save, XCircle, ShoppingCart, CreditCard, FileText, CheckCircle2 } from 'lucide-react';
+import { RecordPaymentDialog } from '@/components/sales/RecordPaymentDialog';
 import {
   useSalesOrderRich, useSaveSalesOrderRich, usePricelists, useFiscalPositions,
 } from '@/hooks/sales';
@@ -89,6 +90,7 @@ export default function SalesOrderForm() {
   const [saving, setSaving] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<'cancel' | null>(null);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const billingRef = useRef<HTMLDivElement | null>(null);
 
   const [formData, setFormData] = useState<Partial<SalesOrder>>({
@@ -389,13 +391,48 @@ export default function SalesOrderForm() {
                 <Save className="h-4 w-4 mr-2" /> Save
               </Button>
             )}
-            {status !== 'cancelled' && status !== 'delivered' && !isNew && (
+            {status === 'confirmed' && !isNew && (
+              <Button
+                size="lg"
+                className="bg-primary hover:bg-primary/90 shadow-md"
+                onClick={() => setPaymentDialogOpen(true)}
+              >
+                <CreditCard className="h-4 w-4 mr-2" /> Record Payment
+              </Button>
+            )}
+            {status === 'paid' && !isNew && (
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/invoicing/invoices/new?orderId=${id}`)}
+              >
+                <FileText className="h-4 w-4 mr-2" /> Generate Invoice
+              </Button>
+            )}
+            {status !== 'cancelled' && status !== 'delivered' && status !== 'paid' && !isNew && (
               <Button variant="outline" onClick={() => { setConfirmAction('cancel'); setConfirmDialogOpen(true); }}>
                 <XCircle className="h-4 w-4 mr-2" /> Cancel Order
               </Button>
             )}
           </div>
         </div>
+
+        {/* Paid summary */}
+        {!isNew && status === 'paid' && (
+          <Card className="max-w-4xl mx-auto w-full border-success/40 bg-success/5">
+            <CardContent className="p-4 flex items-center gap-3">
+              <CheckCircle2 className="h-5 w-5 text-success" />
+              <div className="flex-1">
+                <Badge className="bg-success text-success-foreground hover:bg-success">Paid</Badge>
+                <span className="ml-3 text-sm text-foreground">
+                  {formatINR(formData.paidAmount || 0)}
+                  {formData.paymentDate && ` on ${format(parseISO(formData.paymentDate), 'MMM d, yyyy')}`}
+                  {formData.paymentMethod && ` · ${formData.paymentMethod.replace('_', ' ')}`}
+                  {formData.paymentReference && ` · Ref ${formData.paymentReference}`}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Status chevrons */}
         {!isNew && (
@@ -593,6 +630,16 @@ export default function SalesOrderForm() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {!isNew && id && (
+        <RecordPaymentDialog
+          open={paymentDialogOpen}
+          onOpenChange={setPaymentDialogOpen}
+          orderId={id}
+          customerId={formData.customerId}
+          defaultAmount={formData.grandTotal || formData.total || 0}
+        />
+      )}
     </AppLayout>
   );
 }
