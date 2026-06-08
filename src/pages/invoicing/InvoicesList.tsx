@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 
 const statusColors: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   draft: 'secondary',
+  sent: 'outline',
   paid: 'default',
   overdue: 'destructive',
   cancelled: 'destructive',
