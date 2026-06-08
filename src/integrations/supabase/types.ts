@@ -1420,6 +1420,7 @@ export type Database = {
           notes: string | null
           payment_date: string
           reference: string | null
+          sales_order_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1432,6 +1433,7 @@ export type Database = {
           notes?: string | null
           payment_date?: string
           reference?: string | null
+          sales_order_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1444,6 +1446,7 @@ export type Database = {
           notes?: string | null
           payment_date?: string
           reference?: string | null
+          sales_order_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1459,6 +1462,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -2300,6 +2310,10 @@ export type Database = {
           order_discount_amount: number | null
           order_discount_type: string | null
           order_discount_value: number | null
+          paid_amount: number
+          payment_date: string | null
+          payment_method: string | null
+          payment_reference: string | null
           payment_terms: string | null
           points_earned: number | null
           points_redeemed: number | null
@@ -2388,6 +2402,10 @@ export type Database = {
           order_discount_amount?: number | null
           order_discount_type?: string | null
           order_discount_value?: number | null
+          paid_amount?: number
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
           payment_terms?: string | null
           points_earned?: number | null
           points_redeemed?: number | null
@@ -2476,6 +2494,10 @@ export type Database = {
           order_discount_amount?: number | null
           order_discount_type?: string | null
           order_discount_value?: number | null
+          paid_amount?: number
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
           payment_terms?: string | null
           points_earned?: number | null
           points_redeemed?: number | null

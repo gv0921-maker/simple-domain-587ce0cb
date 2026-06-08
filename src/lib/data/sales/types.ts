@@ -6,6 +6,7 @@ export type QuotationStatus = 'draft' | 'sent' | 'accepted' | 'converted' | 'exp
 export type SalesOrderStatus =
   | 'estimate'
   | 'confirmed'
+  | 'paid'
   | 'ready_to_pick'
   | 'dispatched'
   | 'delivered'
@@ -296,7 +297,13 @@ export interface SalesOrder extends B2CAddressFields, B2COrderSummary {
   deliveryStatus?: 'pending' | 'partial' | 'done';
   invoiceStatus?: 'not_invoiced' | 'partial' | 'invoiced';
   invoiceIds?: string[];
-  
+
+  // Payment (recorded before invoice in GLF workflow)
+  paidAmount?: number;
+  paymentDate?: string;
+  paymentMethod?: string;
+  paymentReference?: string;
+
   // Timeline
   activities: OrderActivity[];
   
