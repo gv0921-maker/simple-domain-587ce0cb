@@ -15,6 +15,7 @@ function normalize(status: SalesOrderStatus): SalesOrderStatus {
   if (status === 'draft') return 'estimate';
   if (status === 'locked') return 'ready_to_pick';
   if (status === 'paid') return 'confirmed';
+  if (status === 'invoiced') return 'confirmed';
   return status;
 }
 
