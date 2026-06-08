@@ -719,19 +719,34 @@ export function getAccessibleTabs(userId: string, moduleId: string): string[] {
   return moduleTabPerm.allowedTabs.filter((tabId) => allTabIds.includes(tabId));
 }
 
-// Audit logging
+// =========================================================================
+// Audit logging (cache-backed, Supabase write-through)
+// =========================================================================
 export function getAuditLogs(): AuditLog[] {
-  return getItem<AuditLog[]>('auditLogs', []);
+  return [..._auditCache];
 }
 
 export function addAuditLog(log: Omit<AuditLog, 'id' | 'timestamp'>): void {
-  const logs = getAuditLogs();
-  logs.unshift({
+  const entry: AuditLog = {
     ...log,
     id: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
-  });
-  // Keep last 1000 logs
-  if (logs.length > 1000) logs.pop();
-  setItem('auditLogs', logs);
+  };
+  _auditCache = [entry, ..._auditCache].slice(0, 1000);
+
+  void (async () => {
+    try {
+      await supabase.from('app_audit_logs').insert({
+        user_id: log.userId || null,
+        user_name: log.userName || null,
+        action: log.action,
+        resource: log.resource,
+        resource_id: log.resourceId ?? null,
+        details: log.details ?? null,
+        ip_address: log.ipAddress ?? null,
+      });
+    } catch (e) {
+      console.warn('[rbac] addAuditLog failed:', e);
+    }
+  })();
 }
