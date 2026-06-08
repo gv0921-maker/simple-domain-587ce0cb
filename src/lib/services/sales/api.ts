@@ -307,6 +307,19 @@ export async function saveCustomer(input: Partial<SbCustomer> & { name: string }
     gstin: input.gstin ?? null,
     contact_person: input.contactPerson ?? null,
     is_active: input.isActive ?? true,
+    type: input.type ?? 'individual',
+    company: input.company ?? null,
+    default_billing_address: input.defaultBillingAddress ?? null,
+    default_delivery_address: input.defaultDeliveryAddress ?? null,
+    default_pricelist_id: input.defaultPricelistId ?? null,
+    default_payment_terms: input.defaultPaymentTerms ?? null,
+    fiscal_position_id: input.fiscalPositionId ?? null,
+    salesperson_id: input.salespersonId ?? null,
+    credit_limit: input.creditLimit ?? null,
+    portal_enabled: input.portalEnabled ?? false,
+    portal_token: input.portalToken ?? null,
+    tags: input.tags ?? [],
+    notes: input.notes ?? null,
   };
   if (input.id) {
     const { data, error } = await supabase.from('customers' as any).update(payload).eq('id', input.id).select('*').single();
