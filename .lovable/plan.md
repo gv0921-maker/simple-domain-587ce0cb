@@ -1,152 +1,105 @@
-# OrderLinesTable Redesign — Odoo-Style Clean Layout
+# Inventory → Supabase Migration
 
-UI-only rewrite of `src/components/sales/OrderLinesTable.tsx`. All calculation logic (`recomputeLine`, `calculateLineTax`, `calculateOrderTotals`, discount/loyalty/seasonal flows) is preserved verbatim. Both `QuotationForm` and `SalesOrderForm` consume this single component, so the redesign covers both.
+## Important constraint you should know about
 
-## Implementation Order
+Your request says "keep the same function signatures so no page components need to change." That isn't physically possible: the current functions are **synchronous** (`getProducts(): Product[]` reads localStorage), and Supabase queries are **asynchronous** (return Promises). Every call site has to either become `await`-ed or move to a TanStack Query hook.
 
-1. Read the current `OrderLinesTable.tsx` end-to-end and map out which helpers and computed values must remain (`recomputeLine`, `productMap`/`barcodeMap`, `applySeasonalForLine`, `totals`, `grandAfterPoints`, `useMemoNotify`).
-2. Build the new layout as a separate render section inside the file. Keep the old JSX untouched while wiring the new markup to the existing handlers.
-3. Run TypeScript check on the dual-render version.
-4. Swap out the old JSX in one edit — no mixed markup left behind.
-5. Final TypeScript check — zero errors.
-6. Verify in preview at 1280px on both `/sales/quotations/new` and `/sales/orders/new`: no horizontal scroll inside the Order Lines card.
+The plan below takes the same approach already used for CRM: introduce async services + `@/hooks/inventory/*` query hooks, then update pages to consume those hooks. This is more work than your message implied — please confirm you want me to proceed on that basis before I start, or pick a smaller scope.
 
-## New Table Structure
+## Database schema (single migration)
+
+12 tables (you listed 7; lots/serials/adjustments/barcode/valuation are required for "everything inventory-related"):
 
 ```text
-⠿ | Product                | Qty   | Unit Price | Disc.% | Amount  | 🗑
-──┼────────────────────────┼───────┼────────────┼────────┼─────────┼──
-⠿ | Product name ▾         | 1.00  | ₹2,000.00  | 0.00   | ₹2,000  | 🗑
-  | [GST 18%]              |       |            |        |         |
-  | [barcode] (hover/val)  |       |            |        |         |
-  | customization (hover)  |       |            |        |         |
+products              warehouses           warehouse_locations
+stock_moves           stock_move_lines     transfers
+transfer_lines        reorder_rules        lots
+serial_numbers        inventory_adjustments   adjustment_lines
 ```
 
-`table-fixed`, widths chosen so the whole table fits a card at 1280px viewport:
+Highlights:
+- `id uuid pk default gen_random_uuid()`, `created_at`/`updated_at timestamptz` everywhere with the existing `update_updated_at_column` trigger.
+- Snake_case columns (matches Supabase types generator); service layer maps to/from the camelCase TS types.
+- `products.barcode` unique-when-not-null; secondary barcodes kept as `text[]`.
+- `warehouse_locations.parent_location_id` self-FK; `warehouse_locations.warehouse_id → warehouses` cascade.
+- `stock_move_lines.stock_move_id → stock_moves` cascade; `transfer_lines.transfer_id → transfers` cascade; `adjustment_lines.adjustment_id → inventory_adjustments` cascade.
+- All FKs to `products` are `on delete restrict` so we don't silently break history.
+- Enums implemented as `text` + `CHECK` constraints (matches the rest of your DB style; safer than pg enums to evolve).
 
-| Col | Width |
-|---|---|
-| Drag handle | 24px |
-| Product | flex (auto) |
-| Qty | 80px |
-| Unit Price | 110px |
-| Disc.% | 80px |
-| Amount | 100px |
-| Delete | 32px |
+### RLS (admin-only mutations)
 
-## Row Reveal — State Driven
+For every table:
+```sql
+ALTER TABLE ... ENABLE ROW LEVEL SECURITY;
 
-Use a `useState<string | null>(hoveredRowId)` plus a `focusedRowId` state. Barcode + customization rows render when:
-- the row id matches `hoveredRowId` or `focusedRowId`, OR
-- the corresponding field already has a value.
+CREATE POLICY "read_all_authenticated" ON ... FOR SELECT TO authenticated USING (true);
+CREATE POLICY "admin_insert" ON ... FOR INSERT TO authenticated WITH CHECK (public.is_admin());
+CREATE POLICY "admin_update" ON ... FOR UPDATE TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+CREATE POLICY "admin_delete" ON ... FOR DELETE TO authenticated USING (public.is_admin());
+```
+Reuses the `public.is_admin()` helper added in the CRM RLS migration. Per your answer "Admin only", `sales_manager` etc. cannot mutate inventory.
 
-Pure CSS `:hover` is not enough because the input must stay visible after the mouse leaves while the field is focused. Handlers: `onMouseEnter`/`onMouseLeave` on the `<tr>`, `onFocusCapture`/`onBlurCapture` to track focus inside the row.
-
-Active row gets `bg-muted/30`; delete button and drag handle render only in the revealed state.
-
-## GST Rate — Inline Popover
-
-GST% column is removed. Each product cell shows a small badge `GST 18%` (10px, `bg-muted`, rounded). Click opens the existing `@/components/ui/popover`:
-
-```text
-GST Rate
-[ 18 ] %
-Common: [0] [5] [12] [18] [28]
+Grants in the same migration:
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.<table> TO authenticated;
+GRANT ALL ON public.<table> TO service_role;
 ```
 
-- Quick-select buttons set the rate directly.
-- Enter or outside-click closes.
-- Writes via existing `updateLine(line.id, { gstRate })`.
+## Service layer rewrite (`src/lib/services/inventory/`)
 
-No new packages.
+- Delete the legacy re-export shims; put real async implementations here. `src/lib/data/inventory/` keeps the type file only (`types.ts`) so existing imports of types continue to work; `storage.ts` is removed.
+- Every function becomes `async` and returns a Promise. Function names are preserved (`getProducts`, `saveProduct`, `validateStockMove`, …) so search-and-replace is mechanical.
+- A `mapRow*` helper per table converts snake_case rows ↔ camelCase TS types.
+- `validateStockMove`, `approveAdjustment`, and `updateProductStock` execute their multi-row writes as RPC calls to new SECURITY DEFINER functions (`inv_validate_stock_move`, `inv_approve_adjustment`) so stock math is atomic instead of two round-trips.
+- `getUserInventoryPermissions` / `hasInventoryPermission` become thin wrappers around `is_admin()` (everyone else is read-only) and keep the localStorage role-config (`DEFAULT_INVENTORY_ROLES`) only for the Settings UI display.
 
-## Discount — Inline Type Selector
+## Hooks layer (new) — `src/hooks/inventory/`
 
-The per-line discount-type column is removed. The Disc.% cell shows only the percentage input. When focused or when the row has a non-default `perLineDiscountType`, a small segmented control renders below the input: `[Item %] [Loyalty] [Seasonal]` (Flat Order remains order-level only).
+Same pattern as `src/hooks/crm`:
+- Query hooks: `useProducts`, `useProduct(id)`, `useWarehouses`, `useLocations(warehouseId?)`, `useStockMoves(filters)`, `useTransfers`, `useReorderRules`, `useLots(productId?)`, `useSerials(productId?)`, `useAdjustments`, `useStockValuation`.
+- Mutation hooks: `useSaveProduct`, `useDeleteProduct`, `useValidateStockMove`, `useApproveAdjustment`, etc. — each invalidates the relevant query keys.
+- Centralised query key factory in `src/hooks/inventory/keys.ts`.
 
-- Loyalty / Seasonal → input becomes read-only and reflects the auto-resolved rate; tiny caption shows promo name (via `applySeasonalForLine`).
-- Respects existing `allowedLineDiscountTypes`. When the user has no discount permission, the input is replaced by a lock icon.
+## Page updates
 
-## Amount Column
+Inventory pages currently call sync storage functions directly. They will be switched to the hooks above. Affected files (already mapped):
 
-Read-only `finalAmount`. Wrapped in `Tooltip` from `@/components/ui/tooltip` with the breakdown, all in en-IN `₹`:
-
-```text
-Net:        ₹2,000.00
-GST (18%):  ₹360.00
-Discount:  -₹0.00
-Total:      ₹2,360.00
+```
+src/pages/inventory/InventoryOverview.tsx
+src/pages/inventory/ProductsList.tsx
+src/pages/inventory/ProductDetail.tsx
+src/pages/inventory/ProductScanLookup.tsx
+src/pages/inventory/OperationsList.tsx
+src/pages/inventory/StockMoves.tsx
+src/pages/inventory/StockDashboard.tsx
+src/pages/inventory/TransferForm.tsx
+src/pages/inventory/TransferDetail.tsx
+src/pages/inventory/WarehousesList.tsx
+src/pages/inventory/WarehouseLocations.tsx
+src/pages/inventory/InventoryAdjustments.tsx
+src/pages/inventory/InventoryConfiguration.tsx
+src/pages/inventory/InventoryReporting.tsx
+src/pages/inventory/ReorderRules.tsx
+src/pages/inventory/ReorderRuleForm.tsx
+src/pages/inventory/BarcodeOperations.tsx
+src/pages/inventory/BarcodeLabels.tsx
+src/components/inventory/MobilePickingScreen.tsx
+src/components/inventory/MobileCountScreen.tsx
+src/components/inventory/BarcodeScanner.tsx
 ```
 
-All numbers reused from the per-line computed fields; nothing recalculated.
+Each page gets: loading state via the hook's `isLoading`, error toast on mutation failure, and `useAuth()` to disable mutation UI when not admin.
 
-## Summary Panel
+## Out of scope (call out, don't do)
 
-Below the table, right-aligned, `max-w-sm ml-auto`:
+- No data migration from localStorage (you chose "start empty"). I'll leave the old `erp_inventory_*` keys untouched in the browser; nothing reads them after this change.
+- Reorder rules will only flag low stock at read time; auto-creating purchase orders stays manual.
+- Lot/serial expiry alerts and stock-valuation FIFO/LIFO layers stay computed client-side (no `valuation_layers` table) since you didn't list it. Easy to add later.
 
-```text
-Total Untaxed Amount      ₹2,000.00
-──────────────────────────────────
-CGST (9%)                   ₹180.00     (or IGST when inter-state)
-SGST (9%)                   ₹180.00
-Total GST                   ₹360.00
-──────────────────────────────────
-Order Discount  [%|₹] [__]  -₹0.00      (manager/admin only)
-Loyalty Points  …                       (only when points available)
-──────────────────────────────────
-Grand Total                 ₹2,360.00   (bold, text-primary)
-```
+## Deliverables order
 
-Same data the current summary emits; only spacing and dividers change.
+1. Migration (tables + RLS + grants + 2 RPCs) — surfaced for your approval.
+2. After approval: rewrite `src/lib/services/inventory/`, add `src/hooks/inventory/`, then update each page.
+3. Sanity-check build, fix any type fallout from the snake/camel mapping.
 
-## Card Wrapper
-
-```tsx
-<Card>
-  <CardHeader className="pb-3">
-    <CardTitle className="text-base flex items-center gap-2">
-      <ShoppingCart className="h-4 w-4" /> Order Lines
-    </CardTitle>
-  </CardHeader>
-  <CardContent className="p-0">…table + add link + summary…</CardContent>
-</Card>
-```
-
-## Add Line
-
-Replaces the outlined button:
-
-```tsx
-<button className="text-primary text-sm font-medium hover:underline inline-flex items-center gap-1">
-  <Plus className="h-3.5 w-3.5" /> Add a product
-</button>
-```
-
-## Removed From Current UI
-
-- `overflow-x-auto` wrapper and horizontal scroll
-- CGST / SGST / IGST table columns (summary only)
-- GST% table column (moved to badge + popover)
-- Discount type table column (moved to inline selector)
-- Net Amount column (folded into Amount tooltip)
-- Always-visible drag handle (hover/focus only)
-
-## Preserved (no logic changes)
-
-- `recomputeLine`, `calculateLineTax`, `calculateOrderTotals`
-- `gstType` switching (intra vs inter state)
-- Discount types, role gating via `canApplyOrderDiscount` / `allowedLineDiscountTypes`
-- Product and barcode lookup via `productMap` / `barcodeMap`
-- Customization text, line reorder, `onTotalsChange` microtask emit
-- Loyalty redemption controls and the 20% cap
-- The generic `Props<L>` API — Quotation and Sales Order line types keep compiling
-
-## Files
-
-- Edit only: `src/components/sales/OrderLinesTable.tsx`
-- No changes to `QuotationForm.tsx`, `SalesOrderForm.tsx`, types, or data layer.
-
-## Verification Gates
-
-- `tsc` shows zero errors after the swap.
-- Preview at 1280px on `/sales/quotations/new` and `/sales/orders/new`: Order Lines card has no horizontal scrollbar; columns line up; barcode and customization stay hidden until row hover/focus or value present.
+Reply **proceed** and I'll start with the migration. If you'd rather keep this smaller (e.g. only the 7 tables you originally named, no lots/serials/adjustments), say so and I'll trim it.
