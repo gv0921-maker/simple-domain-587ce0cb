@@ -2860,6 +2860,17 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: never; Returns: boolean }
+      portal_get_quotation: {
+        Args: { _id: string; _token: string }
+        Returns: Json
+      }
+      portal_list_quotations: { Args: { _token: string }; Returns: Json }
+      portal_list_sales_orders: { Args: { _token: string }; Returns: Json }
+      portal_resolve_customer: { Args: { _token: string }; Returns: string }
+      portal_update_quotation_status: {
+        Args: { _id: string; _status: string; _token: string }
+        Returns: Json
+      }
     }
     Enums: {
       activity_type:
