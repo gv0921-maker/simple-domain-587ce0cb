@@ -21,7 +21,7 @@ import type {
   QuotationLine,
   SalesOrderLine,
 } from '@/lib/services/sales/types';
-import { getProducts } from '@/lib/services/inventory';
+import { useProducts } from '@/hooks/inventory';
 import { getSeasonalDiscountPct } from '@/lib/sales/seasonalPricing';
 
 export type AnyLine = QuotationLine | SalesOrderLine;
@@ -120,7 +120,8 @@ export function OrderLinesTable<L extends AnyLine>({
   onTotalsChange,
   newLine,
 }: Props<L>) {
-  const products = useMemo<ProductLite[]>(() => getProducts() as ProductLite[], []);
+  const { data: productList = [] } = useProducts();
+  const products = useMemo<ProductLite[]>(() => productList as unknown as ProductLite[], [productList]);
   const productMap = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
   const barcodeMap = useMemo(() => {
     const m = new Map<string, ProductLite>();

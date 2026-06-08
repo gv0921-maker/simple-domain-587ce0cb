@@ -16,7 +16,7 @@ import {
   getPromotions, savePromotion, deletePromotion,
   type SeasonalPromotion, type PromotionDiscountType,
 } from '@/lib/sales/promotionStorage';
-import { getProducts } from '@/lib/services/inventory';
+import { useProducts } from '@/hooks/inventory';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
@@ -40,7 +40,7 @@ export default function PromotionsPage() {
   const role = (user as any)?.role as string | undefined;
   const canManage = role === 'admin' || role === 'manager' || role === 'super_admin';
 
-  const products = useMemo(() => getProducts(), []);
+  const { data: products = [] } = useProducts();
   const [items, setItems] = useState<SeasonalPromotion[]>(() => getPromotions());
   const [editing, setEditing] = useState<Partial<SeasonalPromotion> | null>(null);
 

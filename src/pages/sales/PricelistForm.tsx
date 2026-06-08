@@ -25,7 +25,7 @@ import {
 import { ArrowLeft, Plus, Trash2, Percent } from 'lucide-react';
 import { getPricelists, savePricelist } from '@/lib/services/sales/storage';
 import type { Pricelist, PricelistRule } from '@/lib/services/sales/types';
-import { getProducts } from '@/lib/services/inventory';
+import { useProducts } from '@/hooks/inventory';
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';
 
@@ -40,7 +40,7 @@ export default function PricelistForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { toast } = useToast();
-  const [products] = useState(() => getProducts());
+  const { data: products = [] } = useProducts();
   const isEdit = !!id;
 
   const [formData, setFormData] = useState({
