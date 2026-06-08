@@ -38,7 +38,7 @@ import {
   type SbSubscription,
 } from '@/hooks/sales';
 import { generateOrderReferenceRich } from '@/lib/services/sales/api';
-import { addMonths, addQuarters, addYears, parseISO } from 'date-fns';
+import { addMonths, addQuarters, addYears } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 
 type SubscriptionStatus = 'draft' | 'active' | 'paused' | 'cancelled';
