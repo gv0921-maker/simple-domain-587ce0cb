@@ -6,6 +6,7 @@ export type QuotationStatus = 'draft' | 'sent' | 'accepted' | 'converted' | 'exp
 export type SalesOrderStatus =
   | 'estimate'
   | 'confirmed'
+  | 'paid'
   | 'ready_to_pick'
   | 'dispatched'
   | 'delivered'
