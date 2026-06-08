@@ -19,9 +19,8 @@ import {
   ArrowLeft, Save, Send, CheckCircle, XCircle, ArrowRight, FileText,
 } from 'lucide-react';
 import {
-  getPricelists, convertQuotationToOrder,
-} from '@/lib/services/sales/storage';
-import { useQuotationRich, useSaveQuotationRich } from '@/hooks/sales';
+  useQuotationRich, useSaveQuotationRich, usePricelists, useConvertQuotationToOrder,
+} from '@/hooks/sales';
 import { generateQuotationReferenceRich } from '@/lib/services/sales/api';
 import type {
   Quotation, QuotationLine, QuotationStatus,
@@ -76,7 +75,8 @@ export default function QuotationForm() {
   const studio = useStudioConfig('sales', 'Quotation');
 
   const { data: contacts = [] } = useContacts();
-  const [pricelists] = useState(() => getPricelists());
+  const { data: pricelists = [] } = usePricelists();
+  const convertMut = useConvertQuotationToOrder();
 
   const urlCustomerId = searchParams.get('customerId');
   const urlOpportunityId = searchParams.get('opportunityId');

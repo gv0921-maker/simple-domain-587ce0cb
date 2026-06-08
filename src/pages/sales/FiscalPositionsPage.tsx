@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { Button } from '@/components/ui/button';
@@ -18,15 +18,27 @@ import {
 } from '@/components/ui/select';
 import { Plus, Pencil, Trash2, Globe, X } from 'lucide-react';
 import {
-  getFiscalPositions, saveFiscalPosition, deleteFiscalPosition, getTaxRules,
-} from '@/lib/services/sales/storage';
-import type { FiscalPosition } from '@/lib/services/sales/types';
+  useFiscalPositions, useSaveFiscalPosition, useDeleteFiscalPosition,
+} from '@/hooks/sales';
+import type { FiscalPosition, TaxRule } from '@/lib/services/sales/types';
 import { useToast } from '@/hooks/use-toast';
+
+// Static GST tax rules used for fiscal position mappings. Tax rules are not
+// yet table-backed; this list mirrors the previous defaults.
+const TAX_RULES: TaxRule[] = [
+  { id: 'tax_18', name: 'GST 18%', code: 'GST18', rate: 18, type: 'exclusive', isActive: true },
+  { id: 'tax_12', name: 'GST 12%', code: 'GST12', rate: 12, type: 'exclusive', isActive: true },
+  { id: 'tax_5', name: 'GST 5%', code: 'GST5', rate: 5, type: 'exclusive', isActive: true },
+  { id: 'tax_0', name: 'Zero Rate', code: 'ZERO', rate: 0, type: 'exclusive', isActive: true },
+  { id: 'tax_exempt', name: 'Exempt', code: 'EXEMPT', rate: 0, type: 'exclusive', isActive: true },
+];
 
 export default function FiscalPositionsPage() {
   const { toast } = useToast();
-  const [items, setItems] = useState<FiscalPosition[]>(() => getFiscalPositions());
-  const [taxes] = useState(() => getTaxRules());
+  const { data: items = [] } = useFiscalPositions();
+  const saveFp = useSaveFiscalPosition();
+  const deleteFp = useDeleteFiscalPosition();
+  const taxes = TAX_RULES;
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<FiscalPosition | null>(null);
 
@@ -36,24 +48,29 @@ export default function FiscalPositionsPage() {
   };
   const startEdit = (fp: FiscalPosition) => { setEditing({ ...fp }); setOpen(true); };
 
-  const refresh = useCallback(() => setItems(getFiscalPositions()), []);
-
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editing) return;
     if (!editing.name.trim() || !editing.code.trim()) {
       toast({ title: 'Name and code are required', variant: 'destructive' });
       return;
     }
-    saveFiscalPosition({ ...editing, id: editing.id || crypto.randomUUID() });
-    refresh();
-    setOpen(false);
-    toast({ title: 'Fiscal position saved' });
+    try {
+      const { id, ...rest } = editing;
+      await saveFp.mutateAsync(id ? editing : (rest as any));
+      setOpen(false);
+      toast({ title: 'Fiscal position saved' });
+    } catch (e: any) {
+      toast({ title: 'Save failed', description: e?.message ?? String(e), variant: 'destructive' });
+    }
   };
 
-  const handleDelete = (id: string) => {
-    deleteFiscalPosition(id);
-    refresh();
-    toast({ title: 'Fiscal position deleted' });
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteFp.mutateAsync(id);
+      toast({ title: 'Fiscal position deleted' });
+    } catch (e: any) {
+      toast({ title: 'Delete failed', description: e?.message ?? String(e), variant: 'destructive' });
+    }
   };
 
   const addMapping = () => {
