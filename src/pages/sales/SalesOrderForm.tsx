@@ -45,6 +45,7 @@ import { OrderLinesTable, type OrderSummaryValue } from '@/components/sales/Orde
 import { OrderStatusChevrons, canTransition } from '@/components/sales/OrderStatusChevrons';
 import { getContact, saveContact } from '@/lib/services/crm';
 import { processOrderDelivery, tierLabel } from '@/lib/sales/loyaltyService';
+import { ReservationsSection, useOrderReservationBadge } from '@/components/sales/ReservationsSection';
 
 const PAYMENT_TERMS = [
   { value: 'immediate', label: 'Immediate Payment' },
@@ -352,6 +353,7 @@ export default function SalesOrderForm() {
 
   const status = (formData.status || 'estimate') as SalesOrderStatus;
   const isEditable = status === 'estimate' || status === 'draft';
+  const reservationBadge = useOrderReservationBadge(isNew ? undefined : id, lines);
 
   if (loading) {
     return (
@@ -380,6 +382,20 @@ export default function SalesOrderForm() {
                 {!isNew && (
                   <Badge className={cn('font-normal', STATUS_CONFIG[status].className)}>
                     {STATUS_CONFIG[status].label}
+                  </Badge>
+                )}
+                {!isNew && lines.length > 0 && (
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'font-normal',
+                      reservationBadge === 'fully' && 'border-success text-success',
+                      reservationBadge === 'partial' && 'border-warning text-warning',
+                    )}
+                  >
+                    {reservationBadge === 'fully' ? 'Fully Reserved'
+                      : reservationBadge === 'partial' ? 'Partially Reserved'
+                      : 'Not Reserved'}
                   </Badge>
                 )}
               </div>
@@ -577,6 +593,10 @@ export default function SalesOrderForm() {
                   disabled={!isEditable} placeholder="" rows={3} className="min-h-[72px]" />
               </CardContent>
             </Card>
+
+            {!isNew && id && (
+              <ReservationsSection salesOrderId={id} lines={lines} />
+            )}
 
           {/* Summary (full width, right-aligned) */}
             <Card>

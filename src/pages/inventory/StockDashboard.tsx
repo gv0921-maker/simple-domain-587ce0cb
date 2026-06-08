@@ -18,10 +18,14 @@ import {
   Activity,
 } from 'lucide-react';
 import { useProducts, useWarehouses, useStockMoves } from '@/hooks/inventory';
+import { useReservations } from '@/hooks/inventory/reservations';
+import { useSalesOrders } from '@/hooks/sales';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { PackageCheck } from 'lucide-react';
 
 const CHART_COLORS = [
   'hsl(var(--primary))',
@@ -37,6 +41,8 @@ export default function StockDashboard() {
   const { data: products = [] } = useProducts();
   const { data: warehouses = [] } = useWarehouses();
   const { data: moves = [] } = useStockMoves();
+  const { data: reservations = [] } = useReservations();
+  const { data: salesOrders = [] } = useSalesOrders();
 
   const data = useMemo(() => {
     const totalValue = products.reduce((sum, p) => sum + p.stockOnHand * p.costPrice, 0);
@@ -258,6 +264,59 @@ export default function StockDashboard() {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Stock Reservations */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <PackageCheck className="h-4 w-4" />
+              Stock Reservations
+            </CardTitle>
+            <CardDescription>
+              {reservations.filter((r) => r.status === 'reserved').length} active reservations
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {reservations.filter((r) => r.status === 'reserved').length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No active reservations</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Sales Order</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Product</TableHead>
+                    <TableHead className="text-right">Qty</TableHead>
+                    <TableHead>Serial / Lot</TableHead>
+                    <TableHead>Reserved</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {reservations.filter((r) => r.status === 'reserved').map((r) => {
+                    const so: any = (salesOrders as any[]).find((o) => o.id === r.salesOrderId);
+                    const product = products.find((p) => p.id === r.productId);
+                    return (
+                      <TableRow
+                        key={r.id}
+                        className="cursor-pointer hover:bg-muted/40"
+                        onClick={() => so && navigate(`/sales/orders/${so.id}`)}
+                      >
+                        <TableCell className="font-medium">{so?.reference || r.salesOrderId.slice(0, 8)}</TableCell>
+                        <TableCell>{so?.customerName || '—'}</TableCell>
+                        <TableCell>{product?.name || '—'}</TableCell>
+                        <TableCell className="text-right">{r.quantity}</TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {r.serialNumberId ? r.serialNumberId.slice(0, 8) : r.lotId ? r.lotId.slice(0, 8) : '—'}
+                        </TableCell>
+                        <TableCell>{format(new Date(r.reservedAt), 'MMM d, yyyy')}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>

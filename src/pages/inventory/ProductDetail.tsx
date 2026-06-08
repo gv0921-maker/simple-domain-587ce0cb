@@ -34,7 +34,9 @@ import {
   History,
   Plus,
 } from 'lucide-react';
-import { useProduct, useSaveProduct, useDeleteProduct } from '@/hooks/inventory';
+import { useProduct, useSaveProduct, useDeleteProduct, useSerialsByProduct } from '@/hooks/inventory';
+import { useReservationsByProduct } from '@/hooks/inventory/reservations';
+import { useSalesOrders } from '@/hooks/sales';
 import type { Product, ProductVariant } from '@/lib/services/inventory';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -62,6 +64,17 @@ export default function ProductDetail() {
   const isNew = id === 'new';
   const studio = useStudioConfig('inventory', 'Product');
   const { data: existingProduct } = useProduct(!isNew ? id : undefined);
+  const { data: serials = [] } = useSerialsByProduct(!isNew ? id : undefined);
+  const { data: productReservations = [] } = useReservationsByProduct(!isNew ? id : undefined);
+  const { data: orders = [] } = useSalesOrders();
+  const reservedQty = productReservations.reduce((s, r) => s + r.quantity, 0);
+  const orderRefBySerial = new Map<string, string>();
+  productReservations.forEach((r) => {
+    if (r.serialNumberId) {
+      const o = (orders as any[]).find((x) => x.id === r.salesOrderId);
+      orderRefBySerial.set(r.serialNumberId, o?.reference || r.salesOrderId.slice(0, 8));
+    }
+  });
   const saveMut = useSaveProduct();
   const deleteMut = useDeleteProduct();
 
@@ -229,7 +242,7 @@ export default function ProductDetail() {
 
         {/* Stock Status Cards */}
         {!isNew && (
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <Card className="animate-slide-up">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -269,6 +282,20 @@ export default function ProductDetail() {
                 <div className="text-2xl font-bold">
                   ₹{(product.stockOnHand * product.costPrice).toLocaleString()}
                 </div>
+              </CardContent>
+            </Card>
+            <Card className="animate-slide-up" style={{ animationDelay: '75ms' }}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Reserved
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{reservedQty}</div>
+                <p className="text-xs text-muted-foreground">
+                  Available: {Math.max(product.stockOnHand - reservedQty, 0)}
+                </p>
               </CardContent>
             </Card>
             <Card className="animate-slide-up" style={{ animationDelay: '100ms' }}>
@@ -499,6 +526,52 @@ export default function ProductDetail() {
                 </div>
               </CardContent>
             </Card>
+
+            {!isNew && serials.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Serial Numbers</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Serial</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {serials.map((s) => {
+                        const orderRef = orderRefBySerial.get(s.id);
+                        return (
+                          <TableRow key={s.id}>
+                            <TableCell className="font-mono text-sm">{s.name}</TableCell>
+                            <TableCell>
+                              {s.status === 'reserved' && orderRef ? (
+                                <Badge variant="outline" className="text-warning border-warning">
+                                  Reserved — Order #{orderRef}
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    s.status === 'available' && 'text-success border-success',
+                                    s.status === 'reserved' && 'text-warning border-warning',
+                                    s.status === 'sold' && 'text-muted-foreground',
+                                  )}
+                                >
+                                  {s.status}
+                                </Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Variants Tab */}
