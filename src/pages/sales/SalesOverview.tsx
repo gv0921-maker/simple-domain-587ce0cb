@@ -13,20 +13,17 @@ import {
   Calendar,
   Users,
 } from 'lucide-react';
-import {
-  getSalesOrders,
-  getContacts,
-} from '@/lib/services/sales';
-import { getQuotations } from '@/lib/services/sales/storage';
+import { useQuotationsRich, useSalesOrdersRich } from '@/hooks/sales';
+import { useContacts } from '@/hooks/crm';
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { SimpleBarChart } from '@/components/dashboard/SimpleBarChart';
 import { format, parseISO, isThisMonth } from 'date-fns';
 
 export default function SalesOverview() {
   const navigate = useNavigate();
-  const [orders] = useState(() => getSalesOrders());
-  const [quotations] = useState(() => getQuotations());
-  const [contacts] = useState(() => getContacts());
+  const { data: orders = [] } = useSalesOrdersRich();
+  const { data: quotations = [] } = useQuotationsRich();
+  const { data: contacts = [] } = useContacts();
 
   const stats = useMemo(() => {
     const monthlyOrders = orders.filter((o) =>
@@ -35,7 +32,7 @@ export default function SalesOverview() {
     const monthlyRevenue = monthlyOrders.reduce((sum, o) => sum + o.total, 0);
     const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
     const pendingQuotations = quotations.filter((q) => q.status === 'draft' || q.status === 'sent');
-    const confirmedOrders = orders.filter((o) => o.status === 'confirmed' || o.status === 'done');
+    const confirmedOrders = orders.filter((o) => o.status === 'confirmed' || o.status === 'delivered');
 
     return {
       totalRevenue,
@@ -52,7 +49,7 @@ export default function SalesOverview() {
     const statusGroups = [
       { status: 'draft', color: 'blue' as const },
       { status: 'confirmed', color: 'teal' as const },
-      { status: 'done', color: 'coral' as const },
+      { status: 'delivered', color: 'coral' as const },
       { status: 'cancelled', color: 'orange' as const },
     ];
     return statusGroups.map((g) => ({
@@ -161,7 +158,7 @@ export default function SalesOverview() {
             </CardHeader>
             <CardContent>
               <div className="flex justify-center gap-4 mb-4">
-                {['Draft', 'Confirmed', 'Done', 'Cancelled'].map((label, i) => (
+          {['Draft', 'Confirmed', 'Delivered', 'Cancelled'].map((label, i) => (
                   <div key={label} className="flex items-center gap-1 text-xs text-muted-foreground">
                     <div className={`w-2 h-2 rounded-full ${
                       i === 0 ? 'bg-chart-blue' :
@@ -249,7 +246,7 @@ export default function SalesOverview() {
                     </div>
                     <div className="text-right ml-4 flex items-center gap-3">
                       <Badge variant={
-                        order.status === 'done' ? 'default' :
+                        order.status === 'delivered' ? 'default' :
                         order.status === 'confirmed' ? 'secondary' :
                         'outline'
                       } className="text-xs">

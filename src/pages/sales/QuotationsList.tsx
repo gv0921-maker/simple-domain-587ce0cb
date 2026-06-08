@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -47,8 +47,10 @@ import {
   Clock,
   Filter,
 } from 'lucide-react';
-import { convertQuotationToOrder } from '@/lib/services/sales/storage';
-import { useQuotationsRich, useSaveQuotationRich, useDeleteQuotationRich } from '@/hooks/sales';
+import {
+  useQuotationsRich, useSaveQuotationRich, useDeleteQuotationRich,
+  useConvertQuotationToOrder,
+} from '@/hooks/sales';
 import type { Quotation, QuotationStatus } from '@/lib/services/sales/types';
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';
@@ -73,7 +75,8 @@ export default function QuotationsList() {
   const { data: quotations = [] } = useQuotationsRich();
   const saveQuotationMut = useSaveQuotationRich();
   const deleteQuotationMut = useDeleteQuotationRich();
-  useState(() => { autoExpireQuotations(); });
+  const convertMut = useConvertQuotationToOrder();
+  useEffect(() => { void autoExpireQuotations(); }, []);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<QuotationStatus | 'all'>('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -127,16 +130,24 @@ export default function QuotationsList() {
     }
   }, [quotations, toast, saveQuotationMut]);
 
-  const handleConvertToOrder = useCallback((id: string) => {
-    const order = convertQuotationToOrder(id, user?.id || '1', user?.name || 'System');
-    if (order) {
-      toast({
-        title: 'Order Created',
-        description: `Sales order ${order.reference} created successfully`,
+  const handleConvertToOrder = useCallback(async (id: string) => {
+    try {
+      const order = await convertMut.mutateAsync({
+        quotationId: id,
+        userId: user?.id || '1',
+        userName: user?.name || 'System',
       });
-      navigate(`/sales/orders?highlight=${order.id}`);
+      if (order) {
+        toast({
+          title: 'Order Created',
+          description: `Sales order ${order.reference} created successfully`,
+        });
+        navigate(`/sales/orders?highlight=${order.id}`);
+      }
+    } catch (e: any) {
+      toast({ title: 'Conversion failed', description: e?.message ?? String(e), variant: 'destructive' });
     }
-  }, [user, toast, navigate]);
+  }, [user, toast, navigate, convertMut]);
 
   const handleDuplicate = useCallback(async (quotation: Quotation) => {
     const { id: _id, ...rest } = quotation;
