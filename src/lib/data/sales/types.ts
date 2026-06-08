@@ -1,6 +1,6 @@
 // Sales & Quotations Types
 
-export type QuotationStatus = 'draft' | 'sent' | 'accepted' | 'expired' | 'cancelled';
+export type QuotationStatus = 'draft' | 'sent' | 'accepted' | 'converted' | 'expired' | 'cancelled';
 // Modern B2C 5-stage workflow. Legacy 'draft' / 'locked' kept for back-compat
 // (mapped via DB migration: draft→estimate, locked→ready_to_pick).
 export type SalesOrderStatus =
