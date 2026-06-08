@@ -9,9 +9,11 @@ import {
 } from '@/components/ui/table';
 import { ArrowLeft, CheckCircle2, ExternalLink } from 'lucide-react';
 import { useInvoice } from '@/hooks/invoicing';
+import { useDeliveryQC } from '@/hooks/qc';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO } from 'date-fns';
+import { ShieldCheck } from 'lucide-react';
 
 const fmtINR = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n || 0);
