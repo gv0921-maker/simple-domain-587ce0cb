@@ -140,10 +140,10 @@ export default function QuotationsList() {
       });
       if (order) {
         toast({
-          title: 'Order Created',
-          description: `Sales order ${order.reference} created successfully`,
+          title: 'Sales Order created from Quotation',
+          description: order.reference,
         });
-        navigate(`/sales/orders?highlight=${order.id}`);
+        navigate(`/sales/orders/${order.id}`);
       }
     } catch (e: any) {
       toast({ title: 'Conversion failed', description: e?.message ?? String(e), variant: 'destructive' });
@@ -440,10 +440,10 @@ ${quotation.termsAndConditions || ''}
                                 </DropdownMenuItem>
                               </>
                             )}
-                            {quotation.status === 'accepted' && !quotation.convertedToOrderId && (
+                            {(quotation.status === 'sent' || quotation.status === 'accepted') && !quotation.convertedToOrderId && (
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleConvertToOrder(quotation.id); }}>
                                 <ArrowRight className="h-4 w-4 mr-2" />
-                                Convert to Order
+                                Convert to Sales Order
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
