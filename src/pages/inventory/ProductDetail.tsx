@@ -467,6 +467,38 @@ export default function ProductDetail() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Billing Eligibility</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">Warranty Eligible</p>
+                    <p className="text-xs text-muted-foreground">
+                      Allow this product to be added to Warranty Bills.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={!!product.warrantyEligible}
+                    onCheckedChange={(v) => handleChange('warrantyEligible', v)}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">Factory Eligible</p>
+                    <p className="text-xs text-muted-foreground">
+                      Allow this product to be added to Factory Bills.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={!!product.factoryEligible}
+                    onCheckedChange={(v) => handleChange('factoryEligible', v)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Variants Tab */}
