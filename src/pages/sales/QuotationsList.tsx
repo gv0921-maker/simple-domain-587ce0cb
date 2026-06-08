@@ -64,6 +64,7 @@ const STATUS_CONFIG: Record<QuotationStatus, { label: string; className: string;
   draft: { label: 'Draft', className: 'bg-muted text-muted-foreground', icon: FileText },
   sent: { label: 'Sent', className: 'bg-info/20 text-info border-info', icon: Send },
   accepted: { label: 'Accepted', className: 'bg-success/20 text-success border-success', icon: CheckCircle },
+  converted: { label: 'Converted', className: 'bg-primary/20 text-primary border-primary', icon: ArrowRight },
   expired: { label: 'Expired', className: 'bg-warning/20 text-warning-foreground border-warning', icon: Clock },
   cancelled: { label: 'Cancelled', className: 'bg-destructive/20 text-destructive border-destructive', icon: XCircle },
 };
@@ -139,10 +140,10 @@ export default function QuotationsList() {
       });
       if (order) {
         toast({
-          title: 'Order Created',
-          description: `Sales order ${order.reference} created successfully`,
+          title: 'Sales Order created from Quotation',
+          description: order.reference,
         });
-        navigate(`/sales/orders?highlight=${order.id}`);
+        navigate(`/sales/orders/${order.id}`);
       }
     } catch (e: any) {
       toast({ title: 'Conversion failed', description: e?.message ?? String(e), variant: 'destructive' });
@@ -291,7 +292,7 @@ ${quotation.termsAndConditions || ''}
             />
           </div>
           <div className="flex gap-2 flex-wrap">
-            {(['all', 'draft', 'sent', 'accepted', 'expired', 'cancelled'] as const).map((status) => (
+            {(['all', 'draft', 'sent', 'accepted', 'converted', 'expired', 'cancelled'] as const).map((status) => (
               <Button
                 key={status}
                 variant={statusFilter === status ? 'default' : 'outline'}
@@ -439,10 +440,10 @@ ${quotation.termsAndConditions || ''}
                                 </DropdownMenuItem>
                               </>
                             )}
-                            {quotation.status === 'accepted' && !quotation.convertedToOrderId && (
+                            {(quotation.status === 'sent' || quotation.status === 'accepted') && !quotation.convertedToOrderId && (
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleConvertToOrder(quotation.id); }}>
                                 <ArrowRight className="h-4 w-4 mr-2" />
-                                Convert to Order
+                                Convert to Sales Order
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
