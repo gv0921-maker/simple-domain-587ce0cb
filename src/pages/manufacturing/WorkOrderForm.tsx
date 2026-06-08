@@ -13,7 +13,6 @@ import { useProducts } from '@/hooks/inventory';
 import type { WorkOrder } from '@/lib/services/manufacturing/api';
 import { toast } from 'sonner';
 import { GoodsReceiptQCDialog, type QCLineInput } from '@/components/qc/GoodsReceiptQCDialog';
-import { useState as useReactState } from 'react';
 
 export default function WorkOrderForm() {
   const navigate = useNavigate();
@@ -34,7 +33,7 @@ export default function WorkOrderForm() {
     scheduledEnd: '',
     workCenterId: '',
   });
-  const [qcOpen, setQcOpen] = useReactState(false);
+  const [qcOpen, setQcOpen] = useState(false);
 
   useEffect(() => {
     if (!existing) return;
