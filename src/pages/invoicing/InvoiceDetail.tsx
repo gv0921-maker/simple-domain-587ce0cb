@@ -115,6 +115,43 @@ export default function InvoiceDetail() {
           </Card>
         )}
 
+        {deliveryQC && (
+          <Card className={deliveryQC.status === 'passed'
+            ? 'border-success/40 bg-success/5'
+            : 'border-destructive/40 bg-destructive/5'}>
+            <CardContent className="p-4 flex items-center gap-3">
+              <ShieldCheck className={`h-5 w-5 ${deliveryQC.status === 'passed' ? 'text-success' : 'text-destructive'}`} />
+              <div className="flex-1 text-sm">
+                <Badge
+                  className={deliveryQC.status === 'passed'
+                    ? 'bg-success text-success-foreground hover:bg-success mr-2'
+                    : 'bg-destructive text-destructive-foreground hover:bg-destructive mr-2'}
+                >
+                  Pre-delivery QC {deliveryQC.status === 'passed' ? 'Passed' : 'Failed'}
+                </Badge>
+                <span className="text-foreground">
+                  {deliveryQC.scannedSerials.length} item(s) scanned
+                  {deliveryQC.verifiedAt && ` · ${format(parseISO(deliveryQC.verifiedAt), 'MMM d, yyyy HH:mm')}`}
+                </span>
+              </div>
+              {deliveryQC.qcImages.length > 0 && (
+                <div className="flex gap-1">
+                  {deliveryQC.qcImages.slice(0, 4).map(url => (
+                    <a key={url} href={url} target="_blank" rel="noreferrer" className="h-10 w-10 rounded border overflow-hidden block">
+                      <img src={url} alt="QC" className="h-full w-full object-cover" />
+                    </a>
+                  ))}
+                  {deliveryQC.qcImages.length > 4 && (
+                    <span className="text-xs text-muted-foreground self-center ml-1">
+                      +{deliveryQC.qcImages.length - 4}
+                    </span>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader><CardTitle className="text-base">Line Items</CardTitle></CardHeader>
           <CardContent>
