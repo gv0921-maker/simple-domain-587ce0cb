@@ -1,4 +1,6 @@
-// Inventory service — mirrors `@/lib/data/inventory` (legacy compat shim).
-// Components that imported from `@/lib/data/inventory` now import from
-// `@/lib/services/inventory` and get the same names/shapes.
-export * from '@/lib/data/inventory';
+// Inventory service — re-exports the async Supabase-backed API and types.
+// Components should prefer the hooks in `@/hooks/inventory`. Cross-module
+// callers that need raw async access can import from here.
+export * from '@/lib/services/inventory/api';
+export type * from '@/lib/data/inventory/types';
+export { DEFAULT_INVENTORY_ROLES } from '@/lib/data/inventory/types';
