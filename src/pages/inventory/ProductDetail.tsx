@@ -242,7 +242,7 @@ export default function ProductDetail() {
 
         {/* Stock Status Cards */}
         {!isNew && (
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <Card className="animate-slide-up">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -526,6 +526,52 @@ export default function ProductDetail() {
                 </div>
               </CardContent>
             </Card>
+
+            {!isNew && serials.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Serial Numbers</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Serial</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {serials.map((s) => {
+                        const orderRef = orderRefBySerial.get(s.id);
+                        return (
+                          <TableRow key={s.id}>
+                            <TableCell className="font-mono text-sm">{s.name}</TableCell>
+                            <TableCell>
+                              {s.status === 'reserved' && orderRef ? (
+                                <Badge variant="outline" className="text-warning border-warning">
+                                  Reserved — Order #{orderRef}
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    s.status === 'available' && 'text-success border-success',
+                                    s.status === 'reserved' && 'text-warning border-warning',
+                                    s.status === 'sold' && 'text-muted-foreground',
+                                  )}
+                                >
+                                  {s.status}
+                                </Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Variants Tab */}
