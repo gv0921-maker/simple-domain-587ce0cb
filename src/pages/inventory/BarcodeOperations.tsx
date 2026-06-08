@@ -32,8 +32,8 @@ import {
 import { BarcodeScanner } from '@/components/inventory/BarcodeScanner';
 import { MobilePickingScreen } from '@/components/inventory/MobilePickingScreen';
 import { MobileCountScreen } from '@/components/inventory/MobileCountScreen';
-import { useStockMoves, useWarehouses, useLocations } from '@/hooks/inventory';
-import type { StockMove, BarcodeOperation } from '@/lib/services/inventory';
+import { useStockMoves, useLocations } from '@/hooks/inventory';
+import type { BarcodeOperation } from '@/lib/services/inventory';
 import { BARCODE_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -84,7 +84,6 @@ export default function BarcodeOperations() {
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
   const [showScanner, setShowScanner] = useState(false);
   const { data: allMoves = [] } = useStockMoves();
-  const { data: warehouses = [] } = useWarehouses();
   const { data: locations = [] } = useLocations();
   const pendingMoves = allMoves.filter(m => m.state !== 'done' && m.state !== 'cancelled');
   const recentOperations: BarcodeOperation[] = [];
