@@ -142,6 +142,19 @@ import AdminPayrollSettings from "@/pages/payroll/admin/AdminSettings";
 import AdminLoans from "@/pages/payroll/admin/AdminLoans";
 import AdminAdvances from "@/pages/payroll/admin/AdminAdvances";
 
+// Appraisals pages (HR Batch 5)
+import AppraisalsOverview from "@/pages/appraisals/AppraisalsOverview";
+import MyAppraisals from "@/pages/appraisals/MyAppraisals";
+import AppraisalSelfReview from "@/pages/appraisals/SelfReview";
+import AppraisalManagerReview from "@/pages/appraisals/ManagerReview";
+import AppraisalHRReview from "@/pages/appraisals/HRReview";
+import AppraisalDetail from "@/pages/appraisals/AppraisalDetail";
+import TeamAppraisals from "@/pages/appraisals/TeamAppraisals";
+import AdminCycles from "@/pages/appraisals/admin/AdminCycles";
+import AdminCycleDetail from "@/pages/appraisals/admin/CycleDetail";
+import AdminAppraisalTemplates from "@/pages/appraisals/admin/AdminTemplates";
+import AdminAppraisalReports from "@/pages/appraisals/admin/AdminReports";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -277,6 +290,19 @@ const App = () => (
             <Route path="/payroll/admin/settings" element={<ProtectedRoute><AdminPayrollSettings /></ProtectedRoute>} />
             <Route path="/payroll/admin/loans" element={<ProtectedRoute><AdminLoans /></ProtectedRoute>} />
             <Route path="/payroll/admin/advances" element={<ProtectedRoute><AdminAdvances /></ProtectedRoute>} />
+
+            {/* Appraisals routes (HR Batch 5) */}
+            <Route path="/appraisals" element={<ProtectedRoute><AppraisalsOverview /></ProtectedRoute>} />
+            <Route path="/appraisals/my-appraisals" element={<ProtectedRoute><MyAppraisals /></ProtectedRoute>} />
+            <Route path="/appraisals/team" element={<ProtectedRoute><TeamAppraisals /></ProtectedRoute>} />
+            <Route path="/appraisals/admin/cycles" element={<ProtectedRoute><AdminCycles /></ProtectedRoute>} />
+            <Route path="/appraisals/admin/cycles/:id" element={<ProtectedRoute><AdminCycleDetail /></ProtectedRoute>} />
+            <Route path="/appraisals/admin/templates" element={<ProtectedRoute><AdminAppraisalTemplates /></ProtectedRoute>} />
+            <Route path="/appraisals/admin/reports" element={<ProtectedRoute><AdminAppraisalReports /></ProtectedRoute>} />
+            <Route path="/appraisals/:id/self-review" element={<ProtectedRoute><AppraisalSelfReview /></ProtectedRoute>} />
+            <Route path="/appraisals/:id/manager-review" element={<ProtectedRoute><AppraisalManagerReview /></ProtectedRoute>} />
+            <Route path="/appraisals/:id/hr-review" element={<ProtectedRoute><AppraisalHRReview /></ProtectedRoute>} />
+            <Route path="/appraisals/:id" element={<ProtectedRoute><AppraisalDetail /></ProtectedRoute>} />
 
             {/* CRM module */}
             <Route path="/crm" element={<ProtectedRoute><CRMPipeline /></ProtectedRoute>} />

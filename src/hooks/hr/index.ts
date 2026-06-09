@@ -664,3 +664,207 @@ export function useMarkPaid() {
     onSuccess: () => qc.invalidateQueries({ queryKey: payrollKeys.periods() }),
   });
 }
+
+// ============== Batch 5: Appraisals ==============
+export const appraisalKeys = {
+  all: ['hr', 'appraisal'] as const,
+  cycles: () => [...appraisalKeys.all, 'cycles'] as const,
+  cycle: (id: string) => [...appraisalKeys.cycles(), id] as const,
+  templates: () => [...appraisalKeys.all, 'templates'] as const,
+  criteria: (tplId: string) => [...appraisalKeys.all, 'criteria', tplId] as const,
+  byCycle: (id: string) => [...appraisalKeys.all, 'byCycle', id] as const,
+  byEmployee: (id: string) => [...appraisalKeys.all, 'byEmployee', id] as const,
+  byReviewer: (id: string) => [...appraisalKeys.all, 'byReviewer', id] as const,
+  appraisal: (id: string) => [...appraisalKeys.all, 'appraisal', id] as const,
+  ratings: (id: string) => [...appraisalKeys.all, 'ratings', id] as const,
+  goals: (id: string) => [...appraisalKeys.all, 'goals', id] as const,
+  pendingIncrements: () => [...appraisalKeys.all, 'pendingIncrements'] as const,
+};
+
+export const useAppraisalCycles = () =>
+  useQuery({ queryKey: appraisalKeys.cycles(), queryFn: hr.listAppraisalCycles });
+export const useAppraisalCycle = (id: string | undefined) =>
+  useQuery({ queryKey: id ? appraisalKeys.cycle(id) : ['noop'], queryFn: () => hr.getAppraisalCycle(id!), enabled: !!id });
+
+export function useCreateAppraisalCycle() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (p: hr.AppraisalCycleInsert) => hr.createAppraisalCycle(p),
+    onSuccess: () => qc.invalidateQueries({ queryKey: appraisalKeys.cycles() }),
+  });
+}
+export function useUpdateAppraisalCycle() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: hr.AppraisalCycleUpdate }) => hr.updateAppraisalCycle(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: appraisalKeys.cycles() }),
+  });
+}
+export function useDeleteAppraisalCycle() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => hr.deleteAppraisalCycle(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: appraisalKeys.cycles() }),
+  });
+}
+export function useLaunchAppraisalCycle() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => hr.launchAppraisalCycle(id),
+    onSuccess: (_d, id) => {
+      qc.invalidateQueries({ queryKey: appraisalKeys.cycles() });
+      qc.invalidateQueries({ queryKey: appraisalKeys.byCycle(id) });
+    },
+  });
+}
+
+export const useAppraisalTemplates = () =>
+  useQuery({ queryKey: appraisalKeys.templates(), queryFn: hr.listTemplates });
+export const useAppraisalCriteria = (tplId: string | undefined) =>
+  useQuery({ queryKey: tplId ? appraisalKeys.criteria(tplId) : ['noop'], queryFn: () => hr.listCriteria(tplId!), enabled: !!tplId });
+
+export function useCreateTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (p: hr.AppraisalTemplateInsert) => hr.createTemplate(p),
+    onSuccess: () => qc.invalidateQueries({ queryKey: appraisalKeys.templates() }),
+  });
+}
+export function useUpdateTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<hr.AppraisalTemplate> }) => hr.updateTemplate(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: appraisalKeys.templates() }),
+  });
+}
+export function useDeleteTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => hr.deleteTemplate(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: appraisalKeys.templates() }),
+  });
+}
+export function useCreateCriterion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (p: hr.AppraisalCriterionInsert) => hr.createCriterion(p),
+    onSuccess: (_d, p) => qc.invalidateQueries({ queryKey: appraisalKeys.criteria(p.template_id) }),
+  });
+}
+export function useUpdateCriterion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<hr.AppraisalCriterion> }) => hr.updateCriterion(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: appraisalKeys.all }),
+  });
+}
+export function useDeleteCriterion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => hr.deleteCriterion(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: appraisalKeys.all }),
+  });
+}
+
+export const useAppraisalsByCycle = (cycleId: string | undefined) =>
+  useQuery({
+    queryKey: cycleId ? appraisalKeys.byCycle(cycleId) : ['noop'],
+    queryFn: () => hr.listAppraisalsByCycle(cycleId!),
+    enabled: !!cycleId,
+  });
+export const useAppraisalsForEmployee = (empId: string | undefined) =>
+  useQuery({
+    queryKey: empId ? appraisalKeys.byEmployee(empId) : ['noop'],
+    queryFn: () => hr.listAppraisalsForEmployee(empId!),
+    enabled: !!empId,
+  });
+export const useAppraisalsForReviewer = (revId: string | undefined) =>
+  useQuery({
+    queryKey: revId ? appraisalKeys.byReviewer(revId) : ['noop'],
+    queryFn: () => hr.listAppraisalsForReviewer(revId!),
+    enabled: !!revId,
+  });
+export const useAppraisal = (id: string | undefined) =>
+  useQuery({
+    queryKey: id ? appraisalKeys.appraisal(id) : ['noop'],
+    queryFn: () => hr.getAppraisal(id!),
+    enabled: !!id,
+  });
+export const useAppraisalRatings = (id: string | undefined) =>
+  useQuery({
+    queryKey: id ? appraisalKeys.ratings(id) : ['noop'],
+    queryFn: () => hr.listRatings(id!),
+    enabled: !!id,
+  });
+export const useAppraisalGoals = (id: string | undefined) =>
+  useQuery({
+    queryKey: id ? appraisalKeys.goals(id) : ['noop'],
+    queryFn: () => hr.listGoals(id!),
+    enabled: !!id,
+  });
+
+export function useUpdateAppraisal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: hr.AppraisalUpdate }) => hr.updateAppraisal(id, patch),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: appraisalKeys.appraisal(v.id) }),
+  });
+}
+export function useUpsertRating() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (p: hr.AppraisalRatingInsert) => hr.upsertRating(p),
+    onSuccess: (_d, p) => qc.invalidateQueries({ queryKey: appraisalKeys.ratings(p.appraisal_id) }),
+  });
+}
+export function useSubmitSelfReview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => hr.submitSelfReview(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: appraisalKeys.all }),
+  });
+}
+export function useSubmitManagerReview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => hr.submitManagerReview(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: appraisalKeys.all }),
+  });
+}
+export function useFinalizeAppraisal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => hr.finalizeAppraisal(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: appraisalKeys.all }),
+  });
+}
+export function useAcknowledgeAppraisal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, response }: { id: string; response?: string }) => hr.acknowledgeAppraisal(id, response),
+    onSuccess: () => qc.invalidateQueries({ queryKey: appraisalKeys.all }),
+  });
+}
+export function useCreateGoal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (p: hr.AppraisalGoalInsert) => hr.createGoal(p),
+    onSuccess: (_d, p) => qc.invalidateQueries({ queryKey: appraisalKeys.goals(p.appraisal_id) }),
+  });
+}
+export function useUpdateGoal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<hr.AppraisalGoal> }) => hr.updateGoal(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: appraisalKeys.all }),
+  });
+}
+export function useDeleteGoal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => hr.deleteGoal(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: appraisalKeys.all }),
+  });
+}
+export const usePendingIncrements = () =>
+  useQuery({ queryKey: appraisalKeys.pendingIncrements(), queryFn: hr.listPendingIncrements });
