@@ -263,23 +263,9 @@ export async function approveLeaveRequest(id: string, approver_id?: string | nul
   if (error) throw error;
   await logAction(id, 'approved', cur.status, 'approved', comments);
 
-  // Auto-create attendance sessions with on_leave for each non-excluded date
-  const { allDates, excludedDates } = await calculateLeaveDays(
-    cur.employee_id, cur.start_date, cur.end_date, cur.is_half_day,
-  );
-  const excluded = new Set(excludedDates);
-  const rows = allDates.filter((d) => !excluded.has(d)).map((d) => ({
-    employee_id: cur.employee_id,
-    session_date: d,
-    session_type: 'work' as const,
-    status: 'on_leave' as const,
-    check_in_time: new Date(d + 'T00:00:00').toISOString(),
-    source: 'manual' as const,
-    notes: `Auto: ${cur.request_number}`,
-  }));
-  if (rows.length > 0) {
-    await supabase.from('attendance_sessions').insert(rows);
-  }
+  // Note: attendance_sessions has no status column in this schema. Leave dates
+  // surface as "on leave" via leave_requests joins in attendance views rather
+  // than synthetic session rows.
   return data;
 }
 
