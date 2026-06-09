@@ -1,3 +1,2 @@
-// HR service layer. No HR pages consume this yet; created for
-// registry symmetry and future use.
-export * from '@/lib/data/hr';
+// HR service layer — Supabase-backed.
+export * from '@/lib/services/hr/api';
