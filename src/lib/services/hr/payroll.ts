@@ -313,6 +313,7 @@ async function savePayslipFromCalc(periodId: string, employeeId: string, calc: C
   const payload = {
     payroll_period_id: periodId,
     employee_id: employeeId,
+    payslip_number: '',
     contract_id: contract?.id ?? null,
     total_working_days: calc.working_days,
     lop_days: calc.lop_days,
