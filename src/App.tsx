@@ -31,6 +31,9 @@ import BarcodeOperations from "@/pages/inventory/BarcodeOperations";
 import BarcodeLabels from "@/pages/inventory/BarcodeLabels";
 import ProductScanLookup from "@/pages/inventory/ProductScanLookup";
 import StockDashboard from "@/pages/inventory/StockDashboard";
+import DeliveryNotesList from "@/pages/inventory/DeliveryNotesList";
+import DeliveryNoteDetail from "@/pages/inventory/DeliveryNoteDetail";
+import DeliveryNotePrint from "@/pages/inventory/DeliveryNotePrint";
 
 // Sales pages
 import SalesOverview from "@/pages/sales/SalesOverview";
@@ -129,6 +132,9 @@ const App = () => (
             <Route path="/inventory/reorder-rules/new" element={<ProtectedRoute><ReorderRuleForm /></ProtectedRoute>} />
             <Route path="/inventory/reorder-rules/:id/edit" element={<ProtectedRoute><ReorderRuleForm /></ProtectedRoute>} />
             <Route path="/inventory/stock-dashboard" element={<ProtectedRoute><StockDashboard /></ProtectedRoute>} />
+            <Route path="/inventory/delivery-notes" element={<ProtectedRoute><DeliveryNotesList /></ProtectedRoute>} />
+            <Route path="/inventory/delivery-notes/:id" element={<ProtectedRoute><DeliveryNoteDetail /></ProtectedRoute>} />
+            <Route path="/inventory/delivery-notes/:id/print" element={<ProtectedRoute><DeliveryNotePrint /></ProtectedRoute>} />
 
             {/* Barcode module */}
             <Route path="/barcode" element={<ProtectedRoute><BarcodeOperations /></ProtectedRoute>} />
