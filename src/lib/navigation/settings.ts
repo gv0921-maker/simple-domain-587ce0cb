@@ -11,4 +11,5 @@ export const SETTINGS_NAV = [
   { label: 'Price Approvals', href: '/settings/price-approvals' },
   { label: 'Audit Logs', href: '/settings/audit' },
   { label: 'Backups', href: '/settings/backups' },
+  { label: 'Odoo Import', href: '/settings/odoo-import' },
 ];
