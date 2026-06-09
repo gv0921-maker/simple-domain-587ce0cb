@@ -229,6 +229,113 @@ export type Database = {
           },
         ]
       }
+      attendance_locations: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          latitude: number
+          longitude: number
+          name: string
+          radius_meters: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude: number
+          longitude: number
+          name: string
+          radius_meters?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number
+          longitude?: number
+          name?: string
+          radius_meters?: number
+        }
+        Relationships: []
+      }
+      attendance_sessions: {
+        Row: {
+          check_in_accuracy_meters: number | null
+          check_in_address: string | null
+          check_in_latitude: number | null
+          check_in_longitude: number | null
+          check_in_time: string
+          check_out_accuracy_meters: number | null
+          check_out_address: string | null
+          check_out_latitude: number | null
+          check_out_longitude: number | null
+          check_out_time: string | null
+          created_at: string
+          created_by: string | null
+          duration_minutes: number | null
+          employee_id: string
+          id: string
+          notes: string | null
+          session_date: string
+          session_type: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          check_in_accuracy_meters?: number | null
+          check_in_address?: string | null
+          check_in_latitude?: number | null
+          check_in_longitude?: number | null
+          check_in_time?: string
+          check_out_accuracy_meters?: number | null
+          check_out_address?: string | null
+          check_out_latitude?: number | null
+          check_out_longitude?: number | null
+          check_out_time?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number | null
+          employee_id: string
+          id?: string
+          notes?: string | null
+          session_date?: string
+          session_type: string
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          check_in_accuracy_meters?: number | null
+          check_in_address?: string | null
+          check_in_latitude?: number | null
+          check_in_longitude?: number | null
+          check_in_time?: string
+          check_out_accuracy_meters?: number | null
+          check_out_address?: string | null
+          check_out_latitude?: number | null
+          check_out_longitude?: number | null
+          check_out_time?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number | null
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          session_date?: string
+          session_type?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_sessions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bom: {
         Row: {
           created_at: string
@@ -1384,6 +1491,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      holidays: {
+        Row: {
+          created_at: string
+          holiday_date: string
+          id: string
+          is_optional: boolean
+          name: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          holiday_date: string
+          id?: string
+          is_optional?: boolean
+          name: string
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          holiday_date?: string
+          id?: string
+          is_optional?: boolean
+          name?: string
+          type?: string
+        }
+        Relationships: []
       }
       inventory_adjustments: {
         Row: {
@@ -3934,6 +4068,50 @@ export type Database = {
             columns: ["work_center_id"]
             isOneToOne: false
             referencedRelation: "work_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_schedules: {
+        Row: {
+          break_duration_minutes: number
+          created_at: string
+          day_of_week: number
+          employee_id: string
+          end_time: string
+          id: string
+          is_working_day: boolean
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          break_duration_minutes?: number
+          created_at?: string
+          day_of_week: number
+          employee_id: string
+          end_time?: string
+          id?: string
+          is_working_day?: boolean
+          start_time?: string
+          updated_at?: string
+        }
+        Update: {
+          break_duration_minutes?: number
+          created_at?: string
+          day_of_week?: number
+          employee_id?: string
+          end_time?: string
+          id?: string
+          is_working_day?: boolean
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_schedules_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
         ]
