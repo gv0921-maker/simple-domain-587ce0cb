@@ -1025,6 +1025,98 @@ export type Database = {
           },
         ]
       }
+      delivery_notes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_delivery_address: string | null
+          customer_delivery_name: string | null
+          customer_delivery_phone: string | null
+          customer_id: string | null
+          delivery_date: string | null
+          id: string
+          invoice_id: string | null
+          notes: string | null
+          products_json: Json
+          qc_by: string | null
+          reference: string | null
+          sales_order_id: string | null
+          signature_collected: boolean
+          status: string
+          updated_at: string
+          warehouse_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_delivery_address?: string | null
+          customer_delivery_name?: string | null
+          customer_delivery_phone?: string | null
+          customer_id?: string | null
+          delivery_date?: string | null
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          products_json?: Json
+          qc_by?: string | null
+          reference?: string | null
+          sales_order_id?: string | null
+          signature_collected?: boolean
+          status?: string
+          updated_at?: string
+          warehouse_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_delivery_address?: string | null
+          customer_delivery_name?: string | null
+          customer_delivery_phone?: string | null
+          customer_id?: string | null
+          delivery_date?: string | null
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          products_json?: Json
+          qc_by?: string | null
+          reference?: string | null
+          sales_order_id?: string | null
+          signature_collected?: boolean
+          status?: string
+          updated_at?: string
+          warehouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_adjustments: {
         Row: {
           approved_at: string | null
