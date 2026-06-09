@@ -28,7 +28,7 @@ export default function MyLeaves() {
   const cancel = useCancelLeave();
 
   return (
-    <AppLayout title="My Leaves" subModuleNav={HR_NAV}>
+    <AppLayout title="My Leaves" moduleNav={HR_NAV}>
       <div className="p-6 space-y-6">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold">Leave Balances — {year}</h2>
