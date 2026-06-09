@@ -229,6 +229,424 @@ export type Database = {
           },
         ]
       }
+      appraisal_attachments: {
+        Row: {
+          appraisal_id: string
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          appraisal_id: string
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          appraisal_id?: string
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appraisal_attachments_appraisal_id_fkey"
+            columns: ["appraisal_id"]
+            isOneToOne: false
+            referencedRelation: "appraisals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appraisal_criteria: {
+        Row: {
+          category: Database["public"]["Enums"]["appraisal_criterion_category"]
+          created_at: string
+          criterion_name: string
+          description: string | null
+          display_order: number
+          id: string
+          is_required: boolean
+          rating_scale: Database["public"]["Enums"]["appraisal_rating_scale"]
+          template_id: string
+          weightage_percentage: number
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["appraisal_criterion_category"]
+          created_at?: string
+          criterion_name: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_required?: boolean
+          rating_scale?: Database["public"]["Enums"]["appraisal_rating_scale"]
+          template_id: string
+          weightage_percentage?: number
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["appraisal_criterion_category"]
+          created_at?: string
+          criterion_name?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_required?: boolean
+          rating_scale?: Database["public"]["Enums"]["appraisal_rating_scale"]
+          template_id?: string
+          weightage_percentage?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appraisal_criteria_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "appraisal_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appraisal_cycles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          cycle_type: Database["public"]["Enums"]["appraisal_cycle_type"]
+          hr_finalization_deadline: string | null
+          id: string
+          manager_review_end_date: string | null
+          manager_review_start_date: string | null
+          name: string
+          period_end_date: string
+          period_start_date: string
+          self_review_end_date: string | null
+          self_review_start_date: string | null
+          status: Database["public"]["Enums"]["appraisal_cycle_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          cycle_type?: Database["public"]["Enums"]["appraisal_cycle_type"]
+          hr_finalization_deadline?: string | null
+          id?: string
+          manager_review_end_date?: string | null
+          manager_review_start_date?: string | null
+          name: string
+          period_end_date: string
+          period_start_date: string
+          self_review_end_date?: string | null
+          self_review_start_date?: string | null
+          status?: Database["public"]["Enums"]["appraisal_cycle_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          cycle_type?: Database["public"]["Enums"]["appraisal_cycle_type"]
+          hr_finalization_deadline?: string | null
+          id?: string
+          manager_review_end_date?: string | null
+          manager_review_start_date?: string | null
+          name?: string
+          period_end_date?: string
+          period_start_date?: string
+          self_review_end_date?: string | null
+          self_review_start_date?: string | null
+          status?: Database["public"]["Enums"]["appraisal_cycle_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      appraisal_goals: {
+        Row: {
+          achievement_notes: string | null
+          appraisal_id: string
+          completion_percentage: number
+          created_at: string
+          goal_description: string | null
+          goal_title: string
+          id: string
+          priority: Database["public"]["Enums"]["appraisal_goal_priority"]
+          status: Database["public"]["Enums"]["appraisal_goal_status"]
+          target_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          achievement_notes?: string | null
+          appraisal_id: string
+          completion_percentage?: number
+          created_at?: string
+          goal_description?: string | null
+          goal_title: string
+          id?: string
+          priority?: Database["public"]["Enums"]["appraisal_goal_priority"]
+          status?: Database["public"]["Enums"]["appraisal_goal_status"]
+          target_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          achievement_notes?: string | null
+          appraisal_id?: string
+          completion_percentage?: number
+          created_at?: string
+          goal_description?: string | null
+          goal_title?: string
+          id?: string
+          priority?: Database["public"]["Enums"]["appraisal_goal_priority"]
+          status?: Database["public"]["Enums"]["appraisal_goal_status"]
+          target_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appraisal_goals_appraisal_id_fkey"
+            columns: ["appraisal_id"]
+            isOneToOne: false
+            referencedRelation: "appraisals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appraisal_ratings: {
+        Row: {
+          appraisal_id: string
+          created_at: string
+          criterion_id: string
+          final_rating: number | null
+          hr_comments: string | null
+          id: string
+          manager_comments: string | null
+          manager_rating: number | null
+          self_comments: string | null
+          self_rating: number | null
+          updated_at: string
+          weighted_score: number | null
+        }
+        Insert: {
+          appraisal_id: string
+          created_at?: string
+          criterion_id: string
+          final_rating?: number | null
+          hr_comments?: string | null
+          id?: string
+          manager_comments?: string | null
+          manager_rating?: number | null
+          self_comments?: string | null
+          self_rating?: number | null
+          updated_at?: string
+          weighted_score?: number | null
+        }
+        Update: {
+          appraisal_id?: string
+          created_at?: string
+          criterion_id?: string
+          final_rating?: number | null
+          hr_comments?: string | null
+          id?: string
+          manager_comments?: string | null
+          manager_rating?: number | null
+          self_comments?: string | null
+          self_rating?: number | null
+          updated_at?: string
+          weighted_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appraisal_ratings_appraisal_id_fkey"
+            columns: ["appraisal_id"]
+            isOneToOne: false
+            referencedRelation: "appraisals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appraisal_ratings_criterion_id_fkey"
+            columns: ["criterion_id"]
+            isOneToOne: false
+            referencedRelation: "appraisal_criteria"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appraisal_templates: {
+        Row: {
+          applies_to: Database["public"]["Enums"]["appraisal_template_scope"]
+          applies_to_filter_json: Json | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          applies_to?: Database["public"]["Enums"]["appraisal_template_scope"]
+          applies_to_filter_json?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          applies_to?: Database["public"]["Enums"]["appraisal_template_scope"]
+          applies_to_filter_json?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      appraisals: {
+        Row: {
+          appraisal_cycle_id: string
+          areas_of_improvement: string | null
+          created_at: string
+          employee_acknowledged_at: string | null
+          employee_acknowledgement: boolean
+          employee_id: string
+          employee_response: string | null
+          final_overall_rating: number | null
+          hr_comments: string | null
+          hr_finalized_at: string | null
+          hr_reviewer_id: string | null
+          id: string
+          increment_percentage_recommended: number | null
+          manager_comments: string | null
+          manager_overall_rating: number | null
+          manager_review_submitted_at: string | null
+          promotion_recommended_designation: string | null
+          recommendation:
+            | Database["public"]["Enums"]["appraisal_recommendation"]
+            | null
+          reviewer_2_id: string | null
+          reviewer_id: string | null
+          self_overall_rating: number | null
+          self_review_submitted_at: string | null
+          status: Database["public"]["Enums"]["appraisal_status"]
+          strengths: string | null
+          template_id: string | null
+          training_recommendations: string | null
+          updated_at: string
+        }
+        Insert: {
+          appraisal_cycle_id: string
+          areas_of_improvement?: string | null
+          created_at?: string
+          employee_acknowledged_at?: string | null
+          employee_acknowledgement?: boolean
+          employee_id: string
+          employee_response?: string | null
+          final_overall_rating?: number | null
+          hr_comments?: string | null
+          hr_finalized_at?: string | null
+          hr_reviewer_id?: string | null
+          id?: string
+          increment_percentage_recommended?: number | null
+          manager_comments?: string | null
+          manager_overall_rating?: number | null
+          manager_review_submitted_at?: string | null
+          promotion_recommended_designation?: string | null
+          recommendation?:
+            | Database["public"]["Enums"]["appraisal_recommendation"]
+            | null
+          reviewer_2_id?: string | null
+          reviewer_id?: string | null
+          self_overall_rating?: number | null
+          self_review_submitted_at?: string | null
+          status?: Database["public"]["Enums"]["appraisal_status"]
+          strengths?: string | null
+          template_id?: string | null
+          training_recommendations?: string | null
+          updated_at?: string
+        }
+        Update: {
+          appraisal_cycle_id?: string
+          areas_of_improvement?: string | null
+          created_at?: string
+          employee_acknowledged_at?: string | null
+          employee_acknowledgement?: boolean
+          employee_id?: string
+          employee_response?: string | null
+          final_overall_rating?: number | null
+          hr_comments?: string | null
+          hr_finalized_at?: string | null
+          hr_reviewer_id?: string | null
+          id?: string
+          increment_percentage_recommended?: number | null
+          manager_comments?: string | null
+          manager_overall_rating?: number | null
+          manager_review_submitted_at?: string | null
+          promotion_recommended_designation?: string | null
+          recommendation?:
+            | Database["public"]["Enums"]["appraisal_recommendation"]
+            | null
+          reviewer_2_id?: string | null
+          reviewer_id?: string | null
+          self_overall_rating?: number | null
+          self_review_submitted_at?: string | null
+          status?: Database["public"]["Enums"]["appraisal_status"]
+          strengths?: string | null
+          template_id?: string | null
+          training_recommendations?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appraisals_appraisal_cycle_id_fkey"
+            columns: ["appraisal_cycle_id"]
+            isOneToOne: false
+            referencedRelation: "appraisal_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appraisals_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appraisals_hr_reviewer_id_fkey"
+            columns: ["hr_reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appraisals_reviewer_2_id_fkey"
+            columns: ["reviewer_2_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appraisals_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appraisals_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "appraisal_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_locations: {
         Row: {
           created_at: string
@@ -4986,6 +5404,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      appraisal_user_can_access: {
+        Args: { _appraisal_id: string }
+        Returns: boolean
+      }
       can_write_inventory: { Args: never; Returns: boolean }
       has_any_role: {
         Args: {
@@ -5023,6 +5445,8 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_app_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_employee_self: { Args: { _employee_id: string }; Returns: boolean }
+      is_reviewer_for: { Args: { _reviewer_id: string }; Returns: boolean }
       portal_get_quotation: {
         Args: { _id: string; _token: string }
         Returns: Json
@@ -5052,6 +5476,44 @@ export type Database = {
         | "super_admin"
         | "accountant"
         | "hr_manager"
+      appraisal_criterion_category:
+        | "kpi"
+        | "competency"
+        | "goal"
+        | "behavioral"
+        | "skill"
+      appraisal_cycle_status: "draft" | "active" | "in_progress" | "closed"
+      appraisal_cycle_type:
+        | "quarterly"
+        | "half_yearly"
+        | "annual"
+        | "probation"
+        | "custom"
+      appraisal_goal_priority: "low" | "medium" | "high"
+      appraisal_goal_status:
+        | "not_started"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
+      appraisal_rating_scale: "1_to_5" | "1_to_10" | "percentage"
+      appraisal_recommendation:
+        | "promote"
+        | "increment"
+        | "maintain"
+        | "improve"
+        | "pip"
+      appraisal_status:
+        | "not_started"
+        | "self_review"
+        | "manager_review"
+        | "hr_review"
+        | "completed"
+        | "closed"
+      appraisal_template_scope:
+        | "all"
+        | "department"
+        | "designation"
+        | "employment_type"
       contact_status: "active" | "archived"
       contact_type: "individual" | "company"
       lead_priority: "low" | "medium" | "high" | "urgent"
@@ -5211,6 +5673,50 @@ export const Constants = {
         "super_admin",
         "accountant",
         "hr_manager",
+      ],
+      appraisal_criterion_category: [
+        "kpi",
+        "competency",
+        "goal",
+        "behavioral",
+        "skill",
+      ],
+      appraisal_cycle_status: ["draft", "active", "in_progress", "closed"],
+      appraisal_cycle_type: [
+        "quarterly",
+        "half_yearly",
+        "annual",
+        "probation",
+        "custom",
+      ],
+      appraisal_goal_priority: ["low", "medium", "high"],
+      appraisal_goal_status: [
+        "not_started",
+        "in_progress",
+        "completed",
+        "cancelled",
+      ],
+      appraisal_rating_scale: ["1_to_5", "1_to_10", "percentage"],
+      appraisal_recommendation: [
+        "promote",
+        "increment",
+        "maintain",
+        "improve",
+        "pip",
+      ],
+      appraisal_status: [
+        "not_started",
+        "self_review",
+        "manager_review",
+        "hr_review",
+        "completed",
+        "closed",
+      ],
+      appraisal_template_scope: [
+        "all",
+        "department",
+        "designation",
+        "employment_type",
       ],
       contact_status: ["active", "archived"],
       contact_type: ["individual", "company"],
