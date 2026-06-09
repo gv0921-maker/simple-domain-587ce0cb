@@ -107,6 +107,16 @@ import ContractsList from "@/pages/employees/ContractsList";
 import ContractForm from "@/pages/employees/ContractForm";
 import ContractDetail from "@/pages/employees/ContractDetail";
 
+// Attendance pages (HR Batch 2)
+import ClockIn from "@/pages/attendance/ClockIn";
+import MyAttendance from "@/pages/attendance/MyAttendance";
+import TeamAttendance from "@/pages/attendance/TeamAttendance";
+import AdminAttendance from "@/pages/attendance/AdminAttendance";
+import AdminImport from "@/pages/attendance/AdminImport";
+import LocationsPage from "@/pages/attendance/Locations";
+import HolidaysPage from "@/pages/attendance/Holidays";
+import WorkSchedulesPage from "@/pages/attendance/WorkSchedules";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -207,6 +217,16 @@ const App = () => (
             <Route path="/employees/contracts/:id" element={<ProtectedRoute><ContractDetail /></ProtectedRoute>} />
             <Route path="/employees/:id" element={<ProtectedRoute><EmployeeDetail /></ProtectedRoute>} />
             <Route path="/employees/:id/edit" element={<ProtectedRoute><EmployeeForm /></ProtectedRoute>} />
+
+            {/* Attendance module (HR Batch 2) */}
+            <Route path="/attendance/clock-in" element={<ProtectedRoute><ClockIn /></ProtectedRoute>} />
+            <Route path="/attendance/my" element={<ProtectedRoute><MyAttendance /></ProtectedRoute>} />
+            <Route path="/attendance/team" element={<ProtectedRoute><TeamAttendance /></ProtectedRoute>} />
+            <Route path="/attendance/admin" element={<ProtectedRoute><AdminAttendance /></ProtectedRoute>} />
+            <Route path="/attendance/admin/import" element={<ProtectedRoute><AdminImport /></ProtectedRoute>} />
+            <Route path="/attendance/locations" element={<ProtectedRoute><LocationsPage /></ProtectedRoute>} />
+            <Route path="/attendance/holidays" element={<ProtectedRoute><HolidaysPage /></ProtectedRoute>} />
+            <Route path="/attendance/work-schedules" element={<ProtectedRoute><WorkSchedulesPage /></ProtectedRoute>} />
 
             {/* CRM module */}
             <Route path="/crm" element={<ProtectedRoute><CRMPipeline /></ProtectedRoute>} />
