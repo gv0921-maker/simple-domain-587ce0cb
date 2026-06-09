@@ -1,4 +1,5 @@
 // TanStack Query hooks for the HR module.
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as hr from '@/lib/services/hr/api';
 
@@ -12,6 +13,15 @@ export const hrKeys = {
   contract: (id: string) => [...hrKeys.contracts(), id] as const,
   contractsByEmployee: (employeeId: string) =>
     [...hrKeys.contracts(), 'employee', employeeId] as const,
+  attendance: () => [...hrKeys.all, 'attendance'] as const,
+  activeSession: (empId: string) => [...hrKeys.attendance(), 'active', empId] as const,
+  daily: (empId: string, date: string) => [...hrKeys.attendance(), 'daily', empId, date] as const,
+  monthly: (empId: string, month: string) => [...hrKeys.attendance(), 'monthly', empId, month] as const,
+  range: (ids: string[], start: string, end: string) =>
+    [...hrKeys.attendance(), 'range', ids.join(','), start, end] as const,
+  locations: () => [...hrKeys.all, 'locations'] as const,
+  holidays: () => [...hrKeys.all, 'holidays'] as const,
+  schedules: (empId?: string) => [...hrKeys.all, 'schedules', empId ?? 'all'] as const,
 } as const;
 
 // ---------- Departments ----------
