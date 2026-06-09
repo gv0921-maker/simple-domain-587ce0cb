@@ -207,7 +207,7 @@ Deno.serve(async (req) => {
     } else if (model === "customers" || model === "vendors") {
       const rank = model === "customers" ? "customer_rank" : "supplier_rank";
       const rows = await callKw(
-        odoo_url, login, api_key, "res.partner", "search_read",
+        normalizedUrl, login, api_key, "res.partner", "search_read",
         [[[rank, ">", 0]], ["name", "email", "phone", "street", "city", "zip", "vat"]],
       ) as Array<Record<string, unknown>>;
       const target = model === "customers" ? "customers" : "suppliers";
@@ -238,7 +238,7 @@ Deno.serve(async (req) => {
       }
     } else if (model === "stock") {
       const rows = await callKw(
-        odoo_url, login, api_key, "stock.quant", "search_read",
+        normalizedUrl, login, api_key, "stock.quant", "search_read",
         [[["location_id.usage", "=", "internal"]], ["product_id", "location_id", "quantity", "reserved_quantity"]],
       ) as Array<Record<string, unknown>>;
       for (const r of rows as Array<Record<string, unknown>>) {
