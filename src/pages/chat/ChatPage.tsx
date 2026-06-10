@@ -10,6 +10,7 @@ import { ChatSidebar, ChatSidebarTrigger } from '@/components/chat/ChatSidebar';
 import { MessageList } from '@/components/chat/MessageList';
 import { MessageComposer } from '@/components/chat/MessageComposer';
 import { ChannelSettingsDialog } from '@/components/chat/ChannelSettingsDialog';
+import { ThreadPanel } from '@/components/chat/ThreadPanel';
 
 function ChatPageInner() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +20,9 @@ function ChatPageInner() {
   const { data: members = [] } = useChannelMembers(id);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [threadId, setThreadId] = useState<string | null>(null);
+
+  useEffect(() => { setThreadId(null); }, [id]);
 
   useEffect(() => {
     if (!id && channels.length > 0) {
@@ -71,6 +75,12 @@ function ChatPageInner() {
             </div>
           )}
         </div>
+
+        {channel && threadId && (
+          <div className="fixed inset-0 z-40 md:static md:z-auto md:flex">
+            <ThreadPanel channelId={channel.id} parentMessageId={threadId} onClose={() => setThreadId(null)} />
+          </div>
+        )}
       </div>
     </AppLayout>
   );
