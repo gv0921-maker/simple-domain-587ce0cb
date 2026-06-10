@@ -96,6 +96,10 @@ import PriceApprovalsPage from "@/pages/settings/PriceApprovalsPage";
 
 import NotFound from "@/pages/NotFound";
 
+// Chat module
+import ChatPage from "@/pages/chat/ChatPage";
+import ChatDMRedirect from "@/pages/chat/ChatDMRedirect";
+
 // HR/Employees pages
 import EmployeesOverview from "@/pages/employees/EmployeesOverview";
 import EmployeesDirectory from "@/pages/employees/EmployeesDirectory";
@@ -243,6 +247,11 @@ const App = () => (
             <Route path="/dashboards" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
             <Route path="/dashboards/crm" element={<ProtectedRoute><CRMOverview /></ProtectedRoute>} />
             <Route path="/discuss" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+
+            {/* Chat module */}
+            <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+            <Route path="/chat/channels/:id" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+            <Route path="/chat/dms/:userId" element={<ProtectedRoute><ChatDMRedirect /></ProtectedRoute>} />
 
             {/* HR / Employees module */}
             <Route path="/employees" element={<ProtectedRoute><EmployeesOverview /></ProtectedRoute>} />
