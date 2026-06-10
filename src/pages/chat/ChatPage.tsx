@@ -64,7 +64,7 @@ function ChatPageInner() {
                   <Settings className="h-4 w-4" />
                 </Button>
               </header>
-              <MessageList channelId={channel.id} />
+              <MessageList channelId={channel.id} onOpenThread={setThreadId} activeThreadId={threadId} />
               <MessageComposer channelId={channel.id} />
               <ChannelSettingsDialog channelId={channel.id} open={settingsOpen} onOpenChange={setSettingsOpen} />
             </>
