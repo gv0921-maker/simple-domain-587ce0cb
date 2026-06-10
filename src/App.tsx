@@ -99,6 +99,7 @@ import NotFound from "@/pages/NotFound";
 // Chat module
 import ChatPage from "@/pages/chat/ChatPage";
 import ChatDMRedirect from "@/pages/chat/ChatDMRedirect";
+import MentionsPage from "@/pages/chat/MentionsPage";
 
 // HR/Employees pages
 import EmployeesOverview from "@/pages/employees/EmployeesOverview";
@@ -250,6 +251,7 @@ const App = () => (
 
             {/* Chat module */}
             <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+            <Route path="/chat/mentions" element={<ProtectedRoute><MentionsPage /></ProtectedRoute>} />
             <Route path="/chat/channels/:id" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
             <Route path="/chat/dms/:userId" element={<ProtectedRoute><ChatDMRedirect /></ProtectedRoute>} />
 
