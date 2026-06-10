@@ -196,7 +196,49 @@ export default function CRMContactsList() {
           />
         </div>
 
-        <Card className="animate-fade-in">
+        {/* Mobile card list */}
+        <div className="md:hidden space-y-2">
+          {filteredContacts.length === 0 ? (
+            <Card className="p-8 text-center text-muted-foreground">No contacts found</Card>
+          ) : (
+            filteredContacts.map((contact) => (
+              <button
+                key={contact.id}
+                type="button"
+                onClick={() => navigate(`/crm/contacts/${contact.id}`)}
+                className="w-full text-left border rounded-lg bg-card p-3 flex gap-3 hover:bg-muted/40 min-h-[72px]"
+              >
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <User className="h-5 w-5 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium truncate">{contact.firstName} {contact.lastName}</p>
+                    <Badge
+                      variant={contact.score >= 70 ? 'default' : contact.score >= 40 ? 'secondary' : 'outline'}
+                      className="text-xs shrink-0"
+                    >
+                      {contact.score}
+                    </Badge>
+                  </div>
+                  {contact.companyName && (
+                    <div className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                      <Building className="h-3 w-3" /> {contact.companyName}
+                    </div>
+                  )}
+                  {contact.email && (
+                    <div className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                      <Mail className="h-3 w-3" />
+                      {canViewSensitive(user?.id, 'crm', 'email') ? contact.email : maskEmail(contact.email)}
+                    </div>
+                  )}
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+
+        <Card className="animate-fade-in hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
