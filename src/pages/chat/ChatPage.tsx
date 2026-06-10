@@ -12,7 +12,6 @@ import { MessageComposer } from '@/components/chat/MessageComposer';
 import { ChannelSettingsDialog } from '@/components/chat/ChannelSettingsDialog';
 import { ThreadPanel } from '@/components/chat/ThreadPanel';
 import { PinnedPanel } from '@/components/chat/PinnedPanel';
-import { ChatSearchDropdown } from '@/components/chat/ChatSearchDropdown';
 import { useSearchMessages } from '@/hooks/chat';
 import { highlightSnippet } from '@/lib/services/chat/api';
 import { Input } from '@/components/ui/input';
