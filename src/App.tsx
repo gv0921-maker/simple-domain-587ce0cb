@@ -248,6 +248,11 @@ const App = () => (
             <Route path="/dashboards/crm" element={<ProtectedRoute><CRMOverview /></ProtectedRoute>} />
             <Route path="/discuss" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
 
+            {/* Chat module */}
+            <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+            <Route path="/chat/channels/:id" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+            <Route path="/chat/dms/:userId" element={<ProtectedRoute><ChatDMRedirect /></ProtectedRoute>} />
+
             {/* HR / Employees module */}
             <Route path="/employees" element={<ProtectedRoute><EmployeesOverview /></ProtectedRoute>} />
             <Route path="/employees/directory" element={<ProtectedRoute><EmployeesDirectory /></ProtectedRoute>} />
