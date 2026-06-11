@@ -178,6 +178,35 @@ export default function InvoiceDetail() {
         <Card>
           <CardHeader><CardTitle className="text-base">Line Items</CardTitle></CardHeader>
           <CardContent>
+            {/* Mobile cards */}
+            <div className="md:hidden space-y-2">
+              {lines.map((l) => (
+                <div key={l.id} className="border rounded-md p-3 text-sm space-y-1">
+                  <div className="font-medium">{l.description}</div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{Number(l.quantity)} × {fmtINR(Number(l.unit_price))}</span>
+                    <span>Subtotal {fmtINR(Number(l.subtotal))}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    {hasIGST ? (
+                      <span>IGST {fmtINR(Number(l.igst_amount ?? 0))}</span>
+                    ) : (
+                      <span>
+                        CGST {fmtINR(Number(l.cgst_amount ?? 0))} · SGST {fmtINR(Number(l.sgst_amount ?? 0))}
+                      </span>
+                    )}
+                    <span className="font-semibold text-foreground">
+                      {fmtINR(Number(l.final_amount ?? l.subtotal))}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {lines.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">No line items</p>
+              )}
+            </div>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -218,6 +247,7 @@ export default function InvoiceDetail() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
 
