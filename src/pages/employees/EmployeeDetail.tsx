@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useState } from 'react';
 import { ArrowLeft, Edit, FileText, Trash2, Users } from 'lucide-react';
 import { ShareToChatButton } from '@/components/chat/ShareToChatDialog';
 import { EMPLOYEES_NAV } from '@/lib/navigation/employees';
@@ -32,6 +34,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function EmployeeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [tab, setTab] = useState('profile');
   const { data: employee, isLoading } = useEmployee(id);
   const { data: allEmployees = [] } = useEmployees();
   const { data: departments = [] } = useDepartments();
@@ -121,8 +124,8 @@ export default function EmployeeDetail() {
           </div>
         </Card>
 
-        <Tabs defaultValue="profile">
-          <TabsList>
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className="hidden md:flex flex-wrap h-auto">
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="contracts">Contracts</TabsTrigger>
             <TabsTrigger value="reports">Reports / Reportees</TabsTrigger>
@@ -130,6 +133,19 @@ export default function EmployeeDetail() {
             <TabsTrigger value="payroll">Payroll</TabsTrigger>
             <TabsTrigger value="appraisals">Appraisals</TabsTrigger>
           </TabsList>
+          <div className="md:hidden mb-2">
+            <Select value={tab} onValueChange={setTab}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="profile">Profile</SelectItem>
+                <SelectItem value="contracts">Contracts</SelectItem>
+                <SelectItem value="reports">Reports / Reportees</SelectItem>
+                <SelectItem value="attendance">Attendance</SelectItem>
+                <SelectItem value="payroll">Payroll</SelectItem>
+                <SelectItem value="appraisals">Appraisals</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <TabsContent value="profile" className="mt-4">
             <Card className="p-6 grid gap-4 md:grid-cols-2">
