@@ -327,7 +327,7 @@ export default function ProductDetail() {
         )}
 
         <Tabs defaultValue="general" className="space-y-6">
-          <TabsList>
+          <TabsList className="hidden md:flex">
             <TabsTrigger value="general">General Information</TabsTrigger>
             <TabsTrigger value="pricing">Pricing & Inventory</TabsTrigger>
             <TabsTrigger value="variants">Variants</TabsTrigger>
@@ -619,7 +619,8 @@ export default function ProductDetail() {
                 </div>
 
                 {variants.length > 0 ? (
-                  <Table>
+                  <>
+                  <Table className="hidden md:table">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Variant Name</TableHead>
@@ -656,6 +657,32 @@ export default function ProductDetail() {
                       ))}
                     </TableBody>
                   </Table>
+                  <div className="md:hidden space-y-2">
+                    {variants.map((variant) => (
+                      <div key={variant.id} className="border rounded-lg p-3 space-y-1">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="min-w-0">
+                            <div className="font-medium truncate">{variant.name}</div>
+                            <div className="text-xs text-muted-foreground font-mono truncate">{variant.sku}</div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
+                            onClick={() => handleRemoveVariant(variant.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">+₹{variant.additionalPrice.toLocaleString()}</span>
+                          <span className="font-medium">₹{(product.salePrice + variant.additionalPrice).toLocaleString()}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">Stock: {variant.stockOnHand}</div>
+                      </div>
+                    ))}
+                  </div>
+                  </>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <Layers className="h-12 w-12 mx-auto mb-4 opacity-50" />
