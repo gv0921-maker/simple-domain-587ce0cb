@@ -1,5 +1,8 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Link } from 'react-router-dom';
+import { ArrowUpRight, ArrowDownRight, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StatItem {
@@ -18,9 +21,69 @@ interface StatCardProps {
   stats?: StatItem[];
   chart?: React.ReactNode;
   className?: string;
+  // Extended (dashboard) props
+  icon?: LucideIcon;
+  value?: string | number;
+  trend?: { direction: 'up' | 'down'; value: string };
+  viewHref?: string;
+  loading?: boolean;
 }
 
-export function StatCard({ title, badge, stats, chart, className }: StatCardProps) {
+export function StatCard({
+  title,
+  badge,
+  stats,
+  chart,
+  className,
+  icon: Icon,
+  value,
+  trend,
+  viewHref,
+  loading,
+}: StatCardProps) {
+  if (loading) {
+    return (
+      <Card className={cn('p-4 flex flex-col h-full', className)}>
+        <Skeleton className="h-4 w-24 mb-3" />
+        <Skeleton className="h-8 w-32 mb-2" />
+        <Skeleton className="h-3 w-16" />
+      </Card>
+    );
+  }
+
+  // Simple KPI variant
+  if (value !== undefined && !stats && !badge) {
+    return (
+      <Card className={cn('p-4 flex flex-col h-full animate-fade-in', className)}>
+        <div className="flex items-start justify-between mb-2">
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            {title}
+          </h3>
+          {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+        </div>
+        <div className="text-2xl font-semibold text-foreground">{value}</div>
+        <div className="mt-2 flex items-center justify-between">
+          {trend ? (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 text-xs font-medium',
+                trend.direction === 'up' ? 'text-emerald-600' : 'text-destructive'
+              )}
+            >
+              {trend.direction === 'up' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+              {trend.value}
+            </span>
+          ) : <span />}
+          {viewHref && (
+            <Link to={viewHref} className="text-xs text-primary hover:underline">
+              View
+            </Link>
+          )}
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card className={cn('p-4 flex flex-col h-full animate-fade-in', className)}>
       {/* Header */}
