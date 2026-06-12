@@ -9,6 +9,7 @@ export const SETTINGS_NAV = [
   { label: 'Data Schema', href: '/settings/data-schema' },
   { label: 'Accessibility', href: '/settings/accessibility' },
   { label: 'Price Approvals', href: '/settings/price-approvals' },
+  { label: 'Numbering', href: '/settings/numbering' },
   { label: 'Audit Logs', href: '/settings/audit' },
   { label: 'Backups', href: '/settings/backups' },
 ];
