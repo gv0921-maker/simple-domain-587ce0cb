@@ -41,8 +41,9 @@ function FilterControl({ def, value, onChange }: { def: ReportFilterDef; value: 
     );
   }
   if (def.type === "select") {
+    const display = value === "" || value == null ? "_all" : String(value);
     return (
-      <Select value={String(value ?? "")} onValueChange={(v) => onChange(v)}>
+      <Select value={display} onValueChange={(v) => onChange(v === "_all" ? "" : v)}>
         <SelectTrigger className="w-[180px]"><SelectValue placeholder={def.label} /></SelectTrigger>
         <SelectContent>
           {def.options?.map((o) => <SelectItem key={o.value || "_"} value={o.value || "_all"}>{o.label}</SelectItem>)}
