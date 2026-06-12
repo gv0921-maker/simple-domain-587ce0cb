@@ -248,7 +248,9 @@ const App = () => (
             <Route path="/sales/pricelists" element={<ProtectedRoute><PricelistsPage /></ProtectedRoute>} />
             <Route path="/sales/pricelists/new" element={<ProtectedRoute><PricelistForm /></ProtectedRoute>} />
             <Route path="/sales/pricelists/:id/edit" element={<ProtectedRoute><PricelistForm /></ProtectedRoute>} />
-            <Route path="/sales/reports" element={<ProtectedRoute><SalesReports /></ProtectedRoute>} />
+            <Route path="/sales/reports" element={<ProtectedRoute><SalesReportsLanding /></ProtectedRoute>} />
+            <Route path="/sales/reports/legacy" element={<ProtectedRoute><SalesReports /></ProtectedRoute>} />
+            <Route path="/sales/reports/:reportKey" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
             <Route path="/sales/promotions" element={<ProtectedRoute><PromotionsPage /></ProtectedRoute>} />
             <Route path="/sales/customers" element={<ProtectedRoute><CustomersList /></ProtectedRoute>} />
             <Route path="/sales/customers/new" element={<ProtectedRoute><CustomerForm /></ProtectedRoute>} />
