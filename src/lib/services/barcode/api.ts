@@ -148,7 +148,6 @@ export async function recordScan(input: RecordScanInput): Promise<ScanRecord> {
 
   // bump queue counts if valid
   if (result === 'valid') {
-    await supabase.rpc('noop_ignore' as any).then(() => undefined).catch(() => undefined);
     const { data: q } = await supabase.from('scan_queue' as any)
       .select('scanned_items_count, expected_items_count, scan_status')
       .eq('id', input.scanQueueId).maybeSingle();
