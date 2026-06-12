@@ -5747,6 +5747,7 @@ export type Database = {
       }
       can_write_inventory: { Args: never; Returns: boolean }
       get_current_employee_id: { Args: never; Returns: string }
+      get_dashboard_role: { Args: never; Returns: string }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
