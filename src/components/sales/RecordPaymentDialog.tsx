@@ -15,6 +15,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { salesKeys } from '@/hooks/sales/keys';
 import { logStatusChange } from '@/lib/services/activityLog';
+import { generateDocumentNumber } from '@/lib/services/numbering/api';
 
 const METHODS = [
   { value: 'cash', label: 'Cash' },
@@ -64,13 +65,15 @@ export function RecordPaymentDialog({
     }
     setSaving(true);
     try {
+      // Auto-generate FY-based payment receipt number when reference is blank
+      const receiptNumber = reference || (await generateDocumentNumber('payment_receipt'));
       const { error: pErr } = await supabase.from('payments').insert({
         sales_order_id: orderId,
         customer_id: customerId ?? null,
         amount,
         payment_date: paymentDate,
         method,
-        reference: reference || null,
+        reference: receiptNumber,
         notes: notes || null,
       });
       if (pErr) throw pErr;
@@ -80,7 +83,7 @@ export function RecordPaymentDialog({
         paid_amount: amount,
         payment_date: paymentDate,
         payment_method: method,
-        payment_reference: reference || null,
+        payment_reference: receiptNumber,
       } as any).eq('id', orderId);
       if (oErr) throw oErr;
 

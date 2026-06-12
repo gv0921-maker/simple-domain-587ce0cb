@@ -92,6 +92,7 @@ import UsersManagement from "@/pages/settings/UsersManagement";
 import RolesManagement from "@/pages/settings/RolesManagement";
 import AuditLogs from "@/pages/settings/AuditLogs";
 import BackupsSettings from "@/pages/settings/BackupsSettings";
+import NumberingSettings from "@/pages/settings/NumberingSettings";
 import CRMPipelinesSettings from "@/pages/settings/CRMPipelinesSettings";
 import CRMBackupSettings from "@/pages/settings/CRMBackupSettings";
 import CRMDataSchema from "@/pages/settings/CRMDataSchema";
@@ -274,6 +275,7 @@ const App = () => (
             <Route path="/settings/roles" element={<ProtectedRoute><RolesManagement /></ProtectedRoute>} />
             <Route path="/settings/audit" element={<ProtectedRoute><AuditLogs /></ProtectedRoute>} />
             <Route path="/settings/backups" element={<ProtectedRoute><BackupsSettings /></ProtectedRoute>} />
+            <Route path="/settings/numbering" element={<ProtectedRoute><NumberingSettings /></ProtectedRoute>} />
             <Route path="/settings/crm-pipelines" element={<ProtectedRoute><CRMPipelinesSettings /></ProtectedRoute>} />
             <Route path="/settings/crm-backup" element={<ProtectedRoute><CRMBackupSettings /></ProtectedRoute>} />
             <Route path="/settings/data-schema" element={<ProtectedRoute><CRMDataSchema /></ProtectedRoute>} />
