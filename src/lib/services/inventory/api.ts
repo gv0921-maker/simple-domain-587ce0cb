@@ -761,6 +761,11 @@ export async function getAdjustmentAsync(id: string): Promise<InventoryAdjustmen
 }
 export async function saveAdjustmentAsync(a: InventoryAdjustment): Promise<InventoryAdjustment> {
   const headerRow = adjustmentToRow(a);
+  // Auto-assign FY-based stock_count reference on first save
+  if ((!a.reference || a.reference === '') && (!a.id || a.id.startsWith('new-'))) {
+    const { generateDocumentNumber } = await import('@/lib/services/numbering/api');
+    headerRow.reference = await generateDocumentNumber('stock_count');
+  }
   let id = a.id;
   if (id && !id.startsWith('new-')) {
     const { error } = await supabase.from('inventory_adjustments').update(headerRow).eq('id', id);
