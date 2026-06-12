@@ -92,6 +92,7 @@ import UsersManagement from "@/pages/settings/UsersManagement";
 import RolesManagement from "@/pages/settings/RolesManagement";
 import AuditLogs from "@/pages/settings/AuditLogs";
 import BackupsSettings from "@/pages/settings/BackupsSettings";
+import NumberingSettings from "@/pages/settings/NumberingSettings";
 import CRMPipelinesSettings from "@/pages/settings/CRMPipelinesSettings";
 import CRMBackupSettings from "@/pages/settings/CRMBackupSettings";
 import CRMDataSchema from "@/pages/settings/CRMDataSchema";
