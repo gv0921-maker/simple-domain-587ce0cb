@@ -172,6 +172,22 @@ import AdminCycleDetail from "@/pages/appraisals/admin/CycleDetail";
 import AdminAppraisalTemplates from "@/pages/appraisals/admin/AdminTemplates";
 import AdminAppraisalReports from "@/pages/appraisals/admin/AdminReports";
 
+// Reports module
+import ReportsHub from "@/pages/reports/ReportsHub";
+import ReportPage from "@/pages/reports/ReportPage";
+import {
+  SalesReportsLanding,
+  InventoryReportsLanding,
+  ManufacturingReportsLanding,
+  InvoicingReportsLanding,
+  EmployeesReportsLanding,
+  AttendanceReportsLanding,
+  LeaveReportsLanding,
+  PayrollReportsLanding,
+  AppraisalsReportsLanding,
+  CRMReportsLanding,
+} from "@/pages/reports/modulePages";
+
 const queryClient = new QueryClient();
 
 const App = () => (
