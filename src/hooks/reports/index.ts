@@ -37,12 +37,12 @@ export function useSaveReport() {
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (!uid) throw new Error("Not authenticated");
-      const { data, error } = await supabase.from("saved_reports").insert({
+      const { data, error } = await supabase.from("saved_reports").insert([{
         user_id: uid,
         report_key: input.report_key,
         name: input.name,
-        filters_json: input.filters_json,
-      }).select("*").single();
+        filters_json: input.filters_json as never,
+      }]).select("*").single();
       if (error) throw error;
       return data;
     },
