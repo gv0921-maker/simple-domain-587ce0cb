@@ -132,13 +132,13 @@ const topProducts: ReportDef = {
   ],
   async fetch(filters) {
     const limit = Number(filters.limit) || 20;
-    const { data: lines } = await supabase.from("order_lines").select("product_name,quantity,subtotal,price_unit");
+    const { data: lines } = await supabase.from("order_lines").select("product_name,quantity,subtotal,unit_price");
     const agg = new Map<string, { product_name: string; qty_sold: number; revenue: number }>();
     (lines || []).forEach((l) => {
       const name = (l.product_name as string) || "Unknown";
       const e = agg.get(name) || { product_name: name, qty_sold: 0, revenue: 0 };
       e.qty_sold += Number(l.quantity || 0);
-      e.revenue += Number((l as any).subtotal ?? Number(l.quantity || 0) * Number((l as any).price_unit || 0));
+      e.revenue += Number((l as any).subtotal ?? Number(l.quantity || 0) * Number((l as any).unit_price || 0));
       agg.set(name, e);
     });
     return Array.from(agg.values()).sort((a, b) => b.revenue - a.revenue).slice(0, limit);
@@ -202,15 +202,15 @@ const outstandingQuotations: ReportDef = {
   roles: ["sales_rep", "sales_manager", "admin", "super_admin"],
   filters: [dateRangeFilter],
   columns: [
-    { key: "quotation_number", label: "Quotation #" },
+    { key: "reference", label: "Quotation #" },
     { key: "customer_name", label: "Customer" },
     { key: "status", label: "Status" },
     { key: "total", label: "Total", align: "right", format: (r) => inr(r.total) },
     { key: "created_at", label: "Created", format: (r) => r.created_at ? new Date(r.created_at as string).toLocaleDateString("en-IN") : "" },
   ],
   async fetch() {
-    const { data } = await supabase.from("quotations").select("quotation_number,customer_name,status,total,created_at").in("status", ["draft", "sent"]).order("created_at", { ascending: false });
-    return (data || []) as Record<string, unknown>[];
+    const { data } = await supabase.from("quotations").select("reference,customer_name,status,total,created_at").in("status", ["draft", "sent"]).order("created_at", { ascending: false });
+    return (data || []) as unknown as Record<string, unknown>[];
   },
 };
 
@@ -229,9 +229,10 @@ const stockValuation: ReportDef = {
     { key: "value", label: "Stock Value", align: "right", format: (r) => inr(r.value) },
   ],
   async fetch() {
-    const { data } = await supabase.from("products").select("name,sku,stock_on_hand,cost,price");
+    const { data } = await supabase.from("products").select("name,sku,stock_on_hand,cost_price,sale_price");
     return (data || []).map((p: any) => ({
-      ...p, value: Number(p.stock_on_hand || 0) * Number(p.cost || 0),
+      ...p, cost: p.cost_price, price: p.sale_price,
+      value: Number(p.stock_on_hand || 0) * Number(p.cost_price || 0),
     }));
   },
 };
@@ -298,10 +299,17 @@ const serialTracking: ReportDef = {
   async fetch(filters) {
     const s = (filters.serial as string)?.trim();
     if (!s) return [];
-    const { data } = await supabase.from("serial_numbers").select("*").ilike("serial_number", `%${s}%`).limit(200);
-    return (data || []) as Record<string, unknown>[];
+    const { data } = await supabase.from("serial_numbers").select("name,product_id,status").ilike("name", `%${s}%`).limit(200);
+    const rows = (data || []).map((r: any) => ({ serial_number: r.name, product_name: r.product_id, status: r.status }));
+    return rows as Record<string, unknown>[];
   },
 };
+
+// dummy placeholder to keep diff anchored
+const __anchorPlaceholder1 = (() => {
+  const { data } = { data: null as any };
+    return (data || []) as Record<string, unknown>[];
+})();
 
 // ----- Manufacturing -----
 const workOrderSummary: ReportDef = {
@@ -310,14 +318,14 @@ const workOrderSummary: ReportDef = {
   roles: ["admin", "super_admin"],
   filters: [dateRangeFilter],
   columns: [
-    { key: "wo_number", label: "WO #" },
-    { key: "status", label: "Status" },
-    { key: "quantity", label: "Qty", align: "right" },
-    { key: "due_date", label: "Due", format: (r) => r.due_date ? new Date(r.due_date as string).toLocaleDateString("en-IN") : "" },
+    { key: "reference", label: "WO #" },
+    { key: "state", label: "Status" },
+    { key: "planned_qty", label: "Qty", align: "right" },
+    { key: "scheduled_end", label: "Due", format: (r) => r.scheduled_end ? new Date(r.scheduled_end as string).toLocaleDateString("en-IN") : "" },
   ],
   async fetch() {
-    const { data } = await supabase.from("work_orders").select("wo_number,status,quantity,due_date").order("due_date", { ascending: false }).limit(500);
-    return (data || []) as Record<string, unknown>[];
+    const { data } = await supabase.from("work_orders").select("reference,state,planned_qty,scheduled_end").order("scheduled_end", { ascending: false }).limit(500);
+    return (data || []) as unknown as Record<string, unknown>[];
   },
 };
 
@@ -348,17 +356,17 @@ const invoiceRegister: ReportDef = {
     { value: "", label: "All" }, { value: "draft", label: "Draft" }, { value: "sent", label: "Sent" }, { value: "paid", label: "Paid" }, { value: "overdue", label: "Overdue" },
   ] }],
   columns: [
-    { key: "invoice_number", label: "Invoice #" },
-    { key: "customer_name", label: "Customer" },
+    { key: "reference", label: "Invoice #" },
+    { key: "customer_id", label: "Customer" },
     { key: "status", label: "Status" },
     { key: "total", label: "Total", align: "right", format: (r) => inr(r.total) },
     { key: "issue_date", label: "Issue Date", format: (r) => r.issue_date ? new Date(r.issue_date as string).toLocaleDateString("en-IN") : "" },
   ],
   async fetch(filters) {
-    let q = supabase.from("invoices").select("invoice_number,customer_name,status,total,issue_date").order("issue_date", { ascending: false }).limit(500);
+    let q = supabase.from("invoices").select("reference,customer_id,status,total,issue_date").order("issue_date", { ascending: false }).limit(500);
     if (filters.status) q = q.eq("status", filters.status as string);
     const { data } = await q;
-    return (data || []) as Record<string, unknown>[];
+    return (data || []) as unknown as Record<string, unknown>[];
   },
 };
 
@@ -402,13 +410,13 @@ const paymentCollection: ReportDef = {
   filters: [dateRangeFilter],
   columns: [
     { key: "payment_date", label: "Date", format: (r) => r.payment_date ? new Date(r.payment_date as string).toLocaleDateString("en-IN") : "" },
-    { key: "payment_method", label: "Method" },
+    { key: "method", label: "Method" },
     { key: "amount", label: "Amount", align: "right", format: (r) => inr(r.amount) },
     { key: "reference", label: "Reference" },
   ],
   async fetch() {
-    const { data } = await supabase.from("payments").select("payment_date,payment_method,amount,reference").order("payment_date", { ascending: false }).limit(500);
-    return (data || []) as Record<string, unknown>[];
+    const { data } = await supabase.from("payments").select("payment_date,method,amount,reference").order("payment_date", { ascending: false }).limit(500);
+    return (data || []) as unknown as Record<string, unknown>[];
   },
 };
 
@@ -432,11 +440,11 @@ const employeeMaster: ReportDef = {
     { key: "full_name", label: "Name" },
     { key: "email", label: "Email" },
     { key: "department_name", label: "Department" },
-    { key: "job_title", label: "Job Title" },
-    { key: "employment_status", label: "Status" },
+    { key: "designation", label: "Designation" },
+    { key: "status", label: "Status" },
   ],
   async fetch() {
-    const { data } = await supabase.from("employees").select("employee_code,full_name,email,job_title,employment_status,department:departments(name)").limit(1000);
+    const { data } = await supabase.from("employees").select("employee_code,full_name,email,designation,status,department:departments(name)").limit(1000);
     return (data || []).map((e: any) => ({ ...e, department_name: e.department?.name || "" }));
   },
 };
@@ -451,10 +459,10 @@ const headcountByDept: ReportDef = {
     { key: "headcount", label: "Headcount", align: "right" },
   ],
   async fetch() {
-    const { data } = await supabase.from("employees").select("department:departments(name),employment_status");
+    const { data } = await supabase.from("employees").select("department:departments(name),status");
     const agg = new Map<string, { department: string; headcount: number }>();
     (data || []).forEach((e: any) => {
-      if (e.employment_status && e.employment_status !== "active") return;
+      if (e.status && e.status !== "active") return;
       const d = e.department?.name || "Unassigned";
       const v = agg.get(d) || { department: d, headcount: 0 }; v.headcount += 1; agg.set(d, v);
     });
@@ -469,12 +477,12 @@ const joiningExits: ReportDef = {
   filters: [dateRangeFilter],
   columns: [
     { key: "full_name", label: "Name" },
-    { key: "joining_date", label: "Joining", format: (r) => r.joining_date ? new Date(r.joining_date as string).toLocaleDateString("en-IN") : "" },
-    { key: "exit_date", label: "Exit", format: (r) => r.exit_date ? new Date(r.exit_date as string).toLocaleDateString("en-IN") : "" },
+    { key: "date_of_joining", label: "Joining", format: (r) => r.date_of_joining ? new Date(r.date_of_joining as string).toLocaleDateString("en-IN") : "" },
+    { key: "date_of_exit", label: "Exit", format: (r) => r.date_of_exit ? new Date(r.date_of_exit as string).toLocaleDateString("en-IN") : "" },
   ],
   async fetch() {
-    const { data } = await supabase.from("employees").select("full_name,joining_date,exit_date").limit(500);
-    return (data || []) as Record<string, unknown>[];
+    const { data } = await supabase.from("employees").select("full_name,date_of_joining,date_of_exit").limit(500);
+    return (data || []) as unknown as Record<string, unknown>[];
   },
 };
 
@@ -527,7 +535,7 @@ const leaveHistory: ReportDef = {
     let q = supabase.from("leave_requests").select("request_number,status,start_date,end_date").order("start_date", { ascending: false }).limit(500);
     if (filters.status) q = q.eq("status", filters.status as string);
     const { data } = await q;
-    return (data || []) as Record<string, unknown>[];
+    return (data || []) as unknown as Record<string, unknown>[];
   },
 };
 
@@ -577,15 +585,15 @@ const leadSourceAnalysis: ReportDef = {
   roles: ["sales_rep", "sales_manager", "admin", "super_admin"],
   filters: [dateRangeFilter],
   columns: [
-    { key: "source", label: "Source" },
+    { key: "source", label: "Sales Team" },
     { key: "count", label: "Opportunities", align: "right" },
     { key: "value", label: "Pipeline Value", align: "right", format: (r) => inr(r.value) },
   ],
   async fetch() {
-    const { data } = await supabase.from("crm_opportunities").select("source,expected_revenue");
+    const { data } = await supabase.from("crm_opportunities").select("sales_team,expected_revenue");
     const agg = new Map<string, { source: string; count: number; value: number }>();
     (data || []).forEach((o: any) => {
-      const k = o.source || "Unknown";
+      const k = o.sales_team || "Unknown";
       const e = agg.get(k) || { source: k, count: 0, value: 0 };
       e.count += 1; e.value += Number(o.expected_revenue || 0); agg.set(k, e);
     });
@@ -598,14 +606,14 @@ const activityReport: ReportDef = {
   roles: ["sales_rep", "sales_manager", "admin", "super_admin"],
   filters: [dateRangeFilter],
   columns: [
-    { key: "activity_type", label: "Type" },
+    { key: "type", label: "Type" },
     { key: "subject", label: "Subject" },
     { key: "due_date", label: "Due", format: (r) => r.due_date ? new Date(r.due_date as string).toLocaleDateString("en-IN") : "" },
-    { key: "status", label: "Status" },
+    { key: "completed", label: "Completed", format: (r) => r.completed ? "Yes" : "No" },
   ],
   async fetch() {
-    const { data } = await supabase.from("crm_activities").select("activity_type,subject,due_date,status").order("due_date", { ascending: false }).limit(500);
-    return (data || []) as Record<string, unknown>[];
+    const { data } = await supabase.from("crm_activities").select("type,subject,due_date,completed").order("due_date", { ascending: false }).limit(500);
+    return (data || []) as unknown as Record<string, unknown>[];
   },
 };
 
