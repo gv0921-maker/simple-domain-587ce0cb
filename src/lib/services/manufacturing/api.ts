@@ -218,7 +218,8 @@ export async function saveWorkOrder(wo: WorkOrder): Promise<WorkOrder> {
   if (!isUuid(wo.productId)) {
     throw new Error('Work order requires a real product (UUID).');
   }
-  const reference = wo.name || `WO/${new Date().getFullYear()}/${Date.now().toString().slice(-6)}`;
+  const { generateDocumentNumber } = await import('@/lib/services/numbering/api');
+  const reference = wo.name || (isUuid(wo.id) ? `WO-LEGACY-${wo.id.slice(0, 8)}` : await generateDocumentNumber('work_order'));
   const producedFromProgress =
     wo.progress != null && wo.quantity > 0
       ? Math.round((wo.progress / 100) * wo.quantity)
