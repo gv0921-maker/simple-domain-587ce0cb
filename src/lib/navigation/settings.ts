@@ -1,6 +1,7 @@
 // Settings Module Navigation - shared across all settings pages
 export const SETTINGS_NAV = [
   { label: 'General', href: '/settings' },
+  { label: 'Company', href: '/settings/company' },
   { label: 'Users', href: '/settings/users' },
   { label: 'Roles', href: '/settings/roles' },
   { label: 'Customization', href: '/settings/customization' },

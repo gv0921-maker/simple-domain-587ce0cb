@@ -15,7 +15,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Save, XCircle, ShoppingCart, CreditCard, FileText, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Save, XCircle, ShoppingCart, CreditCard, FileText, CheckCircle2, Printer } from 'lucide-react';
 import { RecordPaymentDialog } from '@/components/sales/RecordPaymentDialog';
 import { useGenerateInvoiceFromOrder } from '@/hooks/invoicing';
 import { useDeliveryQC } from '@/hooks/qc';
@@ -448,6 +448,11 @@ export default function SalesOrderForm() {
             </div>
           </div>
           <div className="flex gap-2">
+            {!isNew && id && (
+              <Button variant="outline" onClick={() => window.open(`/print/sales_order/${id}`, '_blank')}>
+                <Printer className="h-4 w-4 mr-2" /> Print
+              </Button>
+            )}
             {isEditable && (
               <Button variant="outline" onClick={() => handleSave()} disabled={saving}>
                 <Save className="h-4 w-4 mr-2" /> Save
