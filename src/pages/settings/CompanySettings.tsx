@@ -55,11 +55,9 @@ export default function CompanySettings() {
   return (
     <AppLayout title="Settings" subtitle="Company" moduleNav={SETTINGS_NAV}>
       <div className="p-6 max-w-3xl mx-auto space-y-4">
-        {readOnly && (
-          <div className="text-xs bg-muted text-muted-foreground border rounded px-3 py-2">
-            Read-only — only Super Admins can edit company settings.
-          </div>
-        )}
+        <div className="text-xs bg-muted text-muted-foreground border rounded px-3 py-2">
+          Only Super Admins can save changes — others will see a permission error on save.
+        </div>
 
         <Card>
           <CardHeader><CardTitle className="text-base">Identity</CardTitle></CardHeader>
