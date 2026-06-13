@@ -28,6 +28,7 @@ import { useRefund } from '@/hooks/refunds';
 import { CreditNotePrint } from '@/components/print/templates/CreditNotePrint';
 import { RefundVoucherPrint } from '@/components/print/templates/RefundVoucherPrint';
 import { ExchangePrint } from '@/components/print/templates/ExchangePrint';
+import { PayslipPrint } from '@/components/print/templates/PayslipPrint';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import type { PrintableDocumentType } from '@/components/print/PrintableDocument';
@@ -115,6 +116,19 @@ export default function PrintRoute() {
     },
   });
 
+  const payslip = useQuery({
+    queryKey: ['print-payslip', documentId, type],
+    enabled: type === 'payslip' && !!documentId,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from('payslips')
+        .select('*, employees(full_name, employee_code, designation), payroll_periods(period_label, period_month, period_year), payslip_components(*, salary_components(code, name, component_type))')
+        .eq('id', documentId)
+        .maybeSingle();
+      return data;
+    },
+  });
+
   useEffect(() => {
     document.title = `${type.replace(/_/g, ' ')} ${documentId ?? ''}`.trim();
   }, [type, documentId]);
@@ -191,6 +205,10 @@ export default function PrintRoute() {
       source_invoice_ref: e.source_invoice?.reference ?? null,
     };
     body = <ExchangePrint exchange={enriched} />;
+  } else if (type === 'payslip' && payslip.data) {
+    const p: any = payslip.data;
+    docNumber = p.payslip_number ?? docNumber;
+    body = <PayslipPrint payslip={p} />;
   }
 
   if (loading) {

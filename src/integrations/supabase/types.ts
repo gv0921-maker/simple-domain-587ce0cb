@@ -4941,6 +4941,7 @@ export type Database = {
       }
       payroll_settings: {
         Row: {
+          appraisal_lock_role: string
           created_at: string
           esi_gross_threshold: number
           esi_rate_employee: number
@@ -4948,18 +4949,24 @@ export type Database = {
           financial_year: string
           id: string
           is_active: boolean
+          notes: string | null
           overtime_rate_multiplier: number
+          payroll_lock_role: string
+          payslip_self_view_enabled: boolean
           pf_basic_cap: number
           pf_rate: number
           pt_amount: number
+          pt_salary_threshold: number
           pt_state: string
           standard_deduction: number
           tds_regime: string
           updated_at: string
+          updated_by: string | null
           working_days_per_month: number
           working_hours_per_day: number
         }
         Insert: {
+          appraisal_lock_role?: string
           created_at?: string
           esi_gross_threshold?: number
           esi_rate_employee?: number
@@ -4967,18 +4974,24 @@ export type Database = {
           financial_year: string
           id?: string
           is_active?: boolean
+          notes?: string | null
           overtime_rate_multiplier?: number
+          payroll_lock_role?: string
+          payslip_self_view_enabled?: boolean
           pf_basic_cap?: number
           pf_rate?: number
           pt_amount?: number
+          pt_salary_threshold?: number
           pt_state?: string
           standard_deduction?: number
           tds_regime?: string
           updated_at?: string
+          updated_by?: string | null
           working_days_per_month?: number
           working_hours_per_day?: number
         }
         Update: {
+          appraisal_lock_role?: string
           created_at?: string
           esi_gross_threshold?: number
           esi_rate_employee?: number
@@ -4986,14 +4999,19 @@ export type Database = {
           financial_year?: string
           id?: string
           is_active?: boolean
+          notes?: string | null
           overtime_rate_multiplier?: number
+          payroll_lock_role?: string
+          payslip_self_view_enabled?: boolean
           pf_basic_cap?: number
           pf_rate?: number
           pt_amount?: number
+          pt_salary_threshold?: number
           pt_state?: string
           standard_deduction?: number
           tds_regime?: string
           updated_at?: string
+          updated_by?: string | null
           working_days_per_month?: number
           working_hours_per_day?: number
         }
@@ -5051,6 +5069,7 @@ export type Database = {
           ctc_for_period: number
           employee_id: string
           employer_contributions: number
+          esi_applicable: boolean
           finalized_at: string | null
           gross_earnings: number
           id: string
@@ -5062,8 +5081,10 @@ export type Database = {
           payment_date: string | null
           payment_reference: string | null
           payroll_period_id: string
+          payroll_settings_snapshot: Json | null
           payslip_number: string
           payslip_pdf_url: string | null
+          pt_applicable: boolean
           status: string
           total_deductions: number
           total_working_days: number
@@ -5075,6 +5096,7 @@ export type Database = {
           ctc_for_period?: number
           employee_id: string
           employer_contributions?: number
+          esi_applicable?: boolean
           finalized_at?: string | null
           gross_earnings?: number
           id?: string
@@ -5086,8 +5108,10 @@ export type Database = {
           payment_date?: string | null
           payment_reference?: string | null
           payroll_period_id: string
+          payroll_settings_snapshot?: Json | null
           payslip_number: string
           payslip_pdf_url?: string | null
+          pt_applicable?: boolean
           status?: string
           total_deductions?: number
           total_working_days?: number
@@ -5099,6 +5123,7 @@ export type Database = {
           ctc_for_period?: number
           employee_id?: string
           employer_contributions?: number
+          esi_applicable?: boolean
           finalized_at?: string | null
           gross_earnings?: number
           id?: string
@@ -5110,8 +5135,10 @@ export type Database = {
           payment_date?: string | null
           payment_reference?: string | null
           payroll_period_id?: string
+          payroll_settings_snapshot?: Json | null
           payslip_number?: string
           payslip_pdf_url?: string | null
+          pt_applicable?: boolean
           status?: string
           total_deductions?: number
           total_working_days?: number
@@ -8872,6 +8899,8 @@ export type Database = {
       is_employee_self: { Args: { _employee_id: string }; Returns: boolean }
       is_manager_of: { Args: { target_employee_id: string }; Returns: boolean }
       is_reviewer_for: { Args: { _reviewer_id: string }; Returns: boolean }
+      is_super_admin: { Args: { _uid: string }; Returns: boolean }
+      payslip_self_view_enabled: { Args: never; Returns: boolean }
       place_vendor_order: { Args: { p_vo_id: string }; Returns: undefined }
       place_work_order: { Args: { p_wo_id: string }; Returns: Json }
       portal_get_quotation: {

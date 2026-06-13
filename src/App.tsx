@@ -118,6 +118,8 @@ import PaymentAccountsSettings from "@/pages/settings/PaymentAccountsSettings";
 import VendorsSettings from "@/pages/settings/VendorsSettings";
 import WorkSchedulesSettings from "@/pages/settings/WorkSchedulesSettings";
 import HolidaysSettings from "@/pages/settings/HolidaysSettings";
+import PayrollSettingsPage from "@/pages/settings/PayrollSettings";
+import { SuperAdminRoute } from "@/components/SuperAdminRoute";
 import OrgChartPage from "@/pages/employees/OrgChart";
 import UnifiedCalendarPage from "@/pages/calendar/UnifiedCalendarPage";
 
@@ -342,6 +344,7 @@ const App = () => (
             <Route path="/settings/vendors" element={<ProtectedRoute><VendorsSettings /></ProtectedRoute>} />
             <Route path="/settings/work-schedules" element={<ProtectedRoute><WorkSchedulesSettings /></ProtectedRoute>} />
             <Route path="/settings/holidays" element={<ProtectedRoute><HolidaysSettings /></ProtectedRoute>} />
+            <Route path="/settings/payroll" element={<SuperAdminRoute label="Payroll Settings"><PayrollSettingsPage /></SuperAdminRoute>} />
 
             {/* Vendor Orders module */}
             <Route path="/vendor-orders" element={<ProtectedRoute><VendorOrdersList /></ProtectedRoute>} />
@@ -428,28 +431,28 @@ const App = () => (
             <Route path="/work-schedule/admin" element={<ProtectedRoute><AdminWorkSchedule /></ProtectedRoute>} />
 
             {/* Payroll routes (HR Batch 4) */}
-            <Route path="/payroll" element={<ProtectedRoute><PayrollDashboard /></ProtectedRoute>} />
-            <Route path="/payroll/periods" element={<ProtectedRoute><PayrollPeriodsList /></ProtectedRoute>} />
-            <Route path="/payroll/periods/:id" element={<ProtectedRoute><PayrollPeriodDetail /></ProtectedRoute>} />
-            <Route path="/payroll/payslips/:id" element={<ProtectedRoute><PayslipDetail /></ProtectedRoute>} />
-            <Route path="/payroll/my-payslips" element={<ProtectedRoute><MyPayslips /></ProtectedRoute>} />
-            <Route path="/payroll/admin/components" element={<ProtectedRoute><AdminComponents /></ProtectedRoute>} />
-            <Route path="/payroll/admin/settings" element={<ProtectedRoute><AdminPayrollSettings /></ProtectedRoute>} />
-            <Route path="/payroll/admin/loans" element={<ProtectedRoute><AdminLoans /></ProtectedRoute>} />
-            <Route path="/payroll/admin/advances" element={<ProtectedRoute><AdminAdvances /></ProtectedRoute>} />
+            <Route path="/payroll" element={<SuperAdminRoute label="Payroll"><PayrollDashboard /></SuperAdminRoute>} />
+            <Route path="/payroll/periods" element={<SuperAdminRoute label="Payroll"><PayrollPeriodsList /></SuperAdminRoute>} />
+            <Route path="/payroll/periods/:id" element={<SuperAdminRoute label="Payroll"><PayrollPeriodDetail /></SuperAdminRoute>} />
+            <Route path="/payroll/payslips/:id" element={<SuperAdminRoute label="Payroll"><PayslipDetail /></SuperAdminRoute>} />
+            <Route path="/payroll/my-payslips" element={<SuperAdminRoute label="Payroll"><MyPayslips /></SuperAdminRoute>} />
+            <Route path="/payroll/admin/components" element={<SuperAdminRoute label="Payroll"><AdminComponents /></SuperAdminRoute>} />
+            <Route path="/payroll/admin/settings" element={<SuperAdminRoute label="Payroll"><AdminPayrollSettings /></SuperAdminRoute>} />
+            <Route path="/payroll/admin/loans" element={<SuperAdminRoute label="Payroll"><AdminLoans /></SuperAdminRoute>} />
+            <Route path="/payroll/admin/advances" element={<SuperAdminRoute label="Payroll"><AdminAdvances /></SuperAdminRoute>} />
 
             {/* Appraisals routes (HR Batch 5) */}
-            <Route path="/appraisals" element={<ProtectedRoute><AppraisalsOverview /></ProtectedRoute>} />
-            <Route path="/appraisals/my-appraisals" element={<ProtectedRoute><MyAppraisals /></ProtectedRoute>} />
-            <Route path="/appraisals/team" element={<ProtectedRoute><TeamAppraisals /></ProtectedRoute>} />
-            <Route path="/appraisals/admin/cycles" element={<ProtectedRoute><AdminCycles /></ProtectedRoute>} />
-            <Route path="/appraisals/admin/cycles/:id" element={<ProtectedRoute><AdminCycleDetail /></ProtectedRoute>} />
-            <Route path="/appraisals/admin/templates" element={<ProtectedRoute><AdminAppraisalTemplates /></ProtectedRoute>} />
-            <Route path="/appraisals/admin/reports" element={<ProtectedRoute><AdminAppraisalReports /></ProtectedRoute>} />
-            <Route path="/appraisals/:id/self-review" element={<ProtectedRoute><AppraisalSelfReview /></ProtectedRoute>} />
-            <Route path="/appraisals/:id/manager-review" element={<ProtectedRoute><AppraisalManagerReview /></ProtectedRoute>} />
-            <Route path="/appraisals/:id/hr-review" element={<ProtectedRoute><AppraisalHRReview /></ProtectedRoute>} />
-            <Route path="/appraisals/:id" element={<ProtectedRoute><AppraisalDetail /></ProtectedRoute>} />
+            <Route path="/appraisals" element={<SuperAdminRoute label="Appraisals"><AppraisalsOverview /></SuperAdminRoute>} />
+            <Route path="/appraisals/my-appraisals" element={<SuperAdminRoute label="Appraisals"><MyAppraisals /></SuperAdminRoute>} />
+            <Route path="/appraisals/team" element={<SuperAdminRoute label="Appraisals"><TeamAppraisals /></SuperAdminRoute>} />
+            <Route path="/appraisals/admin/cycles" element={<SuperAdminRoute label="Appraisals"><AdminCycles /></SuperAdminRoute>} />
+            <Route path="/appraisals/admin/cycles/:id" element={<SuperAdminRoute label="Appraisals"><AdminCycleDetail /></SuperAdminRoute>} />
+            <Route path="/appraisals/admin/templates" element={<SuperAdminRoute label="Appraisals"><AdminAppraisalTemplates /></SuperAdminRoute>} />
+            <Route path="/appraisals/admin/reports" element={<SuperAdminRoute label="Appraisals"><AdminAppraisalReports /></SuperAdminRoute>} />
+            <Route path="/appraisals/:id/self-review" element={<SuperAdminRoute label="Appraisals"><AppraisalSelfReview /></SuperAdminRoute>} />
+            <Route path="/appraisals/:id/manager-review" element={<SuperAdminRoute label="Appraisals"><AppraisalManagerReview /></SuperAdminRoute>} />
+            <Route path="/appraisals/:id/hr-review" element={<SuperAdminRoute label="Appraisals"><AppraisalHRReview /></SuperAdminRoute>} />
+            <Route path="/appraisals/:id" element={<SuperAdminRoute label="Appraisals"><AppraisalDetail /></SuperAdminRoute>} />
 
             {/* CRM module */}
             <Route path="/crm" element={<ProtectedRoute><CRMPipeline /></ProtectedRoute>} />
@@ -500,10 +503,10 @@ const App = () => (
             <Route path="/attendance/reports/:reportKey" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
             <Route path="/leave/reports" element={<ProtectedRoute><LeaveReportsLanding /></ProtectedRoute>} />
             <Route path="/leave/reports/:reportKey" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
-            <Route path="/payroll/reports" element={<ProtectedRoute><PayrollReportsLanding /></ProtectedRoute>} />
-            <Route path="/payroll/reports/:reportKey" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
-            <Route path="/appraisals/reports" element={<ProtectedRoute><AppraisalsReportsLanding /></ProtectedRoute>} />
-            <Route path="/appraisals/reports/:reportKey" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
+            <Route path="/payroll/reports" element={<SuperAdminRoute label="Payroll"><PayrollReportsLanding /></SuperAdminRoute>} />
+            <Route path="/payroll/reports/:reportKey" element={<SuperAdminRoute label="Payroll"><ReportPage /></SuperAdminRoute>} />
+            <Route path="/appraisals/reports" element={<SuperAdminRoute label="Appraisals"><AppraisalsReportsLanding /></SuperAdminRoute>} />
+            <Route path="/appraisals/reports/:reportKey" element={<SuperAdminRoute label="Appraisals"><ReportPage /></SuperAdminRoute>} />
             <Route path="/crm/reports" element={<ProtectedRoute><CRMReportsLanding /></ProtectedRoute>} />
             <Route path="/crm/reports/:reportKey" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
 

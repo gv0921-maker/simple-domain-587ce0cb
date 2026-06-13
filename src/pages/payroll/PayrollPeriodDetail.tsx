@@ -106,6 +106,8 @@ export default function PayrollPeriodDetail() {
                 <th className="text-right p-3">Gross</th>
                 <th className="text-right p-3">Deductions</th>
                 <th className="text-right p-3">Net</th>
+                <th className="text-center p-3">ESI</th>
+                <th className="text-center p-3">PT</th>
                 <th className="text-center p-3">Status</th>
                 <th></th>
               </tr>
@@ -118,6 +120,8 @@ export default function PayrollPeriodDetail() {
                   <td className="p-3 text-right">{fmt(Number(p.gross_earnings))}</td>
                   <td className="p-3 text-right">{fmt(Number(p.total_deductions))}</td>
                   <td className="p-3 text-right font-medium">{fmt(Number(p.net_pay))}</td>
+                  <td className="p-3 text-center text-xs">{p.esi_applicable ? <Badge variant="outline">Yes</Badge> : <span className="text-muted-foreground" title="Gross > ESI threshold">No</span>}</td>
+                  <td className="p-3 text-center text-xs">{p.pt_applicable ? <Badge variant="outline">Yes</Badge> : <span className="text-muted-foreground" title="Gross ≤ PT threshold">No</span>}</td>
                   <td className="p-3 text-center"><Badge variant="outline">{p.status}</Badge></td>
                   <td className="p-3 text-right space-x-1">
                     <Link to={`/payroll/payslips/${p.id}`}><Button size="sm" variant="outline">View</Button></Link>
@@ -131,7 +135,7 @@ export default function PayrollPeriodDetail() {
                 </tr>
               ))}
               {payslips.length === 0 && (
-                <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No payslips. Click Process to generate.</td></tr>
+                <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">No payslips. Click Process to generate.</td></tr>
               )}
             </tbody>
           </table>
