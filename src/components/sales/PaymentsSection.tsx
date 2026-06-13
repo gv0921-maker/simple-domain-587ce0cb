@@ -15,7 +15,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { CreditCard, Printer, Ban, Banknote, Landmark, Smartphone, FileText } from 'lucide-react';
+import { CreditCard, Printer, Ban, Banknote, Landmark, Smartphone, FileText, Wallet } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,6 +24,9 @@ import {
   useRecordPayment, useVoidPayment,
 } from '@/hooks/sales/payments';
 import type { PaymentMode, SalesOrderPayment } from '@/lib/services/sales/payments';
+import { useCustomerActiveCreditNotes, useRedeemCreditNote } from '@/hooks/credit-notes';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 
 const fmtINR = (n: number) =>
@@ -61,6 +64,7 @@ export function PaymentsSection({ salesOrderId }: Props) {
   const { data: payments = [] } = useSalesOrderPayments(salesOrderId);
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [cnDialogOpen, setCnDialogOpen] = useState(false);
   const [voidTarget, setVoidTarget] = useState<SalesOrderPayment | null>(null);
 
   const balance = summary?.balance_remaining ?? 0;
@@ -81,9 +85,14 @@ export function PaymentsSection({ salesOrderId }: Props) {
         <CardHeader className="pb-3 p-4 flex flex-row items-center justify-between">
           <CardTitle className="text-base">Payments</CardTitle>
           {balance > 0 && (
-            <Button size="sm" onClick={() => setDialogOpen(true)}>
-              <CreditCard className="h-4 w-4 mr-2" />Record Payment
-            </Button>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setCnDialogOpen(true)}>
+                <Wallet className="h-4 w-4 mr-2" />Use Credit Note
+              </Button>
+              <Button size="sm" onClick={() => setDialogOpen(true)}>
+                <CreditCard className="h-4 w-4 mr-2" />Record Payment
+              </Button>
+            </div>
           )}
         </CardHeader>
         <CardContent className="space-y-4 p-4 pt-0">
@@ -165,6 +174,13 @@ export function PaymentsSection({ salesOrderId }: Props) {
       <VoidPaymentDialog
         target={voidTarget}
         onClose={() => setVoidTarget(null)}
+      />
+
+      <RedeemCreditNoteDialog
+        open={cnDialogOpen}
+        onOpenChange={setCnDialogOpen}
+        salesOrderId={salesOrderId}
+        balance={balance}
       />
     </>
   );
