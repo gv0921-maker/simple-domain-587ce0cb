@@ -892,6 +892,13 @@ export default function OpportunityDetail() {
                     label="New Sales Order"
                     onClick={() => navigate(`/sales/orders/new?customerId=${currentData.contactId || ''}&contact=${encodeURIComponent(currentData.contactName || '')}&amount=${currentData.expectedRevenue}&ref=${encodeURIComponent(opportunity.name)}`)}
                   />
+                  {['qualified','proposition','won'].includes(opportunity.stage) && (
+                    <RoundedActionButton
+                      icon={ShoppingCart}
+                      label="Convert to SO (No Quote)"
+                      onClick={() => navigate(`/sales/orders/new?no_quote=1&customerId=${currentData.contactId || ''}&contact=${encodeURIComponent(currentData.contactName || '')}&amount=${currentData.expectedRevenue}&ref=${encodeURIComponent(opportunity.name)}`)}
+                    />
+                  )}
                   <RoundedActionButton
                     icon={Package}
                     label="New Stock Operation"
