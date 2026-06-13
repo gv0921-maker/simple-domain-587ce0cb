@@ -538,6 +538,12 @@ export default function SalesOrderForm() {
           </div>
         )}
 
+        {!isNew && id && (
+          <div className="max-w-4xl mx-auto w-full">
+            <InvoicingSection salesOrderId={id} salesOrderStatus={status} />
+          </div>
+        )}
+
         <div className="max-w-4xl mx-auto flex flex-col gap-3 w-full">
             {/* Customer & Details */}
             <Card>
