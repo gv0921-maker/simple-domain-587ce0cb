@@ -1437,6 +1437,244 @@ export type Database = {
           },
         ]
       }
+      correction_order_items: {
+        Row: {
+          correction_order_id: string
+          created_at: string
+          current_status: string
+          goods_receipt_serial_id: string
+          id: string
+          latest_qc_cycle: number
+          latest_qc_status: string
+          notes: string | null
+          original_qc_images: Json
+          original_qc_notes: string | null
+          product_id: string
+          serial_number: string
+          updated_at: string
+        }
+        Insert: {
+          correction_order_id: string
+          created_at?: string
+          current_status?: string
+          goods_receipt_serial_id: string
+          id?: string
+          latest_qc_cycle?: number
+          latest_qc_status?: string
+          notes?: string | null
+          original_qc_images?: Json
+          original_qc_notes?: string | null
+          product_id: string
+          serial_number: string
+          updated_at?: string
+        }
+        Update: {
+          correction_order_id?: string
+          created_at?: string
+          current_status?: string
+          goods_receipt_serial_id?: string
+          id?: string
+          latest_qc_cycle?: number
+          latest_qc_status?: string
+          notes?: string | null
+          original_qc_images?: Json
+          original_qc_notes?: string | null
+          product_id?: string
+          serial_number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "correction_order_items_correction_order_id_fkey"
+            columns: ["correction_order_id"]
+            isOneToOne: false
+            referencedRelation: "correction_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "correction_order_items_goods_receipt_serial_id_fkey"
+            columns: ["goods_receipt_serial_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receipt_serials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "correction_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      correction_order_refunds: {
+        Row: {
+          correction_order_id: string
+          correction_order_item_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          recorded_by: string | null
+          refund_account_id: string | null
+          refund_amount: number
+          refund_method: string | null
+          refund_received_date: string
+          refund_reference: string | null
+        }
+        Insert: {
+          correction_order_id: string
+          correction_order_item_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          recorded_by?: string | null
+          refund_account_id?: string | null
+          refund_amount: number
+          refund_method?: string | null
+          refund_received_date: string
+          refund_reference?: string | null
+        }
+        Update: {
+          correction_order_id?: string
+          correction_order_item_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          recorded_by?: string | null
+          refund_account_id?: string | null
+          refund_amount?: number
+          refund_method?: string | null
+          refund_received_date?: string
+          refund_reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "correction_order_refunds_correction_order_id_fkey"
+            columns: ["correction_order_id"]
+            isOneToOne: false
+            referencedRelation: "correction_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "correction_order_refunds_correction_order_item_id_fkey"
+            columns: ["correction_order_item_id"]
+            isOneToOne: false
+            referencedRelation: "correction_order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "correction_order_refunds_refund_account_id_fkey"
+            columns: ["refund_account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      correction_orders: {
+        Row: {
+          addressed_to_id: string | null
+          addressed_to_name: string | null
+          addressed_to_type: string
+          closed_at: string | null
+          closed_by: string | null
+          co_number: string
+          correction_type: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          sent_at: string | null
+          source_document_id: string | null
+          source_document_reference: string | null
+          source_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          addressed_to_id?: string | null
+          addressed_to_name?: string | null
+          addressed_to_type: string
+          closed_at?: string | null
+          closed_by?: string | null
+          co_number: string
+          correction_type?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          sent_at?: string | null
+          source_document_id?: string | null
+          source_document_reference?: string | null
+          source_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          addressed_to_id?: string | null
+          addressed_to_name?: string | null
+          addressed_to_type?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          co_number?: string
+          correction_type?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          sent_at?: string | null
+          source_document_id?: string | null
+          source_document_reference?: string | null
+          source_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      correction_qc_cycles: {
+        Row: {
+          correction_order_item_id: string
+          created_at: string
+          cycle_number: number
+          id: string
+          qc_checked_at: string
+          qc_checked_by: string
+          qc_images: Json
+          qc_notes: string | null
+          qc_status: string
+        }
+        Insert: {
+          correction_order_item_id: string
+          created_at?: string
+          cycle_number: number
+          id?: string
+          qc_checked_at?: string
+          qc_checked_by: string
+          qc_images?: Json
+          qc_notes?: string | null
+          qc_status: string
+        }
+        Update: {
+          correction_order_item_id?: string
+          created_at?: string
+          cycle_number?: number
+          id?: string
+          qc_checked_at?: string
+          qc_checked_by?: string
+          qc_images?: Json
+          qc_notes?: string | null
+          qc_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "correction_qc_cycles_correction_order_item_id_fkey"
+            columns: ["correction_order_item_id"]
+            isOneToOne: false
+            referencedRelation: "correction_order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_activities: {
         Row: {
           attachments: Json | null
@@ -6694,6 +6932,10 @@ export type Database = {
         Args: { _appraisal_id: string }
         Returns: boolean
       }
+      auto_create_correction_order: {
+        Args: { p_gr_id: string }
+        Returns: string
+      }
       calculate_so_advance_percent: {
         Args: { p_so_id: string }
         Returns: number
@@ -6701,6 +6943,16 @@ export type Database = {
       can_write_inventory: { Args: never; Returns: boolean }
       check_advance_gate: { Args: { p_so_id: string }; Returns: boolean }
       check_so_ready_to_invoice: { Args: { p_so_id: string }; Returns: boolean }
+      close_correction_order: { Args: { p_co_id: string }; Returns: Json }
+      complete_correction_qc_cycle: {
+        Args: {
+          p_co_item_id: string
+          p_images: Json
+          p_notes: string
+          p_passed: boolean
+        }
+        Returns: undefined
+      }
       complete_gr_line_qc: {
         Args: {
           p_failed_notes: string
