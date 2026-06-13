@@ -97,11 +97,12 @@ export function FulfillmentSection({ salesOrderId, salesOrderStatus, salesOrderC
     }
     try {
       const itoId = await createMut.mutateAsync(salesOrderId);
-      const ito = (await (await import('@/lib/services/inventory/internalTransfers')).getITOById(itoId));
-      toast({ title: 'ITO created', description: `${ito?.ito_number ?? itoId} added to scan queue.` });
+      const detail = await (await import('@/lib/services/inventory/internalTransfers')).getITOById(itoId);
+      const itoNumber = detail?.ito.ito_number ?? itoId;
+      toast({ title: 'ITO created', description: `${itoNumber} added to scan queue.` });
       setPreviewOpen(false);
       try {
-        await logFieldChange('sales_order', salesOrderId, 'ito', null, ito?.ito_number ?? itoId);
+        await logFieldChange('sales_order', salesOrderId, 'ito', null, itoNumber);
       } catch { /* best effort */ }
     } catch (e) {
       toast({ title: 'Failed to create ITO', description: (e as Error).message, variant: 'destructive' });
