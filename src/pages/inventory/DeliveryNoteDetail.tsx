@@ -59,7 +59,7 @@ export default function DeliveryNoteDetail() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => window.open(`/inventory/delivery-notes/${note.id}/print`, '_blank')}>
+            <Button variant="outline" onClick={() => window.open(`/print/delivery_note/${note.id}`, '_blank')}>
               <Printer className="h-4 w-4 mr-2" /> Print
             </Button>
             {note.status !== 'delivered' && (
