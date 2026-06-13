@@ -28,6 +28,7 @@ import { useRefund } from '@/hooks/refunds';
 import { CreditNotePrint } from '@/components/print/templates/CreditNotePrint';
 import { RefundVoucherPrint } from '@/components/print/templates/RefundVoucherPrint';
 import { ExchangePrint } from '@/components/print/templates/ExchangePrint';
+import { PayslipPrint } from '@/components/print/templates/PayslipPrint';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import type { PrintableDocumentType } from '@/components/print/PrintableDocument';
@@ -109,6 +110,19 @@ export default function PrintRoute() {
       const { data } = await (supabase as any)
         .from('exchanges')
         .select('*, replacement_product:products!exchanges_replacement_product_id_fkey(id,name,sku), customer:customers(name), source_return:return_requests(rt_number), source_invoice:invoices(reference)')
+        .eq('id', documentId)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  const payslip = useQuery({
+    queryKey: ['print-payslip', documentId, type],
+    enabled: type === 'payslip' && !!documentId,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from('payslips')
+        .select('*, employees(full_name, employee_code, designation), payroll_periods(period_label, period_month, period_year), payslip_components(*, salary_components(code, name, component_type))')
         .eq('id', documentId)
         .maybeSingle();
       return data;
