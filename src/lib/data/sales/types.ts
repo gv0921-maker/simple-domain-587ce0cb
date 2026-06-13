@@ -32,6 +32,24 @@ export type LinePerLineDiscountType =
 export type OrderDiscountType = 'percent' | 'amount' | null;
 export type GSTType = 'cgst_sgst' | 'igst';
 
+/** Where a sales-order line is being sourced from. */
+export type ProductSource = 'display' | 'warehouse' | 'vendor' | 'factory';
+
+/** Predefined customization option types attached to a product. */
+export type ProductCustomizationOptionType = 'size' | 'colour' | 'fabric' | 'polish';
+
+export interface ProductCustomizationOption {
+  id: string;
+  productId: string;
+  optionType: ProductCustomizationOptionType;
+  optionValue: string;
+  additionalPrice: number;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 /**
  * Reusable B2C billing/delivery address block. Used as a mixin on Quotation
  * and SalesOrder. All fields are optional at the type level so legacy records
@@ -235,6 +253,18 @@ export interface SalesOrderLine {
   discountValue?: number;
   discountAmount?: number;
   finalAmount?: number;
+
+  // Phase 2 — enhanced sourcing & customization
+  productSource?: ProductSource;
+  customizationSize?: string;
+  customizationColour?: string;
+  customizationFabric?: string;
+  customizationPolish?: string;
+  customizationNotes?: string;
+  customizationReferenceImages?: string[];
+  lineEta?: string;
+  vendorId?: string;
+  factoryWorkOrderId?: string;
 }
 
 export interface OrderActivity {
@@ -304,6 +334,18 @@ export interface SalesOrder extends B2CAddressFields, B2COrderSummary {
   paymentDate?: string;
   paymentMethod?: string;
   paymentReference?: string;
+
+  // Phase 2 — enhanced SO workflow fields
+  noQuoteFlag?: boolean;
+  advancePercentRequired?: number;
+  advancePercentReceived?: number;
+  advanceOverrideBy?: string;
+  advanceOverrideReason?: string;
+  advanceOverrideAt?: string;
+  termsAndConditions?: string;
+  customerSignatureReceived?: boolean;
+  customerSignatureDate?: string;
+  etaOverall?: string;
 
   // Timeline
   activities: OrderActivity[];
