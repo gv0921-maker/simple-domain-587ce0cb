@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ATTENDANCE_NAV } from '@/lib/navigation/attendance';
 import { MobileScrollHint } from '@/components/layout/MobileScrollHint';
 import { useEmployees, useRangeAttendance, useDeleteSession } from '@/hooks/hr';
-import { ChevronLeft, ChevronRight, Upload } from 'lucide-react';
+import { useBulkRecalculateMetrics } from '@/hooks/hr/workSchedules';
+import { ChevronLeft, ChevronRight, Upload, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 
@@ -38,6 +39,25 @@ export default function AdminAttendance() {
   const ids = employees.map((e) => e.id);
   const { data: sessions = [] } = useRangeAttendance(ids, start, end);
   const del = useDeleteSession();
+  const recalc = useBulkRecalculateMetrics();
+
+  const handleRecalc = async () => {
+    // Build unique (employee, date) pairs from visible sessions
+    const pairs = new Map<string, { employeeId: string; date: string }>();
+    for (const s of sessions) {
+      const k = `${s.employee_id}|${s.session_date}`;
+      if (!pairs.has(k)) pairs.set(k, { employeeId: s.employee_id, date: s.session_date });
+    }
+    if (pairs.size === 0) {
+      toast({ title: 'No sessions in view', variant: 'destructive' }); return;
+    }
+    try {
+      const n = await recalc.mutateAsync(Array.from(pairs.values()));
+      toast({ title: `Recalculated ${n} record(s)` });
+    } catch (e: any) {
+      toast({ title: 'Recalc failed', description: e?.message ?? String(e), variant: 'destructive' });
+    }
+  };
 
   const grid = useMemo(() => {
     const m: Record<string, Record<string, number>> = {};
@@ -69,9 +89,14 @@ export default function AdminAttendance() {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate('/attendance/admin/import')}>
-            <Upload className="h-4 w-4" /> Import CSV
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="gap-2" disabled={recalc.isPending} onClick={handleRecalc}>
+              <RefreshCw className={`h-4 w-4 ${recalc.isPending ? 'animate-spin' : ''}`} /> Recalculate
+            </Button>
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate('/attendance/admin/import')}>
+              <Upload className="h-4 w-4" /> Import CSV
+            </Button>
+          </div>
         </div>
 
         <MobileScrollHint />
