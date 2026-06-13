@@ -98,7 +98,9 @@ export default function PrintRoute() {
     body = <QuotationPrint quotation={quotation.data} lines={(quotation.data as any).quotation_lines ?? []} isDraft={(quotation.data as any).status === 'draft'} />;
   } else if (type === 'invoice' && invoice.data) {
     docNumber = (invoice.data as any).reference ?? docNumber;
-    body = <InvoicePrint invoice={invoice.data} isDraft={(invoice.data as any).status === 'draft'} />;
+    body = (
+      <InvoiceWithSO invoice={invoice.data as any} />
+    );
   } else if (type === 'delivery_note' && note.data) {
     docNumber = (note.data as any).reference ?? docNumber;
     body = <DeliveryNotePrint note={note.data} isDraft={(note.data as any).status === 'draft'} />;
