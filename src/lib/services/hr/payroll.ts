@@ -244,10 +244,13 @@ export async function calculatePayslip(employeeId: string, periodMonth: number, 
 
   // ESI Employee
   const esiThreshold = Number(settings.esi_gross_threshold);
-  const esi = gross <= esiThreshold ? (gross * Number(settings.esi_rate_employee)) / 100 : 0;
+  const esiApplicable = gross > 0 && gross <= esiThreshold;
+  const esi = esiApplicable ? (gross * Number(settings.esi_rate_employee)) / 100 : 0;
 
-  // Professional Tax
-  const pt = Number(settings.pt_amount);
+  // Professional Tax — Karnataka rule: applies only when gross > threshold
+  const ptThreshold = Number((settings as any).pt_salary_threshold ?? 21000);
+  const ptApplicable = gross > ptThreshold;
+  const pt = ptApplicable ? Number(settings.pt_amount) : 0;
 
   // TDS — annualize and apply slabs
   const slabs = await listTaxSlabs(settings.financial_year, settings.tds_regime as 'old' | 'new');
@@ -273,8 +276,8 @@ export async function calculatePayslip(employeeId: string, periodMonth: number, 
 
   const deductions = [
     { code: 'PF', name: 'Provident Fund', amount: pf },
-    { code: 'ESI', name: 'ESI', amount: esi },
-    { code: 'PT', name: 'Professional Tax', amount: pt },
+    { code: 'ESI', name: 'ESI', amount: esi, notes: esiApplicable ? undefined : `N/A — gross > ₹${esiThreshold.toLocaleString('en-IN')}` },
+    { code: 'PT', name: 'Professional Tax', amount: pt, notes: ptApplicable ? undefined : `N/A — gross ≤ ₹${ptThreshold.toLocaleString('en-IN')}` },
     { code: 'TDS', name: 'Tax Deducted at Source', amount: tds },
     { code: 'LOAN', name: 'Loan EMI', amount: loanDeduction },
     { code: 'ADV', name: 'Advance Recovery', amount: advDeduction },
@@ -284,7 +287,7 @@ export async function calculatePayslip(employeeId: string, periodMonth: number, 
 
   // Employer contributions
   const pfEmp = pf;
-  const esiEmp = gross <= esiThreshold ? (gross * Number(settings.esi_rate_employer)) / 100 : 0;
+  const esiEmp = esiApplicable ? (gross * Number(settings.esi_rate_employer)) / 100 : 0;
   const employer = [
     { code: 'PF_EMP', name: 'Provident Fund (Employer)', amount: pfEmp },
     { code: 'ESI_EMP', name: 'ESI (Employer)', amount: esiEmp },
@@ -297,6 +300,18 @@ export async function calculatePayslip(employeeId: string, periodMonth: number, 
     employerContrib,
     paid_days: att.paid_days, lop_days: att.lop_days,
     overtime_hours: att.overtime_hours, working_days: wdays,
+    esi_applicable: esiApplicable,
+    pt_applicable: ptApplicable,
+    settings_snapshot: {
+      captured_at: new Date().toISOString(),
+      pf_rate: Number(settings.pf_rate),
+      esi_rate_employee: Number(settings.esi_rate_employee),
+      esi_gross_threshold: esiThreshold,
+      pt_amount: Number(settings.pt_amount),
+      pt_salary_threshold: ptThreshold,
+      financial_year: settings.financial_year,
+      tds_regime: settings.tds_regime,
+    },
   };
 }
 
