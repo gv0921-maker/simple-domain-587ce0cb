@@ -727,6 +727,9 @@ export type Database = {
       }
       attendance_sessions: {
         Row: {
+          break_minutes_total: number
+          break_overrun_minutes: number
+          calculation_completed_at: string | null
           check_in_accuracy_meters: number | null
           check_in_address: string | null
           check_in_latitude: number | null
@@ -740,15 +743,23 @@ export type Database = {
           created_at: string
           created_by: string | null
           duration_minutes: number | null
+          early_departure_minutes: number
           employee_id: string
+          expected_work_minutes: number | null
           id: string
+          late_arrival_minutes: number
           notes: string | null
+          overtime_minutes: number
           session_date: string
           session_type: string
           source: string
           updated_at: string
+          work_minutes_total: number
         }
         Insert: {
+          break_minutes_total?: number
+          break_overrun_minutes?: number
+          calculation_completed_at?: string | null
           check_in_accuracy_meters?: number | null
           check_in_address?: string | null
           check_in_latitude?: number | null
@@ -762,15 +773,23 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           duration_minutes?: number | null
+          early_departure_minutes?: number
           employee_id: string
+          expected_work_minutes?: number | null
           id?: string
+          late_arrival_minutes?: number
           notes?: string | null
+          overtime_minutes?: number
           session_date?: string
           session_type: string
           source?: string
           updated_at?: string
+          work_minutes_total?: number
         }
         Update: {
+          break_minutes_total?: number
+          break_overrun_minutes?: number
+          calculation_completed_at?: string | null
           check_in_accuracy_meters?: number | null
           check_in_address?: string | null
           check_in_latitude?: number | null
@@ -784,13 +803,18 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           duration_minutes?: number | null
+          early_departure_minutes?: number
           employee_id?: string
+          expected_work_minutes?: number | null
           id?: string
+          late_arrival_minutes?: number
           notes?: string | null
+          overtime_minutes?: number
           session_date?: string
           session_type?: string
           source?: string
           updated_at?: string
+          work_minutes_total?: number
         }
         Relationships: [
           {
@@ -2934,6 +2958,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "employee_rosters_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_work_schedules: {
+        Row: {
+          break_minutes_allotted: number
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_until: string | null
+          employee_id: string
+          id: string
+          late_threshold_minutes: number
+          notes: string | null
+          total_work_hours: number
+          updated_at: string
+          work_end_time: string
+          work_start_time: string
+          working_days: Json
+        }
+        Insert: {
+          break_minutes_allotted?: number
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_until?: string | null
+          employee_id: string
+          id?: string
+          late_threshold_minutes?: number
+          notes?: string | null
+          total_work_hours?: number
+          updated_at?: string
+          work_end_time?: string
+          work_start_time?: string
+          working_days?: Json
+        }
+        Update: {
+          break_minutes_allotted?: number
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_until?: string | null
+          employee_id?: string
+          id?: string
+          late_threshold_minutes?: number
+          notes?: string | null
+          total_work_hours?: number
+          updated_at?: string
+          work_end_time?: string
+          work_start_time?: string
+          working_days?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_work_schedules_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
@@ -8499,6 +8582,10 @@ export type Database = {
         Args: { p_gr_id: string }
         Returns: string
       }
+      calculate_attendance_metrics: {
+        Args: { p_date: string; p_employee_id: string }
+        Returns: Json
+      }
       calculate_so_advance_percent: {
         Args: { p_so_id: string }
         Returns: number
@@ -8592,6 +8679,31 @@ export type Database = {
       get_current_employee_id: { Args: never; Returns: string }
       get_current_fy_label: { Args: never; Returns: string }
       get_dashboard_role: { Args: never; Returns: string }
+      get_employee_schedule_for_date: {
+        Args: { p_date: string; p_employee_id: string }
+        Returns: {
+          break_minutes_allotted: number
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_until: string | null
+          employee_id: string
+          id: string
+          late_threshold_minutes: number
+          notes: string | null
+          total_work_hours: number
+          updated_at: string
+          work_end_time: string
+          work_start_time: string
+          working_days: Json
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_work_schedules"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_invoice_delivery_summary: {
         Args: { p_invoice_id: string }
         Returns: Json
@@ -8641,6 +8753,7 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: never; Returns: boolean }
+      is_admin_or_hr: { Args: never; Returns: boolean }
       is_app_admin: { Args: { _user_id: string }; Returns: boolean }
       is_assigned_or_admin: { Args: { p_wo_id: string }; Returns: boolean }
       is_chat_channel_admin: {
