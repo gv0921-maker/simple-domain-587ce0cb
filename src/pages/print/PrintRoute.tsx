@@ -6,9 +6,11 @@ import { QuotationPrint } from '@/components/print/templates/QuotationPrint';
 import { InvoicePrint } from '@/components/print/templates/InvoicePrint';
 import { DeliveryNotePrint } from '@/components/print/templates/DeliveryNotePrint';
 import { PaymentReceiptPrint } from '@/components/print/templates/PaymentReceiptPrint';
+import { CorrectionOrderPrint } from '@/components/print/templates/CorrectionOrderPrint';
 import { useSalesOrderRich, useQuotationRich } from '@/hooks/sales';
 import { useInvoice } from '@/hooks/invoicing';
 import { useDeliveryNote } from '@/hooks/inventory/deliveryNotes';
+import { useCorrectionOrder } from '@/hooks/inventory/correctionOrders';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import type { PrintableDocumentType } from '@/components/print/PrintableDocument';
@@ -59,6 +61,7 @@ export default function PrintRoute() {
   const invoice = useInvoice(type === 'invoice' ? documentId : undefined);
   const note = useDeliveryNote(type === 'delivery_note' ? documentId : undefined);
   const payment = usePayment(type === 'payment_receipt' ? documentId : undefined);
+  const correction = useCorrectionOrder(type === 'correction_order' ? documentId : undefined);
 
   useEffect(() => {
     document.title = `${type.replace(/_/g, ' ')} ${documentId ?? ''}`.trim();
@@ -66,7 +69,7 @@ export default function PrintRoute() {
 
   const loading =
     order.isLoading || quotation.isLoading || invoice.isLoading ||
-    note.isLoading || payment.isLoading;
+    note.isLoading || payment.isLoading || correction.isLoading;
 
   let body: React.ReactNode = null;
   let docNumber = documentId ?? '';
@@ -87,6 +90,10 @@ export default function PrintRoute() {
   } else if (type === 'payment_receipt' && payment.data) {
     docNumber = (payment.data as any).reference ?? (payment.data as any).payment_reference ?? docNumber;
     body = <PaymentReceiptPrint payment={payment.data} />;
+  } else if (type === 'correction_order' && correction.data?.co) {
+    const c = correction.data.co as any;
+    docNumber = c.co_number ?? docNumber;
+    body = <CorrectionOrderPrint co={c} items={correction.data.items} isDraft={c.status === 'draft'} />;
   }
 
   if (loading) {
