@@ -198,6 +198,9 @@ export interface CalcResult {
   lop_days: number;
   overtime_hours: number;
   working_days: number;
+  esi_applicable?: boolean;
+  pt_applicable?: boolean;
+  settings_snapshot?: Record<string, unknown>;
 }
 
 export async function calculatePayslip(employeeId: string, periodMonth: number, periodYear: number): Promise<CalcResult> {
