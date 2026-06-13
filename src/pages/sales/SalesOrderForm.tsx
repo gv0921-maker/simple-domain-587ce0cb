@@ -467,14 +467,14 @@ export default function SalesOrderForm() {
                 <Save className="h-4 w-4 mr-2" /> Save
               </Button>
             )}
-            {status === 'confirmed' && !isNew && (
-              <Button
-                size="lg"
-                className="bg-primary hover:bg-primary/90 shadow-md"
-                onClick={() => setPaymentDialogOpen(true)}
-              >
-                <CreditCard className="h-4 w-4 mr-2" /> Record Payment
-              </Button>
+            {(status === 'draft' || status === 'awaiting_advance') && !isNew && id && (
+              <ConfirmOrderButton
+                orderId={id}
+                grandTotal={formData.grandTotal || formData.total || 0}
+                canOverride={userRole === 'admin' || userRole === 'super_admin'}
+                onOpenOverride={() => setOverrideOpen(true)}
+                onConfirmed={(newStatus) => setFormData((prev) => ({ ...prev, status: newStatus }))}
+              />
             )}
             {status === 'paid' && !isNew && id && (
               <TooltipProvider>
@@ -749,12 +749,13 @@ export default function SalesOrderForm() {
       </AlertDialog>
 
       {!isNew && id && (
-        <RecordPaymentDialog
-          open={paymentDialogOpen}
-          onOpenChange={setPaymentDialogOpen}
+        <OverrideAdvanceDialog
+          open={overrideOpen}
+          onOpenChange={setOverrideOpen}
           orderId={id}
-          customerId={formData.customerId}
-          defaultAmount={formData.grandTotal || formData.total || 0}
+          reason={overrideReason}
+          setReason={setOverrideReason}
+          onSuccess={() => setOverrideOpen(false)}
         />
       )}
     </AppLayout>
