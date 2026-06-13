@@ -526,7 +526,7 @@ export function OrderLinesTable<L extends AnyLine>({
               <Label className="text-[10px] uppercase text-muted-foreground">Source</Label>
               <Select
                 value={productSource}
-                onValueChange={(v) => updateLine(line.id, { productSource: v as ProductSource } as Partial<L>)}
+                onValueChange={(v) => updateLine(line.id, { productSource: v as ProductSource } as unknown as Partial<L>)}
                 disabled={disabled}
               >
                 <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
@@ -546,7 +546,7 @@ export function OrderLinesTable<L extends AnyLine>({
                 type="date"
                 className="h-8"
                 value={lineEta || ''}
-                onChange={(e) => updateLine(line.id, { lineEta: e.target.value } as Partial<L>)}
+                onChange={(e) => updateLine(line.id, { lineEta: e.target.value } as unknown as Partial<L>)}
                 disabled={disabled}
               />
             </div>
