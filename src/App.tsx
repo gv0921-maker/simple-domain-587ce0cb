@@ -344,6 +344,7 @@ const App = () => (
             <Route path="/settings/vendors" element={<ProtectedRoute><VendorsSettings /></ProtectedRoute>} />
             <Route path="/settings/work-schedules" element={<ProtectedRoute><WorkSchedulesSettings /></ProtectedRoute>} />
             <Route path="/settings/holidays" element={<ProtectedRoute><HolidaysSettings /></ProtectedRoute>} />
+            <Route path="/settings/payroll" element={<SuperAdminRoute label="Payroll Settings"><PayrollSettingsPage /></SuperAdminRoute>} />
 
             {/* Vendor Orders module */}
             <Route path="/vendor-orders" element={<ProtectedRoute><VendorOrdersList /></ProtectedRoute>} />
