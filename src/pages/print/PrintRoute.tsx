@@ -205,6 +205,10 @@ export default function PrintRoute() {
       source_invoice_ref: e.source_invoice?.reference ?? null,
     };
     body = <ExchangePrint exchange={enriched} />;
+  } else if (type === 'payslip' && payslip.data) {
+    const p: any = payslip.data;
+    docNumber = p.payslip_number ?? docNumber;
+    body = <PayslipPrint payslip={p} />;
   }
 
   if (loading) {
