@@ -83,7 +83,24 @@ export default function InvoiceDetail() {
                 {invoice.status === 'paid' && (
                   <Badge className="bg-success text-success-foreground hover:bg-success">Paid</Badge>
                 )}
+                {(invoice as any).is_partial && (
+                  <Badge variant="outline">
+                    Partial #{(invoice as any).invoice_sequence_in_so} · Multi-invoice SO
+                  </Badge>
+                )}
               </div>
+              {invoice.sales_order_id && order?.reference && (
+                <p className="text-xs text-muted-foreground">
+                  From Sales Order:{' '}
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/sales/orders/${invoice.sales_order_id}`)}
+                    className="underline text-foreground hover:text-primary"
+                  >
+                    {order.reference} →
+                  </button>
+                </p>
+              )}
               <p className="text-muted-foreground text-sm">
                 Issued {format(parseISO(invoice.issue_date), 'MMM d, yyyy')}
                 {invoice.due_date && ` · Due ${format(parseISO(invoice.due_date), 'MMM d, yyyy')}`}
