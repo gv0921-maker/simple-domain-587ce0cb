@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { ArrowLeft, CheckCircle2, ExternalLink } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ExternalLink, Printer } from 'lucide-react';
 import { useInvoice } from '@/hooks/invoicing';
 import { useDeliveryQC } from '@/hooks/qc';
 import { useGenerateDeliveryNote } from '@/hooks/inventory/deliveryNotes';
@@ -90,15 +90,20 @@ export default function InvoiceDetail() {
               </p>
             </div>
           </div>
-          {invoice.sales_order_id && (
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/sales/orders/${invoice.sales_order_id}`)}
-            >
-              <ExternalLink className="h-4 w-4 mr-2" />
-              {order?.reference ? `Order ${order.reference}` : 'View Sales Order'}
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => window.open(`/print/invoice/${invoice.id}`, '_blank')}>
+              <Printer className="h-4 w-4 mr-2" /> Print
             </Button>
-          )}
+            {invoice.sales_order_id && (
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/sales/orders/${invoice.sales_order_id}`)}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                {order?.reference ? `Order ${order.reference}` : 'View Sales Order'}
+              </Button>
+            )}
+          </div>
         </div>
 
         {invoice.status === 'paid' && (
