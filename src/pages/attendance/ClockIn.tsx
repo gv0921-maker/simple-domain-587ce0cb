@@ -10,8 +10,9 @@ import { MapPin, Play, Pause, Square, Loader2, Coffee, Briefcase } from 'lucide-
 import { ATTENDANCE_NAV } from '@/lib/navigation/attendance';
 import { useCurrentEmployee } from '@/hooks/hr/useCurrentEmployee';
 import {
-  useActiveSession, useDailyAttendance, usePunchIn, usePunchOut, useSchedules,
+  useActiveSession, useDailyAttendance, usePunchIn, usePunchOut,
 } from '@/hooks/hr';
+import { useEmployeeWorkSchedule } from '@/hooks/hr/workSchedules';
 import {
   getCurrentPosition, reverseGeocode, validateGeofence, type GeoPoint,
 } from '@/lib/services/hr/api';
@@ -34,7 +35,7 @@ export default function ClockIn() {
   const empId = employee?.id;
   const { data: active } = useActiveSession(empId);
   const { data: daily } = useDailyAttendance(empId, today());
-  const { data: schedules = [] } = useSchedules(empId);
+  const { data: schedule } = useEmployeeWorkSchedule(empId);
   const punchIn = usePunchIn();
   const punchOut = usePunchOut();
 
@@ -43,18 +44,36 @@ export default function ClockIn() {
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
 
-  const todaySchedule = useMemo(() => {
+  const isTodayWorking = useMemo(() => {
+    if (!schedule) return true;
     const dow = new Date().getDay();
-    return schedules.find((s) => s.day_of_week === dow) ?? null;
-  }, [schedules]);
+    return (schedule.working_days ?? []).includes(dow);
+  }, [schedule]);
 
   const scheduledMinutes = useMemo(() => {
-    if (!todaySchedule || !todaySchedule.is_working_day) return 0;
-    const [sh, sm] = todaySchedule.start_time.split(':').map(Number);
-    const [eh, em] = todaySchedule.end_time.split(':').map(Number);
-    const mins = (eh * 60 + em) - (sh * 60 + sm) - (todaySchedule.break_duration_minutes ?? 0);
-    return Math.max(0, mins);
-  }, [todaySchedule]);
+    if (!schedule || !isTodayWorking) return 0;
+    return Math.round(Number(schedule.total_work_hours ?? 0) * 60);
+  }, [schedule, isTodayWorking]);
+
+  const scheduleLabel = useMemo(() => {
+    if (!schedule) return 'No schedule set — contact HR';
+    if (!isTodayWorking) return 'Today is not a scheduled working day';
+    const s = schedule.work_start_time.slice(0, 5);
+    const e = schedule.work_end_time.slice(0, 5);
+    return `Your schedule today: ${s} – ${e} (${schedule.break_minutes_allotted}m break allotted)`;
+  }, [schedule, isTodayWorking]);
+
+  // Latest computed metrics (any session row carries them after recalc trigger)
+  const metrics = useMemo(() => {
+    const sess: any[] = daily?.sessions ?? [];
+    const last = sess[sess.length - 1];
+    if (!last) return null;
+    return {
+      late: last.late_arrival_minutes ?? 0,
+      overtime: last.overtime_minutes ?? 0,
+      breakOverrun: last.break_overrun_minutes ?? 0,
+    };
+  }, [daily]);
 
   async function capturePoint(): Promise<GeoPoint | null> {
     try {
@@ -133,6 +152,10 @@ export default function ClockIn() {
   return (
     <AppLayout title="Attendance" subtitle="Clock In / Out" moduleNav={ATTENDANCE_NAV}>
       <div className="p-4 md:p-6 max-w-md mx-auto space-y-4">
+        <Card className="p-3 bg-primary/5 border-primary/20 text-xs md:text-sm">
+          {scheduleLabel}
+        </Card>
+
         <Card className="p-4 flex items-center gap-3">
           <Avatar className="h-12 w-12">
             {employee.profile_photo_url && <AvatarImage src={employee.profile_photo_url} />}
@@ -252,6 +275,23 @@ export default function ClockIn() {
             <p className="font-semibold">{fmtDur(scheduledMinutes)}</p>
           </div>
         </Card>
+
+        {metrics && (metrics.late > 0 || metrics.overtime > 0 || metrics.breakOverrun > 0) && (
+          <Card className="p-4 grid grid-cols-3 text-center text-sm">
+            <div>
+              <p className="text-xs text-muted-foreground">Late</p>
+              <p className={`font-semibold ${metrics.late > 0 ? 'text-destructive' : ''}`}>{fmtDur(metrics.late)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Overtime</p>
+              <p className={`font-semibold ${metrics.overtime > 0 ? 'text-emerald-600' : ''}`}>{fmtDur(metrics.overtime)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Break Overrun</p>
+              <p className={`font-semibold ${metrics.breakOverrun > 0 ? 'text-amber-600' : ''}`}>{fmtDur(metrics.breakOverrun)}</p>
+            </div>
+          </Card>
+        )}
       </div>
     </AppLayout>
   );
