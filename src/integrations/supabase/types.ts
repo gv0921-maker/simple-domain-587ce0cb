@@ -7632,6 +7632,7 @@ export type Database = {
         | "super_admin"
         | "accountant"
         | "hr_manager"
+        | "factory_incharge"
       appraisal_criterion_category:
         | "kpi"
         | "competency"
@@ -7829,6 +7830,7 @@ export const Constants = {
         "super_admin",
         "accountant",
         "hr_manager",
+        "factory_incharge",
       ],
       appraisal_criterion_category: [
         "kpi",
