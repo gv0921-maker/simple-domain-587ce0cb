@@ -16,7 +16,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  ArrowLeft, Save, Send, CheckCircle, XCircle, ArrowRight, FileText,
+  ArrowLeft, Save, Send, CheckCircle, XCircle, ArrowRight, FileText, Printer,
 } from 'lucide-react';
 import {
   useQuotationRich, useSaveQuotationRich, usePricelists, useConvertQuotationToOrder,
@@ -398,6 +398,11 @@ export default function QuotationForm() {
             </div>
           </div>
           <div className="flex gap-2">
+            {!isNew && id && (
+              <Button variant="outline" onClick={() => window.open(`/print/quotation/${id}`, '_blank')}>
+                <Printer className="h-4 w-4 mr-2" /> Print
+              </Button>
+            )}
             {isEditable && (
               <>
                 <Button variant="outline" onClick={() => handleSave()} disabled={saving}>
