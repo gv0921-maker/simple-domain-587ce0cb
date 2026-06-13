@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ArrowLeft, Save, XCircle, ShoppingCart, CreditCard, FileText, CheckCircle2, Printer } from 'lucide-react';
 import { PaymentsSection } from '@/components/sales/PaymentsSection';
+import { FulfillmentSection } from '@/components/sales/FulfillmentSection';
 import { usePaymentSummary } from '@/hooks/sales/payments';
 import { confirmSalesOrder, overrideAdvanceGate } from '@/lib/services/sales/api';
 import { useGenerateInvoiceFromOrder } from '@/hooks/invoicing';
@@ -556,6 +557,16 @@ export default function SalesOrderForm() {
         {!isNew && id && (
           <div className="max-w-4xl mx-auto w-full">
             <PaymentsSection salesOrderId={id} />
+          </div>
+        )}
+
+        {!isNew && id && (
+          <div className="max-w-4xl mx-auto w-full">
+            <FulfillmentSection
+              salesOrderId={id}
+              salesOrderStatus={status}
+              salesOrderCreatedBy={(formData as any).createdBy ?? null}
+            />
           </div>
         )}
 
