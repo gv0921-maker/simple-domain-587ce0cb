@@ -8,6 +8,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import "./lib/print/styles.css";
+
 /* ===== Global mobile safety net ===== */
 @layer base {
   html,
