@@ -16,7 +16,9 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ArrowLeft, Save, XCircle, ShoppingCart, CreditCard, FileText, CheckCircle2, Printer } from 'lucide-react';
-import { RecordPaymentDialog } from '@/components/sales/RecordPaymentDialog';
+import { PaymentsSection } from '@/components/sales/PaymentsSection';
+import { usePaymentSummary } from '@/hooks/sales/payments';
+import { confirmSalesOrder, overrideAdvanceGate } from '@/lib/services/sales/api';
 import { useGenerateInvoiceFromOrder } from '@/hooks/invoicing';
 import { useDeliveryQC } from '@/hooks/qc';
 import { PreDeliveryQCSection } from '@/components/sales/PreDeliveryQCSection';
@@ -107,7 +109,8 @@ export default function SalesOrderForm() {
   const [saving, setSaving] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<'cancel' | null>(null);
-  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [overrideReason, setOverrideReason] = useState('');
   const generateInvoiceMut = useGenerateInvoiceFromOrder();
   const { data: deliveryQC } = useDeliveryQC(!isNew ? id : undefined);
   const qcPassed = deliveryQC?.status === 'passed';
