@@ -6076,6 +6076,156 @@ export type Database = {
           },
         ]
       }
+      stock_count_items: {
+        Row: {
+          count_status: string
+          created_at: string
+          discrepancy_notes: string | null
+          expected_location_type: string | null
+          expected_warehouse_id: string | null
+          found_location_type: string | null
+          found_warehouse_id: string | null
+          goods_receipt_serial_id: string
+          id: string
+          product_id: string
+          scanned_at: string | null
+          scanned_by: string | null
+          serial_number: string
+          stock_count_id: string
+          updated_at: string
+        }
+        Insert: {
+          count_status?: string
+          created_at?: string
+          discrepancy_notes?: string | null
+          expected_location_type?: string | null
+          expected_warehouse_id?: string | null
+          found_location_type?: string | null
+          found_warehouse_id?: string | null
+          goods_receipt_serial_id: string
+          id?: string
+          product_id: string
+          scanned_at?: string | null
+          scanned_by?: string | null
+          serial_number: string
+          stock_count_id: string
+          updated_at?: string
+        }
+        Update: {
+          count_status?: string
+          created_at?: string
+          discrepancy_notes?: string | null
+          expected_location_type?: string | null
+          expected_warehouse_id?: string | null
+          found_location_type?: string | null
+          found_warehouse_id?: string | null
+          goods_receipt_serial_id?: string
+          id?: string
+          product_id?: string
+          scanned_at?: string | null
+          scanned_by?: string | null
+          serial_number?: string
+          stock_count_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_count_items_goods_receipt_serial_id_fkey"
+            columns: ["goods_receipt_serial_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receipt_serials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_stock_count_id_fkey"
+            columns: ["stock_count_id"]
+            isOneToOne: false
+            referencedRelation: "stock_counts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_counts: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          count_number: string
+          count_period_month: number
+          count_period_year: number
+          count_type: string
+          created_at: string
+          id: string
+          notes: string | null
+          reconciled_at: string | null
+          reconciled_by: string | null
+          skip_approved_at: string | null
+          skip_approved_by: string | null
+          skip_reason: string | null
+          started_at: string | null
+          started_by: string | null
+          status: string
+          updated_at: string
+          warehouse_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          count_number: string
+          count_period_month: number
+          count_period_year: number
+          count_type?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          skip_approved_at?: string | null
+          skip_approved_by?: string | null
+          skip_reason?: string | null
+          started_at?: string | null
+          started_by?: string | null
+          status?: string
+          updated_at?: string
+          warehouse_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          count_number?: string
+          count_period_month?: number
+          count_period_year?: number
+          count_type?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          skip_approved_at?: string | null
+          skip_approved_by?: string | null
+          skip_reason?: string | null
+          started_at?: string | null
+          started_by?: string | null
+          status?: string
+          updated_at?: string
+          warehouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_counts_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_move_lines: {
         Row: {
           created_at: string
@@ -7057,6 +7207,10 @@ export type Database = {
         Args: { _appraisal_id: string }
         Returns: boolean
       }
+      approve_count_skip: {
+        Args: { p_month: number; p_reason: string; p_year: number }
+        Returns: string
+      }
       auto_create_correction_order: {
         Args: { p_gr_id: string }
         Returns: string
@@ -7091,6 +7245,7 @@ export type Database = {
         Args: { p_movement_id: string }
         Returns: boolean
       }
+      complete_stock_count: { Args: { p_count_id: string }; Returns: Json }
       create_ito_from_so: {
         Args: { p_confirmed_by: string; p_so_id: string }
         Returns: string
@@ -7124,6 +7279,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      initialize_stock_count: { Args: { p_count_id: string }; Returns: number }
       insert_audit_log: {
         Args: {
           _action: string
@@ -7154,6 +7310,10 @@ export type Database = {
         Args: { _channel_id: string; _user_id: string }
         Returns: boolean
       }
+      is_count_required_this_month: {
+        Args: { p_month: number; p_year: number }
+        Returns: boolean
+      }
       is_employee_self: { Args: { _employee_id: string }; Returns: boolean }
       is_manager_of: { Args: { target_employee_id: string }; Returns: boolean }
       is_reviewer_for: { Args: { _reviewer_id: string }; Returns: boolean }
@@ -7171,6 +7331,10 @@ export type Database = {
       preview_next_document_number: {
         Args: { p_document_type: string }
         Returns: string
+      }
+      reconcile_stock_count: {
+        Args: { p_count_id: string; p_item_reconciliations: Json }
+        Returns: Json
       }
       suggest_ito_for_so: { Args: { p_so_id: string }; Returns: Json }
     }
