@@ -768,3 +768,107 @@ export default function SalesOrderForm() {
     </AppLayout>
   );
 }
+
+// -------- Confirm Order / Advance Gate helpers --------
+
+function ConfirmOrderButton({
+  orderId, grandTotal, canOverride, onOpenOverride, onConfirmed,
+}: {
+  orderId: string;
+  grandTotal: number;
+  canOverride: boolean;
+  onOpenOverride: () => void;
+  onConfirmed: (newStatus: SalesOrderStatus) => void;
+}) {
+  const { toast } = useToast();
+  const { data: summary } = usePaymentSummary(orderId);
+  const advanceMet = summary?.is_advance_met ?? false;
+  const required = summary?.advance_percent_required ?? 40;
+  const requiredAmount = (required / 100) * (summary?.total_amount ?? grandTotal);
+  const paid = summary?.total_paid ?? 0;
+
+  const handleConfirm = async () => {
+    try {
+      await confirmSalesOrder(orderId);
+      toast({ title: 'Order confirmed' });
+      onConfirmed('confirmed');
+    } catch (e: any) {
+      toast({ title: 'Failed to confirm', description: e?.message ?? String(e), variant: 'destructive' });
+    }
+  };
+
+  return (
+    <div className="flex gap-2">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span tabIndex={0}>
+              <Button onClick={handleConfirm} disabled={!advanceMet}>
+                <CheckCircle2 className="h-4 w-4 mr-2" />Confirm Order
+              </Button>
+            </span>
+          </TooltipTrigger>
+          {!advanceMet && (
+            <TooltipContent>
+              Advance of ₹{requiredAmount.toFixed(0)} ({required}% of order) required. Current: ₹{paid.toFixed(0)}
+            </TooltipContent>
+          )}
+        </Tooltip>
+      </TooltipProvider>
+      {!advanceMet && canOverride && (
+        <Button variant="outline" onClick={onOpenOverride}>
+          Override Advance Gate
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function OverrideAdvanceDialog({
+  open, onOpenChange, orderId, reason, setReason, onSuccess,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  orderId: string;
+  reason: string;
+  setReason: (r: string) => void;
+  onSuccess: () => void;
+}) {
+  const { toast } = useToast();
+  const [saving, setSaving] = useState(false);
+  const submit = async () => {
+    if (reason.trim().length < 3) {
+      toast({ title: 'Reason required', variant: 'destructive' });
+      return;
+    }
+    setSaving(true);
+    try {
+      await overrideAdvanceGate(orderId, reason);
+      toast({ title: 'Advance gate overridden' });
+      onSuccess();
+    } catch (e: any) {
+      toast({ title: 'Failed', description: e?.message ?? String(e), variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Override Advance Gate</AlertDialogTitle>
+          <AlertDialogDescription>
+            Provide a reason for bypassing the advance requirement. This is logged for audit.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="" />
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={saving}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={submit} disabled={saving}>
+            {saving ? 'Overriding…' : 'Override'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
