@@ -86,7 +86,7 @@ export default function VendorsSettings() {
 
   return (
     <AppLayout>
-      <ModuleNav items={SETTINGS_NAV} title="Settings" />
+      <ModuleNav items={SETTINGS_NAV} />
       <div className="p-6 max-w-6xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
           <div>
