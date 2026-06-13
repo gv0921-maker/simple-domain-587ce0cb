@@ -27,6 +27,21 @@ import type { PrintableDocumentType } from '@/components/print/PrintableDocument
 
 const PRINT_ELEMENT_ID = 'printable-document';
 
+function InvoiceWithSO({ invoice }: { invoice: any }) {
+  const { data: soRef } = useQuery({
+    queryKey: ['print-invoice-so-ref', invoice?.sales_order_id],
+    queryFn: async () => {
+      if (!invoice?.sales_order_id) return null;
+      const { data } = await supabase
+        .from('sales_orders').select('reference').eq('id', invoice.sales_order_id).maybeSingle();
+      return (data as any)?.reference ?? null;
+    },
+    enabled: !!invoice?.sales_order_id,
+  });
+  const enriched = { ...invoice, sales_order_reference: soRef ?? undefined };
+  return <InvoicePrint invoice={enriched} isDraft={invoice?.status === 'draft'} />;
+}
+
 function usePayment(id: string | undefined) {
   return useQuery({
     queryKey: ['payment', id],
@@ -98,7 +113,9 @@ export default function PrintRoute() {
     body = <QuotationPrint quotation={quotation.data} lines={(quotation.data as any).quotation_lines ?? []} isDraft={(quotation.data as any).status === 'draft'} />;
   } else if (type === 'invoice' && invoice.data) {
     docNumber = (invoice.data as any).reference ?? docNumber;
-    body = <InvoicePrint invoice={invoice.data} isDraft={(invoice.data as any).status === 'draft'} />;
+    body = (
+      <InvoiceWithSO invoice={invoice.data as any} />
+    );
   } else if (type === 'delivery_note' && note.data) {
     docNumber = (note.data as any).reference ?? docNumber;
     body = <DeliveryNotePrint note={note.data} isDraft={(note.data as any).status === 'draft'} />;

@@ -20,6 +20,17 @@ export function InvoicePrint({ invoice, isDraft = false }: Props) {
       documentDate={invoice?.issue_date ?? invoice?.created_at ?? ''}
       isDraft={isDraft}
     >
+      {invoice?.is_partial && invoice?.sales_order_reference && (
+        <div className="text-xs italic text-gray-700 mb-3">
+          Partial Invoice #{invoice?.invoice_sequence_in_so ?? 1} for Sales Order{' '}
+          <span className="font-semibold">{invoice.sales_order_reference}</span>
+        </div>
+      )}
+      {!invoice?.is_partial && invoice?.sales_order_reference && (
+        <div className="text-xs text-gray-700 mb-3">
+          Source Sales Order: <span className="font-semibold">{invoice.sales_order_reference}</span>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-6 mb-6 text-xs">
         <div>
           <div className="text-gray-500 uppercase tracking-wide mb-1">Bill To</div>

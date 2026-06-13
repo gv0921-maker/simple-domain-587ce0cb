@@ -18,6 +18,7 @@ import {
 import { ArrowLeft, Save, XCircle, ShoppingCart, CreditCard, FileText, CheckCircle2, Printer } from 'lucide-react';
 import { PaymentsSection } from '@/components/sales/PaymentsSection';
 import { FulfillmentSection } from '@/components/sales/FulfillmentSection';
+import { InvoicingSection } from '@/components/sales/InvoicingSection';
 import { usePaymentSummary } from '@/hooks/sales/payments';
 import { confirmSalesOrder, overrideAdvanceGate } from '@/lib/services/sales/api';
 import { useGenerateInvoiceFromOrder } from '@/hooks/invoicing';
@@ -480,42 +481,6 @@ export default function SalesOrderForm() {
                 }}
               />
             )}
-            {status === 'paid' && !isNew && id && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span tabIndex={0}>
-                      <Button
-                        variant="outline"
-                        disabled={generateInvoiceMut.isPending || !qcPassed}
-                        onClick={async () => {
-                          try {
-                            const res = await generateInvoiceMut.mutateAsync(id);
-                            try {
-                              await logStatusChange('sales_order', id, 'paid', 'invoiced');
-                            } catch { /* ignore */ }
-                            toast({ title: 'Invoice generated successfully' });
-                            navigate(`/invoicing/invoices/${res.invoiceId}`);
-                          } catch (e: any) {
-                            toast({
-                              title: 'Failed to generate invoice',
-                              description: e?.message ?? String(e),
-                              variant: 'destructive',
-                            });
-                          }
-                        }}
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        {generateInvoiceMut.isPending ? 'Generating…' : 'Generate Invoice'}
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  {!qcPassed && (
-                    <TooltipContent>Complete pre-delivery QC first</TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
-            )}
             {status !== 'cancelled' && status !== 'delivered' && status !== 'paid' && !isNew && (
               <Button variant="outline" onClick={() => { setConfirmAction('cancel'); setConfirmDialogOpen(true); }}>
                 <XCircle className="h-4 w-4 mr-2" /> Cancel Order
@@ -570,6 +535,12 @@ export default function SalesOrderForm() {
               salesOrderStatus={status}
               salesOrderCreatedBy={(formData as any).createdBy ?? null}
             />
+          </div>
+        )}
+
+        {!isNew && id && (
+          <div className="max-w-4xl mx-auto w-full">
+            <InvoicingSection salesOrderId={id} salesOrderStatus={status} />
           </div>
         )}
 
