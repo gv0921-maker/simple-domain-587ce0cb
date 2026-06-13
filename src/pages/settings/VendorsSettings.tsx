@@ -35,7 +35,7 @@ export default function VendorsSettings() {
   const createMut = useCreateVendor();
   const updateMut = useUpdateVendor();
   const deactivateMut = useDeactivateVendor();
-  const { isSuperAdmin } = useIsSuperAdmin();
+  const { isAdmin: isSuperAdmin } = useIsSuperAdmin();
 
   const filtered = useMemo(() => {
     const list = vendors.data ?? [];
