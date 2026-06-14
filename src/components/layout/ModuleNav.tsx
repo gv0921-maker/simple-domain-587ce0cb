@@ -23,12 +23,16 @@ export function ModuleNav({ items }: ModuleNavProps) {
 
   if (!items || items.length === 0) return null;
 
+  // Pick the longest matching href so nested routes like '/crm/contacts'
+  // win over the parent index route '/crm'.
   const activeItem =
-    items.find(
-      (i) =>
-        location.pathname === i.href ||
-        location.pathname.startsWith(i.href + '/'),
-    ) ?? items[0];
+    [...items]
+      .sort((a, b) => b.href.length - a.href.length)
+      .find(
+        (i) =>
+          location.pathname === i.href ||
+          location.pathname.startsWith(i.href + '/'),
+      ) ?? items[0];
 
   return (
     <>
