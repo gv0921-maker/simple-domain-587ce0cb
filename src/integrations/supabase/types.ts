@@ -7986,6 +7986,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_saved_filters: {
+        Row: {
+          created_at: string
+          filter_state: Json
+          id: string
+          is_default: boolean
+          is_system_default: boolean
+          module: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filter_state?: Json
+          id?: string
+          is_default?: boolean
+          is_system_default?: boolean
+          module: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          filter_state?: Json
+          id?: string
+          is_default?: boolean
+          is_system_default?: boolean
+          module?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       vendor_order_lines: {
         Row: {
           colour_polish_spec: string | null
@@ -9190,6 +9226,14 @@ export type Database = {
       reject_work_order: {
         Args: { p_reason: string; p_wo_id: string }
         Returns: Json
+      }
+      set_system_default_filter: {
+        Args: { p_filter_id: string; p_module: string }
+        Returns: undefined
+      }
+      set_user_default_filter: {
+        Args: { p_filter_id: string; p_module: string }
+        Returns: undefined
       }
       start_polishing: { Args: { p_wo_id: string }; Returns: undefined }
       start_work: { Args: { p_wo_id: string }; Returns: undefined }
