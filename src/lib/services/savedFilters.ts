@@ -43,14 +43,13 @@ export async function saveFilter(
 ): Promise<SavedFilter> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not signed in');
-  const { data, error } = await supabase
-    .from('user_saved_filters')
-    .insert({
+  const { data, error } = await (supabase.from('user_saved_filters') as any)
+    .insert([{
       user_id: user.id, module, name,
-      filter_state: filter_state as unknown as Record<string, unknown>,
+      filter_state: filter_state as unknown,
       is_default: !!opts?.is_default,
       is_system_default: !!opts?.is_system_default,
-    })
+    }])
     .select('*').single();
   if (error) throw error;
   if (opts?.is_default && data) await setUserDefault(module, data.id);
@@ -63,8 +62,8 @@ export async function updateFilter(
   patch: Partial<Pick<SavedFilter, 'name' | 'filter_state' | 'is_default' | 'is_system_default'>>,
 ): Promise<void> {
   const updates: Record<string, unknown> = { ...patch };
-  if (patch.filter_state) updates.filter_state = patch.filter_state as unknown as Record<string, unknown>;
-  const { error } = await supabase.from('user_saved_filters').update(updates).eq('id', id);
+  if (patch.filter_state) updates.filter_state = patch.filter_state as unknown;
+  const { error } = await (supabase.from('user_saved_filters') as any).update(updates).eq('id', id);
   if (error) throw error;
 }
 
