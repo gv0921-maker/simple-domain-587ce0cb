@@ -352,11 +352,12 @@ function rowToRole(row: any, permRows: any[]): Role {
 
 export async function hydrateRbacFromSupabase(): Promise<void> {
   try {
-    const [rolesRes, permsRes, assignsRes, auditRes] = await Promise.all([
+    const [rolesRes, permsRes, assignsRes, auditRes, userRolesRes] = await Promise.all([
       supabase.from('app_roles').select('*'),
       supabase.from('app_role_permissions').select('*'),
       supabase.from('app_user_role_assignments').select('*'),
       supabase.from('app_audit_logs').select('*').order('created_at', { ascending: false }).limit(500),
+      supabase.from('user_roles' as any).select('user_id, role'),
     ]);
     if (rolesRes.error) throw rolesRes.error;
     if (permsRes.error) throw permsRes.error;
@@ -387,10 +388,23 @@ export async function hydrateRbacFromSupabase(): Promise<void> {
       }));
     }
 
+    if (!userRolesRes.error && userRolesRes.data) {
+      const ids = new Set<string>();
+      for (const r of userRolesRes.data as Array<{ user_id: string; role: string }>) {
+        if (r.role === 'super_admin' && r.user_id) ids.add(r.user_id);
+      }
+      _superAdminIds = ids;
+    }
+
     _hydrated = true;
+    notifyHydrated();
   } catch (e) {
     // Keep defaults if hydration fails (e.g. unauthenticated)
     console.warn('[rbac] hydration failed:', e);
+    // Still mark hydrated so guards don't hang forever; downstream checks
+    // simply fall back to the in-memory defaults.
+    _hydrated = true;
+    notifyHydrated();
   }
 }
 
