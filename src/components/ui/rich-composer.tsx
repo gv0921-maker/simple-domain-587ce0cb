@@ -5,7 +5,6 @@ import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import { Paperclip, X, AtSign, Send, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { DEMO_USERS } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
 import DOMPurify from 'dompurify';
 
@@ -85,9 +84,8 @@ export function RichComposer({
     }
   }, [html]);
 
-  const filteredUsers = DEMO_USERS.filter(u =>
-    u.name.toLowerCase().includes(mentionQuery) || u.email.toLowerCase().includes(mentionQuery)
-  );
+  // Mention autocomplete source — empty until a real user-directory hook is wired.
+  const filteredUsers: { id: string; name: string; email: string }[] = [];
 
   const insertMention = (user: { id: string; name: string }) => {
     // Replace trailing @query with mention chip

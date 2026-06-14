@@ -42,7 +42,8 @@ import {
 import { SimpleBarChart } from '@/components/dashboard/SimpleBarChart';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay, subDays, subMonths, startOfMonth, endOfMonth } from 'date-fns';
-import { DEMO_USERS } from '@/lib/storage';
+// Owner filter source — empty until a real owner-directory hook is wired.
+const OWNER_OPTIONS: { id: string; name: string }[] = [];
 import { toCSV, downloadCSV } from '@/lib/crm/csvExport';
 
 interface StatCardProps {
@@ -251,7 +252,7 @@ export function CRMDashboard() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Users</SelectItem>
-            {DEMO_USERS.map(u => (
+            {OWNER_OPTIONS.map(u => (
               <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
             ))}
           </SelectContent>

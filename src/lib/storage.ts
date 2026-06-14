@@ -53,35 +53,3 @@ export function setAuthState(state: AuthState): void {
 export function clearAuth(): void {
   removeItem('auth');
 }
-
-// Demo users for local auth
-export const DEMO_USERS: User[] = [
-  {
-    id: '1',
-    name: 'Management',
-    email: 'admin@erp.local',
-    role: 'admin',
-  },
-  {
-    id: '2',
-    name: 'Sales Manager',
-    email: 'sales@erp.local',
-    role: 'manager',
-  },
-  {
-    id: '3',
-    name: 'Warehouse Operator',
-    email: 'warehouse@erp.local',
-    role: 'user',
-  },
-];
-
-// Simple password validation (demo purposes)
-export function validateCredentials(email: string, password: string): User | null {
-  const user = DEMO_USERS.find((u) => u.email === email);
-  // Demo: any password works
-  if (user && password.length >= 4) {
-    return user;
-  }
-  return null;
-}
