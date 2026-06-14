@@ -118,8 +118,8 @@ export default function QuotationForm() {
     [formData.billingCity, formData.billingState],
   );
 
-  const userRole = (user as any)?.role as string | undefined;
-  const canApplyOrderDiscount = userRole === 'admin' || userRole === 'manager' || userRole === 'super_admin';
+  const { isAdminOrSuper, hasAnyRole } = useRoleCheck();
+  const canApplyOrderDiscount = isAdminOrSuper || hasAnyRole(['manager', 'sales_manager']);
 
   // Load existing quotation
   useEffect(() => {
