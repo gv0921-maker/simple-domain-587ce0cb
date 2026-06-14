@@ -138,7 +138,7 @@ export function ActivityChatter({ recordType, recordId, className }: Props) {
   const [limit, setLimit] = useState(20);
   const [draft, setDraft] = useState('');
 
-  const isSuperAdmin = (user?.role ?? '').toLowerCase() === 'super_admin';
+  const { isSuperAdmin } = useRoleCheck();
 
   const q = useActivityLog(recordType, recordId, limit);
   const addNote = useAddManualNote(recordType, recordId ?? '');
