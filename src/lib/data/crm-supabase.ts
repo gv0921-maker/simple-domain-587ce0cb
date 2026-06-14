@@ -572,6 +572,13 @@ export async function saveOpportunity(opp: Partial<Opportunity> & { id?: string 
     if (opp.expectedCloseDate === undefined) {
       opp.expectedCloseDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     }
+    // Auto-assign to current user so RLS WITH CHECK (assigned_to = auth.uid()) passes.
+    if (!opp.assignedTo) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.id) opp.assignedTo = user.id;
+      } catch { /* ignore */ }
+    }
   }
   const payload = toOpportunityRow(opp);
   if (!isUpdate) {
