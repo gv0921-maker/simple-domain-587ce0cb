@@ -2453,6 +2453,8 @@ export type Database = {
       customers: {
         Row: {
           address: string | null
+          archive_reason: string | null
+          archived_at: string | null
           company: string | null
           contact_person: string | null
           created_at: string
@@ -2479,6 +2481,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          archive_reason?: string | null
+          archived_at?: string | null
           company?: string | null
           contact_person?: string | null
           created_at?: string
@@ -2505,6 +2509,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          archive_reason?: string | null
+          archived_at?: string | null
           company?: string | null
           contact_person?: string | null
           created_at?: string
@@ -3087,6 +3093,7 @@ export type Database = {
         Row: {
           aadhaar_number: string | null
           address: string | null
+          auth_user_id: string | null
           bank_account_number: string | null
           bank_name: string | null
           blood_group: string | null
@@ -3108,6 +3115,7 @@ export type Database = {
           gender: string | null
           id: string
           ifsc_code: string | null
+          is_active: boolean
           is_manager: boolean
           marital_status: string | null
           notes: string | null
@@ -3118,6 +3126,8 @@ export type Database = {
           profile_photo_url: string | null
           reports_to: string | null
           status: string
+          terminated_at: string | null
+          termination_reason: string | null
           uan_number: string | null
           updated_at: string
           user_id: string | null
@@ -3126,6 +3136,7 @@ export type Database = {
         Insert: {
           aadhaar_number?: string | null
           address?: string | null
+          auth_user_id?: string | null
           bank_account_number?: string | null
           bank_name?: string | null
           blood_group?: string | null
@@ -3147,6 +3158,7 @@ export type Database = {
           gender?: string | null
           id?: string
           ifsc_code?: string | null
+          is_active?: boolean
           is_manager?: boolean
           marital_status?: string | null
           notes?: string | null
@@ -3157,6 +3169,8 @@ export type Database = {
           profile_photo_url?: string | null
           reports_to?: string | null
           status?: string
+          terminated_at?: string | null
+          termination_reason?: string | null
           uan_number?: string | null
           updated_at?: string
           user_id?: string | null
@@ -3165,6 +3179,7 @@ export type Database = {
         Update: {
           aadhaar_number?: string | null
           address?: string | null
+          auth_user_id?: string | null
           bank_account_number?: string | null
           bank_name?: string | null
           blood_group?: string | null
@@ -3186,6 +3201,7 @@ export type Database = {
           gender?: string | null
           id?: string
           ifsc_code?: string | null
+          is_active?: boolean
           is_manager?: boolean
           marital_status?: string | null
           notes?: string | null
@@ -3196,6 +3212,8 @@ export type Database = {
           profile_photo_url?: string | null
           reports_to?: string | null
           status?: string
+          terminated_at?: string | null
+          termination_reason?: string | null
           uan_number?: string | null
           updated_at?: string
           user_id?: string | null
@@ -3427,6 +3445,41 @@ export type Database = {
             columns: ["related_work_order_id"]
             isOneToOne: false
             referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      factory_user_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          factory_id: string
+          id: string
+          is_active: boolean
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          factory_id: string
+          id?: string
+          is_active?: boolean
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          factory_id?: string
+          id?: string
+          is_active?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factory_user_assignments_factory_id_fkey"
+            columns: ["factory_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
             referencedColumns: ["id"]
           },
         ]
@@ -5425,6 +5478,8 @@ export type Database = {
           created_at: string
           default_location_id: string | null
           description: string | null
+          discontinuation_reason: string | null
+          discontinued_at: string | null
           factory_eligible: boolean
           id: string
           image_url: string | null
@@ -5454,6 +5509,8 @@ export type Database = {
           created_at?: string
           default_location_id?: string | null
           description?: string | null
+          discontinuation_reason?: string | null
+          discontinued_at?: string | null
           factory_eligible?: boolean
           id?: string
           image_url?: string | null
@@ -5483,6 +5540,8 @@ export type Database = {
           created_at?: string
           default_location_id?: string | null
           description?: string | null
+          discontinuation_reason?: string | null
+          discontinued_at?: string | null
           factory_eligible?: boolean
           id?: string
           image_url?: string | null
@@ -9028,6 +9087,7 @@ export type Database = {
         Returns: boolean
       }
       is_employee_self: { Args: { _employee_id: string }; Returns: boolean }
+      is_factory_user_for: { Args: { p_factory_id: string }; Returns: boolean }
       is_manager_of: { Args: { target_employee_id: string }; Returns: boolean }
       is_reviewer_for: { Args: { _reviewer_id: string }; Returns: boolean }
       is_sales_rep_for_record: {
