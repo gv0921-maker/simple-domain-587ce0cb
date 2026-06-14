@@ -305,6 +305,8 @@ export default function CorrectionOrderDetail() {
             </Table>
           </CardContent>
         </Card>
+
+        <ActivityChatter recordType="correction_order" recordId={id} />
       </div>
 
       <QCDialog
