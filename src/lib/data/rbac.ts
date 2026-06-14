@@ -503,31 +503,40 @@ export function getUserRole(userId: string): UserRole | undefined {
   return found ? { userId: found.userId, roleIds: [...found.roleIds] } : undefined;
 }
 
-export function setUserRoles(userId: string, roleIds: string[]): void {
-  // Update cache immediately
-  const existing = _userRolesCache.findIndex((ur) => ur.userId === userId);
-  if (existing >= 0) {
-    _userRolesCache[existing] = { userId, roleIds: [...roleIds] };
-  } else {
-    _userRolesCache = [..._userRolesCache, { userId, roleIds: [...roleIds] }];
+export async function setUserRoles(userId: string, roleIds: string[]): Promise<void> {
+  if (!isUuid(userId)) {
+    throw new Error(`Invalid user id "${userId}" — must be a Supabase auth UUID`);
+  }
+  const validRoleIds = roleIds.filter(isUuid);
+  if (validRoleIds.length !== roleIds.length) {
+    throw new Error('All role ids must be UUIDs from app_roles');
   }
 
-  // Persist only for real auth uuids and uuid role ids
-  if (!isUuid(userId)) return;
-  const validRoleIds = roleIds.filter(isUuid);
+  // Snapshot previous cache state for rollback
+  const prevCache = _userRolesCache.map((ur) => ({ userId: ur.userId, roleIds: [...ur.roleIds] }));
 
-  void (async () => {
-    try {
-      await supabase.from('app_user_role_assignments').delete().eq('user_id', userId);
-      if (validRoleIds.length) {
-        await supabase.from('app_user_role_assignments').insert(
-          validRoleIds.map((rid) => ({ user_id: userId, role_id: rid }))
-        );
-      }
-    } catch (e) {
-      console.warn('[rbac] setUserRoles failed:', e);
+  // Optimistic update
+  const existing = _userRolesCache.findIndex((ur) => ur.userId === userId);
+  if (existing >= 0) {
+    _userRolesCache[existing] = { userId, roleIds: [...validRoleIds] };
+  } else {
+    _userRolesCache = [..._userRolesCache, { userId, roleIds: [...validRoleIds] }];
+  }
+
+  try {
+    const del = await supabase.from('app_user_role_assignments').delete().eq('user_id', userId);
+    if (del.error) throw del.error;
+    if (validRoleIds.length) {
+      const ins = await supabase.from('app_user_role_assignments').insert(
+        validRoleIds.map((rid) => ({ user_id: userId, role_id: rid }))
+      );
+      if (ins.error) throw ins.error;
     }
-  })();
+  } catch (e) {
+    // Rollback cache
+    _userRolesCache = prevCache;
+    throw e;
+  }
 }
 
 export function isSuperAdminUser(userId: string): boolean {
