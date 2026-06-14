@@ -355,7 +355,7 @@ export default function SalesOrderForm() {
   const handleStatusStepClick = useCallback(async (next: SalesOrderStatus) => {
     const current = (formData.status || 'estimate') as SalesOrderStatus;
     if (current === next) return;
-    if (!canTransition(current, next, userRole)) {
+    if (!canTransition(current, next, userRoles)) {
       toast({
         title: 'Status change not allowed',
         description: `You don't have permission to advance to "${next}".`,
@@ -399,7 +399,7 @@ export default function SalesOrderForm() {
       toast({ title: 'Status update failed', description: e?.message ?? String(e), variant: 'destructive' });
     }
     // Phase 4: stock reservation on confirmed wired next.
-  }, [formData, lines, userRole, validate, persist, toast]);
+  }, [formData, lines, userRoles, validate, persist, toast]);
 
   const handleConfirmAction = useCallback(() => {
     if (confirmAction === 'cancel') handleSave('cancelled');
@@ -474,7 +474,7 @@ export default function SalesOrderForm() {
               <ConfirmOrderButton
                 orderId={id}
                 grandTotal={formData.grandTotal || formData.total || 0}
-                canOverride={userRole === 'admin' || userRole === 'super_admin'}
+                canOverride={isAdminOrSuper}
                 onOpenOverride={() => setOverrideOpen(true)}
                 onConfirmed={(newStatus) => {
                   setFormData((prev) => ({ ...prev, status: newStatus }));
