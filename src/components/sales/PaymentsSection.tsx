@@ -18,7 +18,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { CreditCard, Printer, Ban, Banknote, Landmark, Smartphone, FileText, Wallet } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
 import { useRoleCheck } from '@/hooks/auth/useRoleCheck';
 import {
   usePaymentAccounts, usePaymentSummary, useSalesOrderPayments,
