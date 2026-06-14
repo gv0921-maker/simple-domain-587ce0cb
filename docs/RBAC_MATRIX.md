@@ -138,3 +138,27 @@ or directly in components):
 `canApproveLeave`, `canVoidInvoice`, `canVoidCreditNote`,
 `canProcessRefund`, `canApproveReturn`, `canApproveWriteOff`,
 `canApproveSkipStockCount`, `canOverrideAdvanceGate`.
+
+---
+
+## Phase 8 Batch 3 — Final state
+
+### New data-integrity primitives
+- **Soft-delete columns**: `employees.is_active/terminated_at/termination_reason`, `customers.is_active/archived_at/archive_reason`, `products.is_active/discontinued_at/discontinuation_reason`. Lists should filter `is_active=true` by default and offer an admin-only "Show archived" toggle.
+- **`employees.auth_user_id`**: links an employee row to its `auth.users` account. Populated by the `create-employee-with-login` edge function.
+- **`factory_user_assignments(user_id, factory_id, is_active)`** + helper `public.is_factory_user_for(factory_id)`. Used by `work_orders` RLS to scope `factory_incharge` users to their assigned factories.
+
+### Audit triggers (field-level diffs into `activity_log`)
+`payslips`, `salary_components`, `contracts`, `refunds`, `credit_notes`, `app_user_role_assignments`, `crm_leads`, `crm_opportunities`, `holidays`, `payroll_settings`, `company_settings`.
+
+### Cascade policy
+- Sensitive parents (employees, customers, products, warehouses, sales_orders) → child FKs are now `ON DELETE RESTRICT`.
+- Combined with the DELETE-deny RLS policies from Batch 1, hard deletion of these records is blocked at both the policy and constraint layer.
+
+### Role-check consolidation
+- `useRoleCheck()` is the single source of truth for capability flags.
+- `useIsSuperAdmin()` is retained as a thin deprecated wrapper (`{ isAdmin: isAdminOrSuper, loading }`).
+- Prefer named capability flags (e.g. `canVoidInvoice`, `canApproveReturn`, `canManagePayrollSettings`) over raw role checks in new code.
+
+### Edge functions
+- `create-employee-with-login` — super_admin / hr_manager only. Creates auth user with `password_must_change` metadata, inserts employee row with `auth_user_id`, assigns role, returns temporary credentials for one-time display.
