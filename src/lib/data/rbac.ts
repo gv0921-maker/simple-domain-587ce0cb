@@ -163,13 +163,18 @@ export function canAccessRoute(userId: string, pathname: string): boolean {
   const normalized = normalizePathname(pathname);
 
   if (normalized === '/') return true;
+
+  // Super admin bypass — always allowed, regardless of module mapping.
+  if (isSuperAdminUser(userId)) return true;
+
   // Shop Floor and Chat are accessible to any authenticated user (incl. factory_incharge);
   // database RLS gates the actual data access.
   if (normalized === '/shop-floor' || normalized.startsWith('/shop-floor/')) return true;
   if (normalized === '/chat' || normalized.startsWith('/chat/')) return true;
 
   const moduleId = getModuleForPath(normalized);
-  if (!moduleId) return false;
+  // Unmapped routes default to open; RLS enforces data-level access.
+  if (!moduleId) return true;
 
   const requiredLevel = getRequiredPermissionForPath(normalized);
   if (!hasPermission(userId, moduleId, requiredLevel)) return false;
