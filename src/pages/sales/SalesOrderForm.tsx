@@ -45,6 +45,7 @@ import {
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRoleCheck } from '@/hooks/auth/useRoleCheck';
 import { useStudioConfig } from '@/hooks/useStudioConfig';
 import { format, parseISO, addDays } from 'date-fns';
 import { cn } from '@/lib/utils';
