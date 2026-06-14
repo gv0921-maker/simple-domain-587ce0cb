@@ -8957,6 +8957,10 @@ export type Database = {
         }
         Returns: string
       }
+      ensure_user_has_at_least_one_role: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       enter_bom: {
         Args: { p_entries: Json; p_wo_id: string }
         Returns: undefined
