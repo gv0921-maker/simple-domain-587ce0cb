@@ -1,45 +1,63 @@
-## Build Polish Batch 3 — Reports & Exports Module
+# CRM Fix Batch 2 — Odoo-style Stackable Filters
 
-This is a large, multi-module addition (~40+ report pages, framework, migration, hub, exports). Before I start writing code, I want to confirm scope and sequencing so we don't end up with a half-built framework.
+Build a reusable, stackable filter framework and wire it into CRM Pipeline + Contacts. Backed by a new `user_saved_filters` Supabase table with per-user and system-wide defaults.
 
-### What I'll build
+## 1. Database (Supabase migration)
 
-**1. Database (1 migration)**
-- `saved_reports` (user_id, report_key, name, description, filters_json, columns_json, sort_by, sort_dir, is_shared, shared_with_role)
-- `scheduled_reports` (saved_report_id, schedule, schedule_day, schedule_date, delivery_email, last_run_at, next_run_at, is_active, created_by)
-- RLS: users manage their own; shared reports visible by matching role; GRANTs to authenticated + service_role.
+New table `public.user_saved_filters`:
+- `id uuid pk`, `user_id uuid → auth.users`, `module text`, `name text`, `filter_state jsonb`, `is_default bool`, `is_system_default bool`, `created_at`, `updated_at`
+- Unique `(user_id, module, name)`
+- Indexes: `(user_id, module)`, `(module, is_system_default)`
+- GRANTs to `authenticated` + `service_role`
+- RLS: select own OR `is_system_default=true`; insert/update/delete own only; only `super_admin` may set `is_system_default=true` (enforced via a BEFORE trigger using `has_role`)
+- `updated_at` trigger
 
-**2. Framework (shared)**
-- `src/lib/reports/exporters.ts` — CSV (no dep), Excel (`xlsx`), PDF (`jspdf` + `jspdf-autotable`) with GLF letterhead.
-- `src/components/reports/ReportShell.tsx` — title, filter chips, expandable filter panel, desktop table + mobile cards, sticky export toolbar, Save Filter / Schedule dialogs, drill-down via `onRowClick`.
-- `src/hooks/reports/useSavedReports.ts`, `useScheduledReports.ts` (TanStack Query).
-- Filter primitives: date range, select, multi-select, text.
+RPCs (SECURITY DEFINER, search_path=public):
+- `set_user_default_filter(p_module text, p_filter_id uuid)` — unsets other defaults for caller+module, sets target true
+- `set_system_default_filter(p_module text, p_filter_id uuid)` — super_admin only; same for `is_system_default`
 
-**3. Reports Hub**
-- `/reports` — grouped by module, search, favorites (localStorage), recent (localStorage), saved reports section.
-- Avatar menu entry "Reports".
+## 2. Filter framework (shared, module-agnostic)
 
-**4. Per-module Reports** (each is a route + page using ReportShell, plus a "Reports" landing page per module that lists its reports)
-- Sales (6), Inventory (5), Manufacturing (3), Invoicing (5), Employees (3), Attendance (3), Leave (2), Payroll (3), Appraisals (2), CRM (2). **34 report pages + 10 module-reports landing pages**.
-- Add "Reports" link to each `*_NAV` array.
+New folder `src/lib/filters/`:
+- `types.ts` — `FilterState`, `FilterGroup`, `Operator`, `FieldConfig`, `ModuleFilterConfig`
+- `applyFilters.ts` — `buildSupabaseQuery(query, state)` translates operators to PostgREST builder calls; resolves relative dates (`today`, `this_week`, `this_month`, `last_n_days`) at call time
+- `clientFilter.ts` — same logic applied to in-memory arrays (used by Pipeline kanban, which already fetches all opportunities)
+- `modules/crmOpportunities.ts`, `modules/crmContacts.ts` — field/group-by/sort configs
 
-**5. RBAC gating**
-- Use existing `has_any_role` / `RoleGate`. Sales reports → sales_rep+; financial (aging, GST, payment, price approvals) → accountant/admin+; HR/Payroll/Leave/Attendance/Appraisal → hr_manager/admin+; Inventory → warehouse_operator+; Manufacturing → admin+; CRM → sales_rep+.
+## 3. Service + hooks
 
-**6. Mobile**
-- Collapsed filter bar with Expand button, cards on mobile (`md:hidden`/`hidden md:block`), sticky bottom export toolbar on mobile.
+- `src/lib/services/savedFilters.ts` — `getSavedFilters`, `saveFilter`, `updateFilter`, `deleteFilter`, `getDefaultFilter`, `setUserDefault`, `setSystemDefault`
+- `src/hooks/useSavedFilters.ts` — TanStack Query hooks (`useSavedFilters(module)`, `useDefaultFilter(module)`, mutations)
 
-### What I want to confirm before starting
+## 4. UI components
 
-This batch will touch ~60 new files and edit ~12 navigation/app files. To keep it shippable and reviewable I'd like to confirm two things:
+`src/components/filters/`:
+- `FilterBar.tsx` — search input · Filters button (with active count badge) · Group By dropdown · Sort dropdown · Favorites dropdown (load / set default / delete / save as…) · Clear All. Renders chips below for active filter groups (`Field · Operator · Value` with ×). Persists `last_used` to localStorage per module. Keyboard shortcut `F` opens FilterPopover.
+- `FilterPopover.tsx` — pick field → operator → value editor. Operators auto-derived from field type (text/numeric/date/choice/multi_choice). Multi-select uses Command list.
+- `SaveFilterDialog.tsx` — name + "set as my default" + (super_admin only) "set as default for everyone".
+- `FilterEmptyState.tsx` — shown when results empty; Clear All button.
 
-**A. Data depth per report.** Many of these (GST summary, PF/ESI, TDS, aging buckets, pipeline conversion, BOM material consumption) require non-trivial aggregations against existing tables. Two options:
+## 5. Wire into CRM
 
-1. **Real aggregations now** — write the SQL/JS aggregation logic for every report against existing schema. Higher value, but some reports (PF/ESI, TDS, GSTR-1 style) need fields we may not have and will end up partially empty. ~2× the work.
-2. **Framework + working reports for what the schema already supports cleanly, stubs for the rest** — every report page exists, uses ReportShell, has filters/exports wired up, but data-thin reports show an "Insufficient data" empty state with a note about which fields are missing. Then we iterate. *Recommended* — gets the framework + exports + hub shipped cleanly without faking numbers.
+- `CRMPipeline.tsx` + `CRMKanbanBoard.tsx` + `CRMPipelineListView.tsx` — replace `CRMSearchDropdown` usage with `<FilterBar config={crmOpportunitiesFilterConfig} value={state} onChange={...} />`. Apply filters client-side via `clientFilter.ts` on the already-fetched opportunity list (kanban stays grouped by stage; if `group_by` is set in list view, list re-groups; in kanban view, an info chip notes group-by is shown in list view only).
+- `CRMContactsList.tsx` — replace search input with `<FilterBar config={crmContactsFilterConfig} ... />`. Sort + group-by handled in-list.
+- On mount: load `getDefaultFilter(module)` (user default → system default → empty) AND merge `localStorage.last_used_<module>` if present and no explicit default.
 
-**B. Saved/Scheduled reports execution.** Per spec, actual email delivery is out of scope — we just store the schedule and expose "Send Now" (which triggers a client-side export download). Confirming that's what you want, vs. wiring an edge function now.
+## 6. Cleanup
 
-**C. Excel/PDF deps.** `xlsx`, `jspdf`, `jspdf-autotable` — I'll add these. `xlsx` from npm has a known CVE for old versions; I'll install the latest. OK?
+- Migrate any legacy `crm_saved_searches` localStorage entries to `user_saved_filters` on first authenticated load (best-effort, then drop the localStorage key).
+- Delete `src/lib/crm/searchFilters.ts` and remove its imports (`CRMSearchBar.tsx` if no longer used — verify and remove or refactor to FilterBar).
+- Keep `CRMSearchDropdown.tsx` only if still referenced; otherwise delete.
 
-If you say "go with A2, B as stated, C yes" I'll execute end-to-end in one pass.
+## 7. Verification
+
+- `tsc --noEmit` clean.
+- Manually: add Stage=New, then Salesperson=me, save as favorite, set as default, refresh → auto-applies. Group By Salesperson re-groups list view. Sort by Expected Revenue desc works.
+
+## Technical notes
+
+- Relative dates resolved in `applyFilters.ts` using `date-fns` (already in deps) to avoid stale ranges.
+- Filter chip labels resolved via `fieldConfig.loadOptions` cache so FK ids render as human names.
+- `FilterBar` is generic — Batch 3+ modules (Sales Orders, Invoices, etc.) can adopt it by adding a `modules/<x>.ts` config.
+
+After approval I'll create the migration first (so types regenerate), then implement the framework, components, wire CRM pages, and verify.

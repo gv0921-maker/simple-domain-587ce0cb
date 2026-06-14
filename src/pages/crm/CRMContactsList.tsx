@@ -1,9 +1,8 @@
 // CRM Contacts List Page — uses TanStack Query hooks (Supabase-ready)
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -22,7 +21,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Search,
   MoreHorizontal,
   Trash2,
   Phone,
@@ -37,22 +35,15 @@ import { type Contact } from '@/lib/services/crm';
 import { useContacts, useDeleteContact } from '@/hooks/crm/useCRMQueries';
 import { CRM_NAV } from '@/lib/navigation/crm';
 import { CRMImportDialog, CRMExportButton } from '@/components/crm/CRMImportExport';
-import { CRMFilterPopover, type FilterOption, type ActiveFilter } from '@/components/crm/CRMFilterPopover';
+import { FilterBar } from '@/components/filters/FilterBar';
+import { crmContactsFilterConfig } from '@/lib/filters/modules/crmContacts';
+import { applyFilterState, groupByField } from '@/lib/filters/clientFilter';
+import { EMPTY_FILTER_STATE, type FilterState } from '@/lib/filters/types';
 import { useToast } from '@/hooks/use-toast';
 import { useCRMPermissions } from '@/hooks/useCRMPermissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { isSuperAdminUser } from '@/lib/services/settings';
 import { canViewSensitive, maskEmail, maskPhone } from '@/lib/crm/fieldMask';
-
-const CONTACT_FILTER_OPTIONS: FilterOption[] = [
-  { id: 'status:active', label: 'Active', group: 'Status' },
-  { id: 'status:archived', label: 'Archived', group: 'Status' },
-  { id: 'score:high', label: 'High Score (70+)', group: 'Score' },
-  { id: 'score:medium', label: 'Medium Score (40-69)', group: 'Score' },
-  { id: 'score:low', label: 'Low Score (<40)', group: 'Score' },
-  { id: 'has:company', label: 'Has Company', group: 'Other' },
-  { id: 'has:phone', label: 'Has Phone', group: 'Other' },
-];
 
 export default function CRMContactsList() {
   const navigate = useNavigate();
@@ -63,51 +54,16 @@ export default function CRMContactsList() {
 
   const { data: contacts = [], isLoading, isFetching } = useContacts();
   const deleteContactMutation = useDeleteContact();
-  const [search, setSearch] = useState('');
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
+  const [filterState, setFilterState] = useState<FilterState>(EMPTY_FILTER_STATE);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const scopedContacts = useMemo(() => filterByScope(contacts), [contacts, filterByScope]);
 
-  const filteredContacts = useMemo(() => {
-    let filtered = scopedContacts.filter(
-      (c) =>
-        c.firstName.toLowerCase().includes(search.toLowerCase()) ||
-        c.lastName.toLowerCase().includes(search.toLowerCase()) ||
-        c.email.toLowerCase().includes(search.toLowerCase()) ||
-        (c.companyName?.toLowerCase().includes(search.toLowerCase()) ?? false)
-    );
-
-    if (activeFilters.length > 0) {
-      filtered = filtered.filter(c => {
-        return activeFilters.every(f => {
-          const [type, value] = f.id.split(':');
-          if (type === 'status') return c.status === value;
-          if (type === 'score') {
-            if (value === 'high') return c.score >= 70;
-            if (value === 'medium') return c.score >= 40 && c.score < 70;
-            if (value === 'low') return c.score < 40;
-          }
-          if (type === 'has') {
-            if (value === 'company') return !!c.companyName;
-            if (value === 'phone') return !!c.phone;
-          }
-          return true;
-        });
-      });
-    }
-
-    return filtered;
-  }, [scopedContacts, search, activeFilters]);
-
-  const handleToggleFilter = useCallback((filter: FilterOption) => {
-    setActiveFilters(prev => {
-      const exists = prev.some(f => f.id === filter.id);
-      if (exists) return prev.filter(f => f.id !== filter.id);
-      return [...prev, { id: filter.id, label: filter.label }];
-    });
-  }, []);
+  const filteredContacts = useMemo(() => applyFilterState(
+    scopedContacts as unknown as Record<string, unknown>[], filterState,
+    ['firstName','lastName','email','phone','companyName'],
+  ) as unknown as typeof scopedContacts, [scopedContacts, filterState]);
 
   const handleDelete = (id: string) => {
     deleteContactMutation.mutate(id, {
@@ -178,23 +134,7 @@ export default function CRMContactsList() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search contacts..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <CRMFilterPopover
-            options={CONTACT_FILTER_OPTIONS}
-            activeFilters={activeFilters}
-            onToggleFilter={handleToggleFilter}
-            onClearAll={() => setActiveFilters([])}
-          />
-        </div>
+        <FilterBar config={crmContactsFilterConfig} value={filterState} onChange={setFilterState} />
 
         {/* Mobile card list */}
         <div className="md:hidden space-y-2">
