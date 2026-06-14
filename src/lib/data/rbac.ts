@@ -570,6 +570,9 @@ export async function setUserRoles(userId: string, roleIds: string[]): Promise<v
 }
 
 export function isSuperAdminUser(userId: string): boolean {
+  if (!userId) return false;
+  // Canonical source: public.user_roles (also used by useRoleCheck).
+  if (_superAdminIds.has(userId)) return true;
   const userRole = getUserRole(userId);
   if (!userRole) return false;
   // Match against new system role names AND legacy enum-style ids
