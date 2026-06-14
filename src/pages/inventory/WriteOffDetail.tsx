@@ -306,6 +306,8 @@ export default function WriteOffDetail() {
           )}
         </div>
 
+        {id && <ActivityChatter recordType="write_off" recordId={id} />}
+
         {/* Add items dialog */}
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogContent className="max-w-2xl">
