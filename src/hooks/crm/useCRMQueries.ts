@@ -9,6 +9,7 @@ import {
 } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import * as crm from '@/lib/data/crm-supabase';
+import { toast } from 'sonner';
 import type {
   Activity,
   CRMTag,
@@ -40,6 +41,20 @@ export const crmKeys = {
   oppsByStage: () => [...crmKeys.all, 'opps-by-stage'] as const,
 };
 
+function showMutationError(scope: string, err: unknown) {
+  const e = err as { message?: string; code?: string };
+  const isRls =
+    e?.code === '42501' ||
+    (e?.message || '').toLowerCase().includes('row-level security') ||
+    (e?.message || '').toLowerCase().includes('permission denied');
+  toast.error(
+    isRls
+      ? "You don't have permission to perform this action — check your role"
+      : `${scope} failed`,
+    { description: isRls ? undefined : e?.message },
+  );
+}
+
 // ---------- contacts ----------
 
 export function useContacts(opts?: Partial<UseQueryOptions<Contact[]>>) {
@@ -66,6 +81,7 @@ export function useSaveContact() {
       qc.invalidateQueries({ queryKey: crmKeys.contacts() });
       qc.setQueryData(crmKeys.contact(saved.id), saved);
     },
+    onError: (err) => showMutationError('Save contact', err),
   });
 }
 
@@ -173,6 +189,7 @@ export function useSaveOpportunity() {
       qc.invalidateQueries({ queryKey: crmKeys.stats() });
       qc.invalidateQueries({ queryKey: crmKeys.oppsByStage() });
     },
+    onError: (err) => showMutationError('Save opportunity', err),
   });
 }
 
@@ -186,6 +203,7 @@ export function useUpdateOpportunityStage() {
       qc.invalidateQueries({ queryKey: crmKeys.stats() });
       qc.invalidateQueries({ queryKey: crmKeys.oppsByStage() });
     },
+    onError: (err) => showMutationError('Update stage', err),
   });
 }
 
@@ -197,6 +215,7 @@ export function useDeleteOpportunity() {
       qc.invalidateQueries({ queryKey: crmKeys.opportunities() });
       qc.invalidateQueries({ queryKey: crmKeys.stats() });
     },
+    onError: (err) => showMutationError('Delete opportunity', err),
   });
 }
 

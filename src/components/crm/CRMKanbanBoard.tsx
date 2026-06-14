@@ -73,6 +73,24 @@ import {
 } from '@/lib/crm/searchFilters';
 import { displayRevenue } from '@/lib/crm/fieldMask';
 
+// Map a pipeline stage (whose name may be customized, e.g. "Follow-Up",
+// "Estimate/Quotation", "Sales/Billing") to the OpportunityStage enum
+// stored in the DB. The DB enum only accepts: new | qualified | proposition | won | lost.
+export function stageEnumFromStage(s: { name?: string; probability?: number }): OpportunityStage {
+  const n = (s?.name || '').toLowerCase();
+  if (n.includes('lost')) return 'lost';
+  if (n.includes('won') || n.includes('bill') || n.includes('sale')) return 'won';
+  if (n.includes('quot') || n.includes('estim') || n.includes('propos')) return 'proposition';
+  if (n.includes('qual') || n.includes('follow')) return 'qualified';
+  if (typeof s?.probability === 'number') {
+    if (s.probability >= 100) return 'won';
+    if (s.probability <= 0) return 'lost';
+    if (s.probability >= 75) return 'proposition';
+    if (s.probability >= 25) return 'qualified';
+  }
+  return 'new';
+}
+
 // Star rating (Odoo-style — golden stars)
 export function StarRating({ value, onChange, readonly = false }: { value: number; onChange?: (v: number) => void; readonly?: boolean }) {
   return (
@@ -369,14 +387,11 @@ function KanbanColumn({
   });
   const [quickPriority, setQuickPriority] = useState(0);
   const totalValue = opportunities.reduce((sum, o) => sum + o.expectedRevenue, 0);
-  const stageMap: Record<string, OpportunityStage> = {
-    new: 'new', qualified: 'qualified', proposition: 'proposition', won: 'won',
-  };
   const saveOpportunityMutation = useSaveOpportunity();
 
   const handleQuickAdd = () => {
     if (quickData.name.trim() || quickData.company.trim()) {
-      const oppStage = stageMap[stage.id] || 'new';
+      const oppStage = stageEnumFromStage(stage);
       saveOpportunityMutation.mutate({
         name: quickData.name || quickData.company,
         contactName: quickData.contact,
@@ -392,6 +407,15 @@ function KanbanColumn({
           toast({ title: 'Opportunity created' });
           onQuickCreate(stage.id, oppStage);
         },
+        onError: (err: unknown) => {
+          const e = err as { message?: string; code?: string };
+          const isRls = e?.code === '42501' || (e?.message || '').toLowerCase().includes('row-level security');
+          toast({
+            title: isRls ? "You don't have permission to create opportunities" : 'Failed to create opportunity',
+            description: isRls ? 'Check your role assignment.' : e?.message,
+            variant: 'destructive',
+          });
+        },
       });
       setShowQuickAdd(false);
       setQuickData({ company: '', contact: '', name: '', email: '', phone: '', revenue: '' });
@@ -402,8 +426,9 @@ function KanbanColumn({
   const handleEditClick = async () => {
     // Save as draft then navigate to detail
     if (quickData.name.trim() || quickData.company.trim()) {
-      const oppStage = stageMap[stage.id] || 'new';
-      const opp = await saveOpportunityMutation.mutateAsync({
+      const oppStage = stageEnumFromStage(stage);
+      try {
+        const opp = await saveOpportunityMutation.mutateAsync({
         name: quickData.name || quickData.company,
         contactName: quickData.contact,
         companyName: quickData.company,
@@ -413,8 +438,18 @@ function KanbanColumn({
         priority: quickPriority as 0 | 1 | 2 | 3,
         stageId: stage.id,
         stage: oppStage,
-      });
-      navigate(`/crm/opportunities/${opp.id}`);
+        });
+        navigate(`/crm/opportunities/${opp.id}`);
+      } catch (err) {
+        const e = err as { message?: string; code?: string };
+        const isRls = e?.code === '42501' || (e?.message || '').toLowerCase().includes('row-level security');
+        toast({
+          title: isRls ? "You don't have permission to create opportunities" : 'Failed to create opportunity',
+          description: isRls ? 'Check your role assignment.' : e?.message,
+          variant: 'destructive',
+        });
+        return;
+      }
     }
     setShowQuickAdd(false);
     setQuickData({ company: '', contact: '', name: '', email: '', phone: '', revenue: '' });
@@ -433,7 +468,7 @@ function KanbanColumn({
         e.preventDefault();
         setIsDragOver(false);
         const oppId = e.dataTransfer.getData('text/plain');
-        if (oppId) onDrop(oppId, stage.id, stageMap[stage.id] || 'new');
+        if (oppId) onDrop(oppId, stage.id, stageEnumFromStage(stage));
       }}
     >
       {/* Column header — Odoo style */}
@@ -647,9 +682,22 @@ export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange
   const handleDrop = useCallback(
     (oppId: string, stageId: string, stage: OpportunityStage) => {
       if (!canEditOpportunities) return;
-      updateStageMutation.mutate({ id: oppId, stageId, stage });
       const stageName = pipeline.stages.find((s) => s.id === stageId)?.name;
-      toast({ title: `Moved to ${stageName}` });
+      updateStageMutation.mutate(
+        { id: oppId, stageId, stage },
+        {
+          onSuccess: () => toast({ title: `Moved to ${stageName}` }),
+          onError: (err: unknown) => {
+            const e = err as { message?: string; code?: string };
+            const isRls = e?.code === '42501' || (e?.message || '').toLowerCase().includes('row-level security');
+            toast({
+              title: isRls ? "You don't have permission to move this opportunity" : 'Failed to move opportunity',
+              description: isRls ? undefined : e?.message,
+              variant: 'destructive',
+            });
+          },
+        },
+      );
     },
     [canEditOpportunities, pipeline.stages, toast, updateStageMutation]
   );
@@ -690,10 +738,6 @@ export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange
     }
   }, []);
 
-  const stageMap: Record<string, OpportunityStage> = {
-    new: 'new', qualified: 'qualified', proposition: 'proposition', won: 'won', lost: 'lost' as OpportunityStage,
-  };
-
   const handleKeyboardMove = useCallback(
     (oppId: string, dir: 'left' | 'right' | 'up' | 'down') => {
       const opp = allOpportunities.find(o => o.id === oppId);
@@ -719,7 +763,7 @@ export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange
       const nextStageIdx = dir === 'left' ? stageIdx - 1 : stageIdx + 1;
       const nextStage = activeStages[nextStageIdx];
       if (!nextStage) return;
-      const nextStageType = stageMap[nextStage.id] || 'new';
+      const nextStageType = stageEnumFromStage(nextStage);
       updateStageMutation.mutate({ id: oppId, stageId: nextStage.id, stage: nextStageType });
       toast({ title: `Moved to ${nextStage.name}` });
       // Re-focus the same card after re-render
