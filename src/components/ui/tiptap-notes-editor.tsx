@@ -19,6 +19,7 @@ import {
   Table as TableIcon, Trash2, Plus, Minus, Undo, Redo,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import DOMPurify from 'dompurify';
 
 interface TiptapNotesEditorProps {
   value: string;
