@@ -21,11 +21,46 @@ function err(msg: string, status = 400) {
 function parseQuery(url: URL) {
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") || "25")));
-  const sort = url.searchParams.get("sort") || "created_at";
+  const sortRaw = url.searchParams.get("sort") || "created_at";
   const order = url.searchParams.get("order") === "asc" ? true : false;
   const q = url.searchParams.get("q") || "";
   const offset = (page - 1) * limit;
-  return { page, limit, sort, ascending: order, q, offset };
+  return { page, limit, sort: sortRaw, ascending: order, q, offset };
+}
+
+// Server-controlled fields that callers must never set directly.
+const PROTECTED_FIELDS = new Set([
+  "id", "created_at", "updated_at",
+  "user_id", "user_name", "created_by", "updated_by",
+  "converted_to_opportunity_id", "converted_at",
+  "won_at", "lost_at",
+]);
+
+function sanitizeBody(body: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(body ?? {})) {
+    if (PROTECTED_FIELDS.has(k)) continue;
+    out[k] = v;
+  }
+  return out;
+}
+
+// Allowlist of sortable / filterable columns per table.
+const ALLOWED_COLS: Record<string, string[]> = {
+  crm_contacts: ["created_at","updated_at","first_name","last_name","email","status","assigned_to","company_id"],
+  crm_companies: ["created_at","updated_at","name","industry","assigned_to"],
+  crm_leads: ["created_at","updated_at","title","status","assigned_to"],
+  crm_opportunities: ["created_at","updated_at","name","stage","stage_id","pipeline_id","assigned_to","expected_revenue","probability"],
+  crm_activities: ["created_at","updated_at","subject","type","completed","due_date","assigned_to"],
+  crm_notes: ["created_at","updated_at","visibility"],
+  crm_pipelines: ["created_at","name","is_default"],
+  crm_pipeline_stages: ["created_at","name","order_index","pipeline_id"],
+  crm_tags: ["created_at","name"],
+  crm_audit_logs: ["created_at","action","resource"],
+};
+
+function logServerError(scope: string, e: unknown) {
+  console.error(`[crm-api] ${scope}:`, e instanceof Error ? e.message : e);
 }
 
 Deno.serve(async (req) => {
@@ -98,7 +133,7 @@ Deno.serve(async (req) => {
       const { data: lead, error: le } = await supabase.from("crm_leads").select("*").eq("id", resourceId).single();
       if (le || !lead) return err("Lead not found", 404);
       // Create opportunity
-      const body = await req.json().catch(() => ({}));
+      const body = sanitizeBody(await req.json().catch(() => ({})));
       const { data: pipeline } = await supabase.from("crm_pipelines").select("id").eq("is_default", true).single();
       const opp = {
         name: lead.title,
@@ -116,7 +151,7 @@ Deno.serve(async (req) => {
         ...body,
       };
       const { data: newOpp, error: oe } = await supabase.from("crm_opportunities").insert(opp).select().single();
-      if (oe) return err(oe.message, 500);
+      if (oe) { logServerError("convert lead", oe); return err("Internal server error", 500); }
       // Update lead
       await supabase.from("crm_leads").update({
         status: "converted",
@@ -130,7 +165,7 @@ Deno.serve(async (req) => {
       const { data, error: ue } = await supabase.from("crm_activities")
         .update({ completed: true, completed_at: new Date().toISOString() })
         .eq("id", resourceId).select().single();
-      if (ue) return err(ue.message, 500);
+      if (ue) { logServerError("complete activity", ue); return err("Internal server error", 500); }
       return json(data);
     }
 
@@ -140,7 +175,7 @@ Deno.serve(async (req) => {
       if (body.stage === "won") { updates.won_at = new Date().toISOString(); updates.probability = 100; }
       if (body.stage === "lost") { updates.lost_at = new Date().toISOString(); updates.probability = 0; updates.lost_reason = body.lost_reason; }
       const { data, error: ue } = await supabase.from("crm_opportunities").update(updates).eq("id", resourceId).select().single();
-      if (ue) return err(ue.message, 500);
+      if (ue) { logServerError("opp stage", ue); return err("Internal server error", 500); }
       return json(data);
     }
 
@@ -149,11 +184,14 @@ Deno.serve(async (req) => {
     // GET list
     if (method === "GET" && !resourceId) {
       const { page, limit, sort, ascending, q, offset } = parseQuery(url);
+      const allowedCols = ALLOWED_COLS[table] ?? ["created_at"];
+      const safeSort = allowedCols.includes(sort) ? sort : "created_at";
       let query = supabase.from(table).select("*", { count: "exact" });
 
-      // Apply filters from query params
+      // Apply filters from query params (allowlist only)
       for (const [key, value] of url.searchParams.entries()) {
         if (["page", "limit", "sort", "order", "q"].includes(key)) continue;
+        if (!allowedCols.includes(key)) continue;
         query = query.eq(key, value);
       }
 
@@ -163,9 +201,9 @@ Deno.serve(async (req) => {
         query = query.or(orClause);
       }
 
-      query = query.order(sort, { ascending }).range(offset, offset + limit - 1);
+      query = query.order(safeSort, { ascending }).range(offset, offset + limit - 1);
       const { data, error: qe, count } = await query;
-      if (qe) return err(qe.message, 500);
+      if (qe) { logServerError("list", qe); return err("Internal server error", 500); }
       return json({
         data,
         pagination: { page, limit, total: count || 0, totalPages: Math.ceil((count || 0) / limit) },
@@ -181,12 +219,18 @@ Deno.serve(async (req) => {
 
     // POST create
     if (method === "POST") {
-      const body = await req.json();
+      const raw = await req.json();
+      const body = sanitizeBody(raw);
+      // Server-controlled identity fields
+      if (["crm_notes","crm_activities","crm_audit_logs"].includes(table)) {
+        (body as Record<string, unknown>).user_id = claimsData.user.id;
+        (body as Record<string, unknown>).user_name = claimsData.user.email ?? "";
+      }
       const { data, error: ie } = await supabase.from(table).insert(body).select().single();
-      if (ie) return err(ie.message, 500);
+      if (ie) { logServerError("insert", ie); return err("Internal server error", 500); }
       // Audit log
       await supabase.rpc("insert_audit_log", {
-        _user_id: claimsData.user.id,
+        
         _user_name: claimsData.user.email || "",
         _action: "create",
         _resource: table,
@@ -198,13 +242,11 @@ Deno.serve(async (req) => {
 
     // PATCH update
     if (method === "PATCH" && resourceId) {
-      const body = await req.json();
-      delete body.id;
-      delete body.created_at;
+      const body = sanitizeBody(await req.json());
       const { data, error: ue } = await supabase.from(table).update(body).eq("id", resourceId).select().single();
-      if (ue) return err(ue.message, 500);
+      if (ue) { logServerError("update", ue); return err("Internal server error", 500); }
       await supabase.rpc("insert_audit_log", {
-        _user_id: claimsData.user.id,
+        
         _user_name: claimsData.user.email || "",
         _action: "update",
         _resource: table,
@@ -218,9 +260,9 @@ Deno.serve(async (req) => {
     if (method === "DELETE" && resourceId) {
       if (table === "crm_audit_logs") return err("Audit logs cannot be deleted", 403);
       const { error: de } = await supabase.from(table).delete().eq("id", resourceId);
-      if (de) return err(de.message, 500);
+      if (de) { logServerError("delete", de); return err("Internal server error", 500); }
       await supabase.rpc("insert_audit_log", {
-        _user_id: claimsData.user.id,
+        
         _user_name: claimsData.user.email || "",
         _action: "delete",
         _resource: table,
@@ -232,6 +274,7 @@ Deno.serve(async (req) => {
 
     return err("Method not allowed", 405);
   } catch (e) {
-    return err(e instanceof Error ? e.message : "Internal error", 500);
+    logServerError("top-level", e);
+    return err("Internal server error", 500);
   }
 });
