@@ -52,7 +52,7 @@ export default function CorrectionOrderDetail() {
   const { id = '' } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const isSuperAdmin = useIsSuperAdmin();
+  const { isAdmin: isSuperAdmin } = useIsSuperAdmin();
   const { data, isLoading } = useCorrectionOrder(id);
   const co = data?.co;
   const items = data?.items ?? [];
