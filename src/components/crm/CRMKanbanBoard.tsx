@@ -794,6 +794,11 @@ export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange
 
           {/* Right: View toggle icons */}
           <div className="flex items-center gap-1">
+            <ImportExportButton
+              schema="crm_opportunities"
+              currentRecords={filteredOpportunities as unknown as Record<string, unknown>[]}
+              allRecords={allOpportunities as unknown as Record<string, unknown>[]}
+            />
             {[
               { icon: LayoutGrid, id: 'kanban' as const, title: 'Kanban' },
               { icon: List, id: 'list' as const, title: 'List' },
