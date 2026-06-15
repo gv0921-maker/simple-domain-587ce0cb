@@ -11,7 +11,6 @@ export const SETTINGS_NAV = [
   { label: 'Notifications', href: '/settings/notifications' },
   { label: 'Customization', href: '/settings/customization' },
   { label: 'CRM Pipelines', href: '/settings/crm-pipelines' },
-  { label: 'CRM Backup', href: '/settings/crm-backup' },
   { label: 'Data Schema', href: '/settings/data-schema' },
   { label: 'Accessibility', href: '/settings/accessibility' },
   { label: 'Price Approvals', href: '/settings/price-approvals' },
