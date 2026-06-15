@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { FilterBar } from '@/components/filters/FilterBar';
 import { crmOpportunitiesFilterConfig } from '@/lib/filters/modules/crmOpportunities';
-import { applyFilterState, groupByField } from '@/lib/filters/clientFilter';
+import { applyFilterState, groupByFieldsNested, type NestedGroup } from '@/lib/filters/clientFilter';
 import { EMPTY_FILTER_STATE, type FilterState } from '@/lib/filters/types';
 import { displayRevenue, canViewSensitive } from '@/lib/crm/fieldMask';
 
@@ -60,8 +60,9 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
 
   const filteredByFilters = useMemo(
     () => applyFilterState(opportunities as unknown as Record<string, unknown>[], filterState,
-      ['name','contactName','companyName','phone','email']) as unknown as typeof opportunities,
-    [opportunities, filterState],
+      ['name','contactName','companyName','phone','email'],
+      { currentUserId: user?.id, currentUserName: user?.name, currentUserEmail: user?.email }) as unknown as typeof opportunities,
+    [opportunities, filterState, user?.id, user?.name, user?.email],
   );
 
   const filtered = useMemo(() => {
@@ -88,14 +89,19 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
     return m;
   }, [pipeline.stages]);
 
-  const groupedView = useMemo(() => {
-    if (!filterState.group_by) return null;
-    return groupByField(
+  const groupChain = useMemo<string[]>(() => {
+    if (filterState.group_by_fields?.length) return filterState.group_by_fields;
+    return filterState.group_by ? [filterState.group_by] : [];
+  }, [filterState.group_by_fields, filterState.group_by]);
+
+  const groupedNested = useMemo(() => {
+    if (!groupChain.length) return null;
+    return groupByFieldsNested(
       filtered as unknown as Record<string, unknown>[],
-      filterState.group_by,
-      (k) => filterState.group_by === 'stage' ? (stageNames[k] || k) : k,
-    ).map(g => ({ label: g.label, opps: g.records as unknown as typeof filtered }));
-  }, [filtered, filterState.group_by, stageNames]);
+      groupChain,
+      (field, k) => field === 'stage' ? (stageNames[k] || k) : k,
+    ) as NestedGroup<typeof filtered[number] & Record<string, unknown>>[];
+  }, [filtered, groupChain, stageNames]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
