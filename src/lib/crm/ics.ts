@@ -1,6 +1,6 @@
-// TODO: Replace localStorage with Supabase queries
-// ICS calendar file generator for CRM meeting activities
-import type { Activity } from '@/lib/services/crm';
+// ICS calendar file generator for CRM meeting activities.
+// Pure file generator — operates on Activity data passed in by the caller.
+import type { Activity } from '@/lib/crm/types';
 
 function icsDate(d: string): string {
   return new Date(d).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
