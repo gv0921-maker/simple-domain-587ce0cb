@@ -1,4 +1,3 @@
-// TODO: Replace localStorage with Supabase queries
 // CRM Pipeline Page — Odoo-style with Kanban + List views
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';

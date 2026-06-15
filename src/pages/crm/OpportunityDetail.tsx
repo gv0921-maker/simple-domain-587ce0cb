@@ -226,8 +226,8 @@ export default function OpportunityDetail() {
     return { quotations, salesOrders, stockMoves };
   }, [opportunity?.contactId, opportunity?.contactName, allStockMoves, allQuotations, allSalesOrders]);
 
-  // refreshChatter now invalidates the React Query cache instead of calling
-  // localStorage helpers directly. The hooks above re-render automatically.
+  // refreshChatter invalidates the React Query cache; the hooks above
+  // re-render automatically once the queries refetch.
   const refreshChatter = useCallback(() => {
     if (!id) return;
     queryClient.invalidateQueries({ queryKey: crmKeys.notes('opportunity', id) });
