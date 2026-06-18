@@ -354,7 +354,7 @@ export function TiptapNotesContent({ html, className }: { html?: string; classNa
   if (!html) return null;
   const safe = DOMPurify.sanitize(html, {
     ALLOWED_TAGS: ['p','b','i','ul','ol','li','strong','em','br','span','a','s','u','div','h1','h2','h3','table','tr','td','th','thead','tbody','blockquote','code','pre'],
-    ALLOWED_ATTR: ['href','class','target','rel','data-user-id'],
+    ALLOWED_ATTR: ['href','class','target','rel','data-user-id','style','colspan','rowspan','colwidth'],
   });
   return (
     <div
