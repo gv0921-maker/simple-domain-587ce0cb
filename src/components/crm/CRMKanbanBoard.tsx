@@ -62,6 +62,7 @@ import {
   useSaveActivity,
   useActivities,
   useContacts,
+  useSaveNote,
 } from '@/hooks/crm/useCRMQueries';
 import { useToast } from '@/hooks/use-toast';
 import { useCRMPermissions } from '@/hooks/useCRMPermissions';
