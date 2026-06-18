@@ -1109,7 +1109,7 @@ export default function OpportunityDetail() {
                   </span>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs">
-                  Followers: {opportunity.assignedTo || user?.name || 'You'}
+                  Followers: {resolveAssignee(opportunity.assignedTo).label || user?.name || 'You'}
                 </TooltipContent>
               </Tooltip>
             </div>
