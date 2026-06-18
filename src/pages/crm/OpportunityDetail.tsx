@@ -85,6 +85,7 @@ import { TiptapNotesEditor } from '@/components/ui/tiptap-notes-editor';
 import { useQuotationsRich, useSalesOrdersRich } from '@/hooks/sales';
 import { useStockMoves } from '@/hooks/inventory';
 import type { StockMove } from '@/lib/data/inventory/types';
+import { useAppUsers, displayNameFor, type AppUserLite } from '@/hooks/useAppUsers';
 
 // Format elapsed time: <1h → "Xm", <24h → "Xh", else → "Xd"
 function formatElapsed(ms: number): string {
@@ -195,6 +196,20 @@ export default function OpportunityDetail() {
   const { data: allStockMoves = [] } = useStockMoves();
   const { data: allQuotations = [] } = useQuotationsRich();
   const { data: allSalesOrders = [] } = useSalesOrdersRich();
+  const { data: appUsers = [] } = useAppUsers();
+  const [assigneeOpen, setAssigneeOpen] = useState(false);
+  const [assigneeSearch, setAssigneeSearch] = useState('');
+
+  // Resolve assignedTo (which may be a user UUID, an email, or a name)
+  // into a displayable user name.
+  const resolveAssignee = (value: string | undefined | null): { user?: AppUserLite; label: string } => {
+    if (!value) return { label: '' };
+    const u = appUsers.find(
+      (x) => x.user_id === value || x.email === value || displayNameFor(x) === value,
+    );
+    if (u) return { user: u, label: displayNameFor(u) };
+    return { label: value };
+  };
 
   // Cross-module related records (same contact across Sales, Inventory, etc.)
   const relatedRecords = useMemo(() => {
@@ -261,6 +276,7 @@ export default function OpportunityDetail() {
     if (field === 'expectedRevenue') return `₹${Number(value).toLocaleString('en-IN')}`;
     if (field === 'probability') return `${value}%`;
     if (field === 'tags') return [...(value as string[])].sort().join(', ');
+    if (field === 'assignedTo') return resolveAssignee(String(value)).label || '—';
     return String(value);
   };
 
@@ -692,11 +708,75 @@ export default function OpportunityDetail() {
 
                 {/* User Responsible */}
                 <OdooField label="User Responsible" avatar>
-                  <input
-                    className={INLINE_CSS}
-                    value={currentData.assignedTo || ''}
-                    onChange={e => updateField('assignedTo', e.target.value)}
-                  />
+                  <Popover open={assigneeOpen} onOpenChange={setAssigneeOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className={cn(
+                          INLINE_CSS,
+                          'text-left cursor-pointer',
+                          !currentData.assignedTo && 'text-muted-foreground/60 italic',
+                        )}
+                      >
+                        {currentData.assignedTo
+                          ? resolveAssignee(currentData.assignedTo).label
+                          : 'Unassigned'}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="p-0 w-72">
+                      <div className="p-2 border-b">
+                        <Input
+                          autoFocus
+                          placeholder="Search user..."
+                          value={assigneeSearch}
+                          onChange={(e) => setAssigneeSearch(e.target.value)}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="max-h-64 overflow-y-auto py-1">
+                        {currentData.assignedTo && (
+                          <button
+                            type="button"
+                            className="w-full text-left px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent"
+                            onClick={() => {
+                              updateField('assignedTo', '');
+                              setAssigneeOpen(false);
+                              setAssigneeSearch('');
+                            }}
+                          >
+                            Unassign
+                          </button>
+                        )}
+                        {appUsers
+                          .filter((u) => {
+                            const q = assigneeSearch.trim().toLowerCase();
+                            if (!q) return true;
+                            return (
+                              displayNameFor(u).toLowerCase().includes(q) ||
+                              u.email.toLowerCase().includes(q)
+                            );
+                          })
+                          .map((u) => (
+                            <button
+                              key={u.user_id}
+                              type="button"
+                              className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent flex flex-col"
+                              onClick={() => {
+                                updateField('assignedTo', u.user_id);
+                                setAssigneeOpen(false);
+                                setAssigneeSearch('');
+                              }}
+                            >
+                              <span className="font-medium">{displayNameFor(u)}</span>
+                              <span className="text-xs text-muted-foreground truncate">{u.email}</span>
+                            </button>
+                          ))}
+                        {appUsers.length === 0 && (
+                          <div className="px-3 py-2 text-xs text-muted-foreground">No users available</div>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </OdooField>
 
                 {/* Email */}
@@ -1029,7 +1109,7 @@ export default function OpportunityDetail() {
                   </span>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs">
-                  Followers: {opportunity.assignedTo || user?.name || 'You'}
+                  Followers: {resolveAssignee(opportunity.assignedTo).label || user?.name || 'You'}
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -1118,9 +1198,22 @@ export default function OpportunityDetail() {
                   const isNoteItem = 'content' in item;
                   const itemUserId = (item as any).userId;
                   const storedUserName = (item as any).userName;
-                  const userName = itemUserId === user?.id && storedUserName === 'System'
-                    ? (user?.name || user?.email?.split('@')[0] || 'User')
-                    : (storedUserName || user?.name || 'User');
+                  // Prefer the live user directory: if we have the user id,
+                  // show their current name. Fall back to the stored value
+                  // (and strip system-y placeholders like 'System' / 'Management').
+                  const resolvedFromId = itemUserId
+                    ? displayNameFor(appUsers.find((u) => u.user_id === itemUserId))
+                    : '';
+                  const cleanedStored =
+                    storedUserName && !['System', 'Management', 'system'].includes(storedUserName)
+                      ? storedUserName
+                      : '';
+                  const userName =
+                    resolvedFromId ||
+                    cleanedStored ||
+                    (itemUserId === user?.id ? (user?.name || user?.email?.split('@')[0] || 'User') : '') ||
+                    user?.name ||
+                    'User';
                   const html = isNoteItem ? (item as Note).content : ((item as any).description || (item as Activity).subject);
                   const attachments = (item as any).attachments;
                   return (
@@ -1141,13 +1234,13 @@ export default function OpportunityDetail() {
 
               {chatterNotes.length === 0 && chatterActivities.filter(a => a.completed).length === 0 && (
                 <div className="flex gap-2.5">
-                  <ChatterAvatar name="Management" />
+                  <ChatterAvatar name={user?.name || user?.email?.split('@')[0] || 'User'} />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="font-bold text-foreground">Management</span>
+                      <span className="font-bold text-foreground">{user?.name || user?.email?.split('@')[0] || 'User'}</span>
                         <span className="text-xs text-muted-foreground">{chatterTimestamp(opportunity.createdAt)}</span>
                     </div>
-                    <p className="text-sm text-foreground mt-0.5">Lead/Opportunity created</p>
+                    <p className="text-sm text-foreground mt-0.5">Opportunity created</p>
                   </div>
                 </div>
               )}
