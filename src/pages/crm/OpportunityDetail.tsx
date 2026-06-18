@@ -402,8 +402,12 @@ export default function OpportunityDetail() {
 
     // Optimistic update + mutation; the useOpportunity hook will refresh
     // once the mutation completes (it invalidates the opportunity cache).
+    // Stage / stageId are managed exclusively by the pipeline chip
+    // (updateStageMutation) — never overwrite them from stale editingData,
+    // otherwise an in-flight stage change can be reverted on the next save.
+    const { stage: _omitStage, stageId: _omitStageId, ...editableRest } = (editingData as any) ?? {};
     saveOpportunityMutation.mutate(
-      { ...opportunity, ...editingData },
+      { ...opportunity, ...editableRest },
       {
         onSuccess: (refreshed) => {
           setEditingData(refreshed);
