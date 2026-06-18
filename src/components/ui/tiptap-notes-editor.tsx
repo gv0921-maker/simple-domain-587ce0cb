@@ -11,12 +11,16 @@ import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Placeholder from '@tiptap/extension-placeholder';
+import TextStyle from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
 import { useEffect } from 'react';
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   List, ListOrdered, Quote, Code, Link as LinkIcon,
   AlignLeft, AlignCenter, AlignRight, Heading1, Heading2, Heading3,
   Table as TableIcon, Trash2, Plus, Minus, Undo, Redo,
+  Palette, Highlighter, Columns, Rows, Merge, Split, Heading,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import DOMPurify from 'dompurify';
