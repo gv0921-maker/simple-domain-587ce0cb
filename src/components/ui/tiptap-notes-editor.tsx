@@ -102,15 +102,27 @@ export function TiptapNotesEditor({
           pointer-events: none;
           height: 0;
         }
-        .tiptap-notes table { border-collapse: collapse; margin: 0.5rem 0; table-layout: fixed; width: 100%; overflow: hidden; }
+        .tiptap-notes .tableWrapper { overflow-x: auto; margin: 0.5rem 0; }
+        .tiptap-notes table { border-collapse: collapse; table-layout: fixed; width: 100%; margin: 0; }
         .tiptap-notes table td, .tiptap-notes table th {
           border: 1px solid hsl(var(--border));
-          padding: 6px 8px; vertical-align: top; min-width: 60px; position: relative;
+          padding: 6px 8px; vertical-align: top; min-width: 40px; position: relative;
+          box-sizing: border-box;
         }
         .tiptap-notes table th { background: hsl(var(--muted)); font-weight: 600; text-align: left; }
         .tiptap-notes table .selectedCell::after {
-          content: ''; position: absolute; inset: 0; background: hsl(var(--primary) / 0.1); pointer-events: none;
+          content: ''; position: absolute; inset: 0; background: hsl(var(--primary) / 0.15); pointer-events: none; z-index: 2;
         }
+        .tiptap-notes table .column-resize-handle {
+          position: absolute; right: -3px; top: 0; bottom: -2px; width: 6px;
+          background-color: hsl(var(--primary)); opacity: 0; cursor: col-resize;
+          z-index: 20; pointer-events: auto;
+        }
+        .tiptap-notes table:hover .column-resize-handle { opacity: 0.25; }
+        .tiptap-notes table .column-resize-handle:hover,
+        .tiptap-notes.resize-cursor table .column-resize-handle { opacity: 1; }
+        .tiptap-notes.resize-cursor { cursor: col-resize; }
+        .tiptap-notes.resize-cursor * { cursor: col-resize !important; }
         .tiptap-notes ul { list-style: disc; padding-left: 1.25rem; }
         .tiptap-notes ol { list-style: decimal; padding-left: 1.25rem; }
         .tiptap-notes blockquote {
