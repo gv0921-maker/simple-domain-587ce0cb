@@ -11,12 +11,16 @@ import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Placeholder from '@tiptap/extension-placeholder';
+import TextStyle from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
 import { useEffect } from 'react';
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   List, ListOrdered, Quote, Code, Link as LinkIcon,
   AlignLeft, AlignCenter, AlignRight, Heading1, Heading2, Heading3,
   Table as TableIcon, Trash2, Plus, Minus, Undo, Redo,
+  Palette, Highlighter, Columns, Rows, Merge, Split, Heading,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import DOMPurify from 'dompurify';
@@ -47,10 +51,20 @@ export function TiptapNotesEditor({
         HTMLAttributes: { class: 'text-primary underline' },
       }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Table.configure({ resizable: true, HTMLAttributes: { class: 'tt-table' } }),
+      Table.configure({
+        resizable: true,
+        handleWidth: 6,
+        cellMinWidth: 40,
+        lastColumnResizable: true,
+        allowTableNodeSelection: true,
+        HTMLAttributes: { class: 'tt-table' },
+      }),
       TableRow,
       TableHeader,
       TableCell,
+      TextStyle,
+      Color,
+      Highlight.configure({ multicolor: true }),
       Placeholder.configure({ placeholder }),
     ],
     content: value || '',
@@ -88,15 +102,27 @@ export function TiptapNotesEditor({
           pointer-events: none;
           height: 0;
         }
-        .tiptap-notes table { border-collapse: collapse; margin: 0.5rem 0; table-layout: fixed; width: 100%; overflow: hidden; }
+        .tiptap-notes .tableWrapper { overflow-x: auto; margin: 0.5rem 0; }
+        .tiptap-notes table { border-collapse: collapse; table-layout: fixed; width: 100%; margin: 0; }
         .tiptap-notes table td, .tiptap-notes table th {
           border: 1px solid hsl(var(--border));
-          padding: 6px 8px; vertical-align: top; min-width: 60px; position: relative;
+          padding: 6px 8px; vertical-align: top; min-width: 40px; position: relative;
+          box-sizing: border-box;
         }
         .tiptap-notes table th { background: hsl(var(--muted)); font-weight: 600; text-align: left; }
         .tiptap-notes table .selectedCell::after {
-          content: ''; position: absolute; inset: 0; background: hsl(var(--primary) / 0.1); pointer-events: none;
+          content: ''; position: absolute; inset: 0; background: hsl(var(--primary) / 0.15); pointer-events: none; z-index: 2;
         }
+        .tiptap-notes table .column-resize-handle {
+          position: absolute; right: -3px; top: 0; bottom: -2px; width: 6px;
+          background-color: hsl(var(--primary)); opacity: 0; cursor: col-resize;
+          z-index: 20; pointer-events: auto;
+        }
+        .tiptap-notes table:hover .column-resize-handle { opacity: 0.25; }
+        .tiptap-notes table .column-resize-handle:hover,
+        .tiptap-notes.resize-cursor table .column-resize-handle { opacity: 1; }
+        .tiptap-notes.resize-cursor { cursor: col-resize; }
+        .tiptap-notes.resize-cursor * { cursor: col-resize !important; }
         .tiptap-notes ul { list-style: disc; padding-left: 1.25rem; }
         .tiptap-notes ol { list-style: decimal; padding-left: 1.25rem; }
         .tiptap-notes blockquote {
@@ -211,23 +237,61 @@ function Toolbar({ editor }: { editor: Editor }) {
         <LinkIcon className="h-3.5 w-3.5" />
       </Btn>
       <Sep />
+      <ColorPicker
+        title="Text color"
+        icon={<Palette className="h-3.5 w-3.5" />}
+        onPick={(c) => {
+          if (c === null) editor.chain().focus().unsetColor().run();
+          else editor.chain().focus().setColor(c).run();
+        }}
+      />
+      <ColorPicker
+        title="Highlight"
+        icon={<Highlighter className="h-3.5 w-3.5" />}
+        onPick={(c) => {
+          if (c === null) editor.chain().focus().unsetHighlight().run();
+          else editor.chain().focus().toggleHighlight({ color: c }).run();
+        }}
+        swatches={['#FFF3A1', '#FFD0A1', '#FFB3B3', '#C9F2C9', '#BEE3F8', '#E9D8FD', '#FBCFE8']}
+      />
+      <Sep />
       <Btn title="Insert table"
         onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
         <TableIcon className="h-3.5 w-3.5" />
       </Btn>
       {editor.isActive('table') && (
         <>
-          <Btn title="Add column" onClick={() => editor.chain().focus().addColumnAfter().run()}>
+          <Btn title="Add column before" onClick={() => editor.chain().focus().addColumnBefore().run()}>
+            <span className="text-[10px] font-bold">←C</span>
+          </Btn>
+          <Btn title="Add column after" onClick={() => editor.chain().focus().addColumnAfter().run()}>
             <Plus className="h-3.5 w-3.5" />
           </Btn>
           <Btn title="Delete column" onClick={() => editor.chain().focus().deleteColumn().run()}>
             <Minus className="h-3.5 w-3.5" />
           </Btn>
-          <Btn title="Add row" onClick={() => editor.chain().focus().addRowAfter().run()}>
+          <Btn title="Add row before" onClick={() => editor.chain().focus().addRowBefore().run()}>
+            <span className="text-[10px] font-bold">↑R</span>
+          </Btn>
+          <Btn title="Add row after" onClick={() => editor.chain().focus().addRowAfter().run()}>
             <span className="text-[10px] font-bold">+R</span>
           </Btn>
           <Btn title="Delete row" onClick={() => editor.chain().focus().deleteRow().run()}>
             <span className="text-[10px] font-bold">-R</span>
+          </Btn>
+          <Btn title="Toggle header row" onClick={() => editor.chain().focus().toggleHeaderRow().run()}>
+            <Heading className="h-3.5 w-3.5" />
+          </Btn>
+          <Btn title="Toggle header column" onClick={() => editor.chain().focus().toggleHeaderColumn().run()}>
+            <Columns className="h-3.5 w-3.5" />
+          </Btn>
+          <Btn title="Merge cells" onClick={() => editor.chain().focus().mergeCells().run()}
+            disabled={!editor.can().mergeCells()}>
+            <Merge className="h-3.5 w-3.5" />
+          </Btn>
+          <Btn title="Split cell" onClick={() => editor.chain().focus().splitCell().run()}
+            disabled={!editor.can().splitCell()}>
+            <Split className="h-3.5 w-3.5" />
           </Btn>
           <Btn title="Delete table" onClick={() => editor.chain().focus().deleteTable().run()}>
             <Trash2 className="h-3.5 w-3.5" />
@@ -238,12 +302,59 @@ function Toolbar({ editor }: { editor: Editor }) {
   );
 }
 
+const DEFAULT_SWATCHES = [
+  '#000000', '#374151', '#6B7280', '#DC2626', '#EA580C', '#D97706',
+  '#65A30D', '#059669', '#0891B2', '#2563EB', '#7C3AED', '#DB2777',
+];
+
+function ColorPicker({
+  title, icon, onPick, swatches = DEFAULT_SWATCHES,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  onPick: (color: string | null) => void;
+  swatches?: string[];
+}) {
+  return (
+    <div className="relative group">
+      <button
+        type="button"
+        title={title}
+        onMouseDown={(e) => e.preventDefault()}
+        className="h-7 w-7 flex items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+      >
+        {icon}
+      </button>
+      <div className="absolute z-50 top-full left-0 mt-1 hidden group-hover:flex group-focus-within:flex flex-wrap gap-1 p-2 w-[152px] rounded-md border border-border bg-popover shadow-md">
+        {swatches.map((c) => (
+          <button
+            key={c}
+            type="button"
+            onMouseDown={(e) => { e.preventDefault(); onPick(c); }}
+            className="h-5 w-5 rounded border border-border hover:scale-110 transition-transform"
+            style={{ background: c }}
+            title={c}
+          />
+        ))}
+        <button
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); onPick(null); }}
+          className="h-5 px-1.5 text-[10px] rounded border border-border hover:bg-muted"
+          title="Clear"
+        >
+          Clear
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // Renderer for saved tiptap HTML (read-only)
 export function TiptapNotesContent({ html, className }: { html?: string; className?: string }) {
   if (!html) return null;
   const safe = DOMPurify.sanitize(html, {
     ALLOWED_TAGS: ['p','b','i','ul','ol','li','strong','em','br','span','a','s','u','div','h1','h2','h3','table','tr','td','th','thead','tbody','blockquote','code','pre'],
-    ALLOWED_ATTR: ['href','class','target','rel','data-user-id'],
+    ALLOWED_ATTR: ['href','class','target','rel','data-user-id','style','colspan','rowspan','colwidth'],
   });
   return (
     <div
