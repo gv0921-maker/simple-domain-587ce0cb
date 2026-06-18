@@ -1198,9 +1198,22 @@ export default function OpportunityDetail() {
                   const isNoteItem = 'content' in item;
                   const itemUserId = (item as any).userId;
                   const storedUserName = (item as any).userName;
-                  const userName = itemUserId === user?.id && storedUserName === 'System'
-                    ? (user?.name || user?.email?.split('@')[0] || 'User')
-                    : (storedUserName || user?.name || 'User');
+                  // Prefer the live user directory: if we have the user id,
+                  // show their current name. Fall back to the stored value
+                  // (and strip system-y placeholders like 'System' / 'Management').
+                  const resolvedFromId = itemUserId
+                    ? displayNameFor(appUsers.find((u) => u.user_id === itemUserId))
+                    : '';
+                  const cleanedStored =
+                    storedUserName && !['System', 'Management', 'system'].includes(storedUserName)
+                      ? storedUserName
+                      : '';
+                  const userName =
+                    resolvedFromId ||
+                    cleanedStored ||
+                    (itemUserId === user?.id ? (user?.name || user?.email?.split('@')[0] || 'User') : '') ||
+                    user?.name ||
+                    'User';
                   const html = isNoteItem ? (item as Note).content : ((item as any).description || (item as Activity).subject);
                   const attachments = (item as any).attachments;
                   return (
