@@ -116,6 +116,13 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
       (field, k) => {
         if (field === 'stage') return stageNames[k] || k;
         if (field === 'assignedTo') return resolveUserName(k);
+        if (field === 'createdAt_month') {
+          // k format: "2026-06"
+          return format(parseISO(`${k}-01`), 'MMMM yyyy');
+        }
+        if (field === 'createdAt_day') {
+          return format(parseISO(k), 'dd MMMM yyyy');
+        }
         return k;
       },
     ) as NestedGroup<typeof filtered[number] & Record<string, unknown>>[];
