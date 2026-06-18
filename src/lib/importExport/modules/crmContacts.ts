@@ -14,8 +14,28 @@ export const crmContactsImportSchema: ImportExportSchema = {
     { key: 'mobile', label: 'Mobile', type: 'text' },
     { key: 'job_title', label: 'Job Title', type: 'text' },
     { key: 'company_name', label: 'Company', type: 'text', exampleValue: 'Acme Pvt Ltd' },
-    { key: 'type', label: 'Type', type: 'enum', enumOptions: ['individual', 'company'], exampleValue: 'individual' },
-    { key: 'status', label: 'Status', type: 'enum', enumOptions: ['active', 'archived'], exampleValue: 'active' },
+    {
+      key: 'type', label: 'Type', type: 'enum',
+      enumOptions: ['individual', 'company'], exampleValue: 'individual',
+      transform: (v) => {
+        if (v == null || v === '') return null;
+        const s = String(v).trim().toLowerCase();
+        if (['person', 'individual', 'contact', 'people'].includes(s)) return 'individual';
+        if (['company', 'organization', 'organisation', 'business'].includes(s)) return 'company';
+        return s;
+      },
+    },
+    {
+      key: 'status', label: 'Status', type: 'enum',
+      enumOptions: ['active', 'archived'], exampleValue: 'active',
+      transform: (v) => {
+        if (v == null || v === '') return null;
+        const s = String(v).trim().toLowerCase();
+        if (['active', 'enabled', 'live'].includes(s)) return 'active';
+        if (['archived', 'inactive', 'disabled'].includes(s)) return 'archived';
+        return s;
+      },
+    },
     { key: 'website', label: 'Website', type: 'text' },
     { key: 'street', label: 'Street', type: 'text' },
     { key: 'city', label: 'City', type: 'text' },
