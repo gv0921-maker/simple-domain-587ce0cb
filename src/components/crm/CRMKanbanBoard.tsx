@@ -606,6 +606,7 @@ export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange
   const { data: pipelineData } = useDefaultPipeline();
   const updateStageMutation = useUpdateOpportunityStage();
   const saveOpportunityMutation = useSaveOpportunity();
+  const saveNoteMutation = useSaveNote();
   const opportunities = useMemo(() => filterByScope(allOpportunities), [allOpportunities, filterByScope]);
 
   // Fallback empty pipeline while loading so hooks below remain stable
@@ -681,10 +682,23 @@ export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange
     (oppId: string, stageId: string, stage: OpportunityStage) => {
       if (!canEditOpportunities) return;
       const stageName = pipeline.stages.find((s) => s.id === stageId)?.name;
+      const opp = allOpportunities.find((o) => o.id === oppId);
+      const previousStageName =
+        pipeline.stages.find((s) => s.id === opp?.stageId)?.name || opp?.stageId || '—';
       updateStageMutation.mutate(
         { id: oppId, stageId, stage },
         {
-          onSuccess: () => toast({ title: `Moved to ${stageName}` }),
+          onSuccess: () => {
+            toast({ title: `Moved to ${stageName}` });
+            saveNoteMutation.mutate({
+              content: `<p><strong>Stage changed</strong><br/>${previousStageName} → ${stageName} (Stage)</p>`,
+              relatedTo: 'opportunity',
+              relatedId: oppId,
+              userId: user?.id || '1',
+              userName: user?.name || user?.email?.split('@')[0] || 'User',
+              visibility: 'team',
+            } as any);
+          },
           onError: (err: unknown) => {
             const e = err as { message?: string; code?: string };
             const isRls = e?.code === '42501' || (e?.message || '').toLowerCase().includes('row-level security');
@@ -697,7 +711,7 @@ export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange
         },
       );
     },
-    [canEditOpportunities, pipeline.stages, toast, updateStageMutation]
+    [canEditOpportunities, pipeline.stages, toast, updateStageMutation, allOpportunities, saveNoteMutation, user]
   );
 
   const handlePriorityChange = useCallback(
@@ -762,12 +776,28 @@ export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange
       const nextStage = activeStages[nextStageIdx];
       if (!nextStage) return;
       const nextStageType = stageEnumFromStage(nextStage);
-      updateStageMutation.mutate({ id: oppId, stageId: nextStage.id, stage: nextStageType });
+      const previousStageName =
+        activeStages.find((s) => s.id === opp.stageId)?.name || opp.stageId || '—';
+      updateStageMutation.mutate(
+        { id: oppId, stageId: nextStage.id, stage: nextStageType },
+        {
+          onSuccess: () => {
+            saveNoteMutation.mutate({
+              content: `<p><strong>Stage changed</strong><br/>${previousStageName} → ${nextStage.name} (Stage)</p>`,
+              relatedTo: 'opportunity',
+              relatedId: oppId,
+              userId: user?.id || '1',
+              userName: user?.name || user?.email?.split('@')[0] || 'User',
+              visibility: 'team',
+            } as any);
+          },
+        },
+      );
       toast({ title: `Moved to ${nextStage.name}` });
       // Re-focus the same card after re-render
       focusCard(oppId);
     },
-    [allOpportunities, activeStages, opportunitiesByStage, canEditOpportunities, focusCard, toast, updateStageMutation]
+    [allOpportunities, activeStages, opportunitiesByStage, canEditOpportunities, focusCard, toast, updateStageMutation, saveNoteMutation, user]
   );
 
   return (
