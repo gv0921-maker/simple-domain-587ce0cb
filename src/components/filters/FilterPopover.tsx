@@ -112,7 +112,7 @@ export function FiltersColumn({ config, value, onChange }: FiltersColumnProps) {
   const predefined = config.predefinedFilters ?? [];
 
   return (
-    <div className="flex flex-col min-w-0">
+    <div className="flex flex-col min-w-0 h-full overflow-hidden">
       <div className="px-3 py-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground border-b">
         <Filter className="h-3.5 w-3.5" /> Filters
       </div>
@@ -368,7 +368,7 @@ export function GroupByColumn({ config, fieldLabel, chain, onChange }: GroupByCo
     else onChange([...chain, k]);
   };
   return (
-    <div className="flex flex-col min-w-0">
+    <div className="flex flex-col min-w-0 h-full overflow-hidden">
       <div className="px-3 py-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground border-b">
         <GroupIcon className="h-3.5 w-3.5" /> Group By
       </div>
@@ -430,7 +430,7 @@ export function FavoritesColumn({
   };
 
   return (
-    <div className="flex flex-col min-w-0">
+    <div className="flex flex-col min-w-0 h-full overflow-hidden">
       <div className="px-3 py-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground border-b">
         <Star className="h-3.5 w-3.5" /> Favorites
       </div>
