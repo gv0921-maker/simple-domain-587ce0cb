@@ -11,7 +11,7 @@ import {
   Tooltip, TooltipContent, TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
-  List, LayoutGrid, ChevronDown, ChevronUp,
+  List, LayoutGrid, ChevronDown, ChevronUp, ChevronRight,
   Clock, Settings, Loader2,
 } from 'lucide-react';
 import { type Opportunity, type Pipeline } from '@/lib/services/crm';
@@ -19,6 +19,7 @@ import { useOpportunities, useDefaultPipeline, useActivities, useContacts } from
 import { StarRating } from '@/components/crm/CRMKanbanBoard';
 import { useCRMPermissions } from '@/hooks/useCRMPermissions';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAppUsers, displayNameFor } from '@/hooks/useAppUsers';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { FilterBar } from '@/components/filters/FilterBar';
@@ -33,7 +34,7 @@ interface CRMPipelineListViewProps {
   onViewChange: (view: 'kanban' | 'list') => void;
 }
 
-type SortField = 'name' | 'contactName' | 'expectedRevenue' | 'expectedCloseDate' | 'stage' | 'salesTeam';
+type SortField = 'name' | 'contactName' | 'expectedRevenue' | 'expectedCloseDate' | 'stage' | 'assignedTo';
 type SortDir = 'asc' | 'desc';
 
 export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CRMPipelineListViewProps) {
@@ -49,6 +50,18 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
   const [sortField, setSortField] = useState<SortField>('expectedRevenue');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  const { data: appUsers = [] } = useAppUsers();
+  const userNameById = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const u of appUsers) m[u.user_id] = displayNameFor(u);
+    return m;
+  }, [appUsers]);
+  const resolveUserName = (val?: string) => {
+    if (!val) return '';
+    return userNameById[val] || val;
+  };
 
   const { data: allActivities = [] } = useActivities();
   const { data: allContacts = [] } = useContacts();
@@ -73,7 +86,8 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
       else if (sortField === 'contactName') cmp = (a.contactName || '').localeCompare(b.contactName || '');
       else if (sortField === 'expectedRevenue') cmp = a.expectedRevenue - b.expectedRevenue;
       else if (sortField === 'expectedCloseDate') cmp = a.expectedCloseDate.localeCompare(b.expectedCloseDate);
-      else if (sortField === 'salesTeam') cmp = (a.salesTeam || '').localeCompare(b.salesTeam || '');
+      else if (sortField === 'assignedTo')
+        cmp = resolveUserName(a.assignedTo).localeCompare(resolveUserName(b.assignedTo));
       else if (sortField === 'stage') {
         const stageOrder = pipeline.stages.map(s => s.id);
         cmp = stageOrder.indexOf(a.stageId) - stageOrder.indexOf(b.stageId);
@@ -99,9 +113,13 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
     return groupByFieldsNested(
       filtered as unknown as Record<string, unknown>[],
       groupChain,
-      (field, k) => field === 'stage' ? (stageNames[k] || k) : k,
+      (field, k) => {
+        if (field === 'stage') return stageNames[k] || k;
+        if (field === 'assignedTo') return resolveUserName(k);
+        return k;
+      },
     ) as NestedGroup<typeof filtered[number] & Record<string, unknown>>[];
-  }, [filtered, groupChain, stageNames]);
+  }, [filtered, groupChain, stageNames, userNameById]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -143,7 +161,7 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
           <span className="font-medium">{opp.name}</span>
         </TableCell>
         <TableCell className="text-muted-foreground">{opp.contactName || '—'}</TableCell>
-        <TableCell className="text-muted-foreground">{opp.salesTeam || '—'}</TableCell>
+        <TableCell className="text-muted-foreground">{resolveUserName(opp.assignedTo) || '—'}</TableCell>
         <TableCell className="text-right font-medium">{displayRevenue(opp.expectedRevenue, user?.id, 'crm')}</TableCell>
         <TableCell>
           <Badge variant="outline" className="text-[11px] capitalize font-medium border-0 px-2 py-0.5"
@@ -161,27 +179,48 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
     );
   };
 
+  const toggleGroup = (path: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      next.has(path) ? next.delete(path) : next.add(path);
+      return next;
+    });
+  };
+
   const renderNestedGroups = (
     groups: NestedGroup<typeof filtered[number] & Record<string, unknown>>[],
     depth: number,
+    parentPath = '',
   ): React.ReactNode => {
     const shades = ['bg-muted/50', 'bg-muted/35', 'bg-muted/25'];
-    return groups.map((g) => (
-      <React.Fragment key={`grp-${depth}-${g.field}-${g.key}`}>
-        <TableRow className={cn(shades[Math.min(depth, shades.length - 1)], 'hover:bg-muted/40')}>
+    return groups.map((g) => {
+      const path = `${parentPath}/${g.field}:${g.key}`;
+      const isOpen = expandedGroups.has(path);
+      return (
+      <React.Fragment key={`grp-${depth}-${path}`}>
+        <TableRow
+          className={cn(shades[Math.min(depth, shades.length - 1)], 'hover:bg-muted/40 cursor-pointer')}
+          onClick={() => toggleGroup(path)}
+        >
           <TableCell
             colSpan={8}
             className="py-1.5 text-xs font-semibold"
             style={{ paddingLeft: `${depth * 16 + 16}px` }}
           >
-            {g.label} <span className="text-muted-foreground font-normal">({g.records.length})</span>
+            <span className="inline-flex items-center gap-1">
+              {isOpen
+                ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+              {g.label} <span className="text-muted-foreground font-normal">({g.records.length})</span>
+            </span>
           </TableCell>
         </TableRow>
-        {g.children
-          ? renderNestedGroups(g.children, depth + 1)
-          : (g.records as unknown as typeof filtered).map((opp) => renderLeafRow(opp, depth + 1))}
+        {isOpen && (g.children
+          ? renderNestedGroups(g.children, depth + 1, path)
+          : (g.records as unknown as typeof filtered).map((opp) => renderLeafRow(opp, depth + 1)))}
       </React.Fragment>
-    ));
+      );
+    });
   };
 
   return (
@@ -241,8 +280,8 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
               <TableHead className="cursor-pointer select-none text-xs font-semibold" onClick={() => toggleSort('contactName')}>
                 <div className="flex items-center gap-1">Contact Name <SortIcon field="contactName" /></div>
               </TableHead>
-              <TableHead className="cursor-pointer select-none text-xs font-semibold" onClick={() => toggleSort('salesTeam')}>
-                <div className="flex items-center gap-1">Sales Team <SortIcon field="salesTeam" /></div>
+              <TableHead className="cursor-pointer select-none text-xs font-semibold" onClick={() => toggleSort('assignedTo')}>
+                <div className="flex items-center gap-1">User Responsible <SortIcon field="assignedTo" /></div>
               </TableHead>
               <TableHead className="cursor-pointer select-none text-xs font-semibold text-right" onClick={() => toggleSort('expectedRevenue')}>
                 <div className="flex items-center justify-end gap-1">Expected Revenue <SortIcon field="expectedRevenue" /></div>
@@ -288,7 +327,7 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
                       </TableCell>
                       <TableCell><span className="font-medium">{opp.name}</span></TableCell>
                       <TableCell className="text-muted-foreground">{opp.contactName || '—'}</TableCell>
-                      <TableCell className="text-muted-foreground">{opp.salesTeam || '—'}</TableCell>
+                      <TableCell className="text-muted-foreground">{resolveUserName(opp.assignedTo) || '—'}</TableCell>
                       <TableCell className="text-right font-medium">{displayRevenue(opp.expectedRevenue, user?.id, 'crm')}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-[11px] capitalize font-medium border-0 px-2 py-0.5"
