@@ -253,7 +253,6 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
               New
             </Button>
             <span className="text-sm font-semibold text-foreground">Pipeline</span>
-            <Settings className="h-3.5 w-3.5 text-muted-foreground cursor-pointer" />
             {isFetching && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
           </div>
 
@@ -265,7 +264,6 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
             {[
               { icon: LayoutGrid, id: 'kanban' as const, title: 'Kanban' },
               { icon: List, id: 'list' as const, title: 'List' },
-              { icon: Clock, id: null, title: 'Activity' },
             ].map(({ icon: Icon, id, title }) => (
               <Tooltip key={title}>
                 <TooltipTrigger asChild>
