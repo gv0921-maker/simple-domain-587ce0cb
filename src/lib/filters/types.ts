@@ -58,11 +58,20 @@ export interface PredefinedFilterSection {
   multiSelect?: boolean; // default true
 }
 
+export interface GroupByItem { key: string; label: string }
+
+export interface GroupBySection {
+  id: string;
+  label: string;
+  items: GroupByItem[];
+}
+
 export interface ModuleFilterConfig {
   moduleKey: string;          // e.g. 'crm_opportunities'
   searchPlaceholder?: string;
   fields: FieldConfig[];
   groupByFields?: string[];   // subset of field keys (or virtual keys)
+  groupBySections?: GroupBySection[]; // expandable group-by categories
   sortFields?: string[];      // subset of field keys
   predefinedFilters?: PredefinedFilterSection[];
 }

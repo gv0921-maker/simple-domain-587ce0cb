@@ -26,6 +26,19 @@ export const crmOpportunitiesFilterConfig: ModuleFilterConfig = {
     { key: 'updatedAt', label: 'Last Activity', type: 'date' },
   ],
   groupByFields: ['stage', 'assignedTo', 'salesTeam', 'priority', 'expected_closing_month'],
+  groupBySections: [
+    {
+      id: 'creation_date',
+      label: 'Creation Date',
+      items: [
+        { key: 'createdAt_year', label: 'Year' },
+        { key: 'createdAt_quarter', label: 'Quarter' },
+        { key: 'createdAt_month', label: 'Month' },
+        { key: 'createdAt_week', label: 'Week' },
+        { key: 'createdAt_day', label: 'Day' },
+      ],
+    },
+  ],
   sortFields: ['name', 'expectedRevenue', 'expectedCloseDate', 'createdAt', 'updatedAt'],
   predefinedFilters: [
     {
