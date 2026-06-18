@@ -326,32 +326,44 @@ export default function OpportunityDetail() {
     const stage = resolveStageEnum(stageId);
     const previousStageName = pipeline.stages.find(s => s.id === opportunity.stageId)?.name || opportunity.stageId;
     const newStageName = pipeline.stages.find(s => s.id === stageId)?.name || stageId;
-    updateStageMutation.mutate({ id: opportunity.id, stageId, stage });
-    toast({ title: `Stage updated to ${newStageName}` });
-    saveNote({
-      content: `<p><strong>Stage changed</strong><br/>${previousStageName} → ${newStageName} (Stage)</p>`,
-      relatedTo: 'opportunity',
-      relatedId: opportunity.id,
-      userId: user?.id || '1',
-      userName: user?.name || user?.email?.split('@')[0] || 'User',
-      visibility: 'team',
-    } as any);
-    refreshChatter();
+    updateStageMutation.mutate(
+      { id: opportunity.id, stageId, stage },
+      {
+        onSuccess: () => {
+          toast({ title: `Stage updated to ${newStageName}` });
+          saveNote({
+            content: `<p><strong>Stage changed</strong><br/>${previousStageName} → ${newStageName} (Stage)</p>`,
+            relatedTo: 'opportunity',
+            relatedId: opportunity.id,
+            userId: user?.id || '1',
+            userName: user?.name || user?.email?.split('@')[0] || 'User',
+            visibility: 'team',
+          } as any);
+          refreshChatter();
+        },
+      },
+    );
   };
 
   const handleWon = () => {
     const previousStageName = activeStages.find(s => s.id === opportunity.stageId)?.name || opportunity.stageId;
-    updateStageMutation.mutate({ id: opportunity.id, stageId: 'won', stage: 'won' });
-    toast({ title: '🎉 Opportunity Won!' });
-    saveNote({
-      content: `<p><strong>Opportunity won</strong><br/>${previousStageName} → Won (Stage)</p>`,
-      relatedTo: 'opportunity',
-      relatedId: opportunity.id,
-      userId: user?.id || '1',
-      userName: user?.name || user?.email?.split('@')[0] || 'User',
-      visibility: 'team',
-    } as any);
-    refreshChatter();
+    updateStageMutation.mutate(
+      { id: opportunity.id, stageId: 'won', stage: 'won' },
+      {
+        onSuccess: () => {
+          toast({ title: '🎉 Opportunity Won!' });
+          saveNote({
+            content: `<p><strong>Opportunity won</strong><br/>${previousStageName} → Won (Stage)</p>`,
+            relatedTo: 'opportunity',
+            relatedId: opportunity.id,
+            userId: user?.id || '1',
+            userName: user?.name || user?.email?.split('@')[0] || 'User',
+            visibility: 'team',
+          } as any);
+          refreshChatter();
+        },
+      },
+    );
   };
 
   const handleLost = () => {
@@ -390,8 +402,12 @@ export default function OpportunityDetail() {
 
     // Optimistic update + mutation; the useOpportunity hook will refresh
     // once the mutation completes (it invalidates the opportunity cache).
+    // Stage / stageId are managed exclusively by the pipeline chip
+    // (updateStageMutation) — never overwrite them from stale editingData,
+    // otherwise an in-flight stage change can be reverted on the next save.
+    const { stage: _omitStage, stageId: _omitStageId, ...editableRest } = (editingData as any) ?? {};
     saveOpportunityMutation.mutate(
-      { ...opportunity, ...editingData },
+      { ...opportunity, ...editableRest },
       {
         onSuccess: (refreshed) => {
           setEditingData(refreshed);
