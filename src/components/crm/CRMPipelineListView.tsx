@@ -214,7 +214,7 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
           onClick={() => toggleGroup(path)}
         >
           <TableCell
-            colSpan={8}
+            colSpan={9}
             className="py-1.5 text-xs font-semibold"
             style={{ paddingLeft: `${depth * 16 + 16}px` }}
           >
