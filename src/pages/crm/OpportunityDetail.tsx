@@ -85,6 +85,7 @@ import { TiptapNotesEditor } from '@/components/ui/tiptap-notes-editor';
 import { useQuotationsRich, useSalesOrdersRich } from '@/hooks/sales';
 import { useStockMoves } from '@/hooks/inventory';
 import type { StockMove } from '@/lib/data/inventory/types';
+import { useAppUsers, displayNameFor, type AppUserLite } from '@/hooks/useAppUsers';
 
 // Format elapsed time: <1h → "Xm", <24h → "Xh", else → "Xd"
 function formatElapsed(ms: number): string {
@@ -195,6 +196,20 @@ export default function OpportunityDetail() {
   const { data: allStockMoves = [] } = useStockMoves();
   const { data: allQuotations = [] } = useQuotationsRich();
   const { data: allSalesOrders = [] } = useSalesOrdersRich();
+  const { data: appUsers = [] } = useAppUsers();
+  const [assigneeOpen, setAssigneeOpen] = useState(false);
+  const [assigneeSearch, setAssigneeSearch] = useState('');
+
+  // Resolve assignedTo (which may be a user UUID, an email, or a name)
+  // into a displayable user name.
+  const resolveAssignee = (value: string | undefined | null): { user?: AppUserLite; label: string } => {
+    if (!value) return { label: '' };
+    const u = appUsers.find(
+      (x) => x.user_id === value || x.email === value || displayNameFor(x) === value,
+    );
+    if (u) return { user: u, label: displayNameFor(u) };
+    return { label: value };
+  };
 
   // Cross-module related records (same contact across Sales, Inventory, etc.)
   const relatedRecords = useMemo(() => {
