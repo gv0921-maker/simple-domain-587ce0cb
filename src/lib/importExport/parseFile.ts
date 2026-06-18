@@ -68,7 +68,9 @@ export function mapRowsToSchema(
     for (const [header, key] of Object.entries(headerMap)) {
       const col = colByKey.get(key);
       if (!col) continue;
-      out[key] = coerceValue(r[header], col.type);
+      let v = coerceValue(r[header], col.type);
+      if (col.transform) v = col.transform(v);
+      out[key] = v;
     }
     return out;
   });
