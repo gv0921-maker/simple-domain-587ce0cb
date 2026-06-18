@@ -285,6 +285,9 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
               <TableHead className="w-10 pl-4">
                 <Checkbox checked={selected.size === filtered.length && filtered.length > 0} onCheckedChange={toggleAll} />
               </TableHead>
+              <TableHead className="cursor-pointer select-none text-xs font-semibold" onClick={() => toggleSort('createdAt')}>
+                <div className="flex items-center gap-1">Created Date <SortIcon field="createdAt" /></div>
+              </TableHead>
               <TableHead className="cursor-pointer select-none text-xs font-semibold" onClick={() => toggleSort('name')}>
                 <div className="flex items-center gap-1">Opportunity <SortIcon field="name" /></div>
               </TableHead>
@@ -309,7 +312,7 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-16 text-muted-foreground text-sm">
+                <TableCell colSpan={9} className="text-center py-16 text-muted-foreground text-sm">
                   No opportunity found. Let's create one!
                 </TableCell>
               </TableRow>
@@ -336,6 +339,9 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
                           }}
                         />
                       </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {format(parseISO(opp.createdAt), 'MM/dd/yyyy')}
+                      </TableCell>
                       <TableCell><span className="font-medium">{opp.name}</span></TableCell>
                       <TableCell className="text-muted-foreground">{opp.contactName || '—'}</TableCell>
                       <TableCell className="text-muted-foreground">{resolveUserName(opp.assignedTo) || '—'}</TableCell>
@@ -356,7 +362,7 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
                   );
                 })}
                 <TableRow className="bg-muted/30 font-semibold hover:bg-muted/30">
-                  <TableCell colSpan={4} className="pl-4 text-xs text-muted-foreground">
+                  <TableCell colSpan={5} className="pl-4 text-xs text-muted-foreground">
                     {filtered.length} record{filtered.length !== 1 ? 's' : ''}
                   </TableCell>
                   <TableCell className="text-right text-xs">{canViewSensitive(user?.id, 'crm', 'revenue') ? `₹${totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}</TableCell>
