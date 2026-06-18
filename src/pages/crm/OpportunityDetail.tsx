@@ -276,6 +276,7 @@ export default function OpportunityDetail() {
     if (field === 'expectedRevenue') return `₹${Number(value).toLocaleString('en-IN')}`;
     if (field === 'probability') return `${value}%`;
     if (field === 'tags') return [...(value as string[])].sort().join(', ');
+    if (field === 'assignedTo') return resolveAssignee(String(value)).label || '—';
     return String(value);
   };
 
@@ -1220,13 +1221,13 @@ export default function OpportunityDetail() {
 
               {chatterNotes.length === 0 && chatterActivities.filter(a => a.completed).length === 0 && (
                 <div className="flex gap-2.5">
-                  <ChatterAvatar name="Management" />
+                  <ChatterAvatar name={user?.name || user?.email?.split('@')[0] || 'User'} />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="font-bold text-foreground">Management</span>
+                      <span className="font-bold text-foreground">{user?.name || user?.email?.split('@')[0] || 'User'}</span>
                         <span className="text-xs text-muted-foreground">{chatterTimestamp(opportunity.createdAt)}</span>
                     </div>
-                    <p className="text-sm text-foreground mt-0.5">Lead/Opportunity created</p>
+                    <p className="text-sm text-foreground mt-0.5">Opportunity created</p>
                   </div>
                 </div>
               )}
