@@ -25,7 +25,7 @@ export const crmOpportunitiesFilterConfig: ModuleFilterConfig = {
     { key: 'createdAt', label: 'Created Date', type: 'date' },
     { key: 'updatedAt', label: 'Last Activity', type: 'date' },
   ],
-  groupByFields: ['stage', 'assignedTo', 'salesTeam', 'priority', 'expected_closing_month'],
+  groupByFields: ['stageId', 'assignedTo', 'salesTeam', 'priority', 'expected_closing_month'],
   groupBySections: [
     {
       id: 'creation_date',
