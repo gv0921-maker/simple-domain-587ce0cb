@@ -34,7 +34,7 @@ interface CRMPipelineListViewProps {
   onViewChange: (view: 'kanban' | 'list') => void;
 }
 
-type SortField = 'name' | 'contactName' | 'expectedRevenue' | 'expectedCloseDate' | 'stage' | 'assignedTo';
+type SortField = 'createdAt' | 'name' | 'contactName' | 'expectedRevenue' | 'expectedCloseDate' | 'stage' | 'assignedTo';
 type SortDir = 'asc' | 'desc';
 
 export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CRMPipelineListViewProps) {
