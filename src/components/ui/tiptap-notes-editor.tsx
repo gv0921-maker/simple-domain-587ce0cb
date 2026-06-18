@@ -89,9 +89,9 @@ export function TiptapNotesEditor({
   if (!editor) return null;
 
   return (
-    <div className={cn('border border-border rounded-md bg-background overflow-hidden', className)}>
+    <div className={cn('border border-border rounded-md bg-background overflow-hidden w-full', className)}>
       <Toolbar editor={editor} />
-      <div style={{ minHeight }} className="overflow-auto">
+      <div style={{ minHeight }} className="overflow-x-auto overflow-y-auto w-full max-w-full">
         <EditorContent editor={editor} />
       </div>
       <style>{`
