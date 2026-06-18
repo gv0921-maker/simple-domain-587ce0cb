@@ -59,8 +59,8 @@ export function ModuleNav({ items: rawItems }: ModuleNavProps) {
 
   return (
     <>
-      {/* Desktop: horizontal tabs */}
-      <nav className="hidden md:flex items-center gap-6 border-b border-border bg-card px-4 h-10">
+      {/* Desktop: horizontal tabs with scroll on overflow */}
+      <nav className="hidden md:flex items-center gap-6 border-b border-border bg-card px-4 h-10 overflow-x-auto whitespace-nowrap scrollbar-thin">
         {items.map((item) => {
           const isActive = item === activeItem;
           return (
