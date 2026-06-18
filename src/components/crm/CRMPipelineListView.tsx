@@ -82,7 +82,8 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
     let list = [...filteredByFilters];
     list.sort((a, b) => {
       let cmp = 0;
-      if (sortField === 'name') cmp = a.name.localeCompare(b.name);
+      if (sortField === 'createdAt') cmp = a.createdAt.localeCompare(b.createdAt);
+      else if (sortField === 'name') cmp = a.name.localeCompare(b.name);
       else if (sortField === 'contactName') cmp = (a.contactName || '').localeCompare(b.contactName || '');
       else if (sortField === 'expectedRevenue') cmp = a.expectedRevenue - b.expectedRevenue;
       else if (sortField === 'expectedCloseDate') cmp = a.expectedCloseDate.localeCompare(b.expectedCloseDate);
