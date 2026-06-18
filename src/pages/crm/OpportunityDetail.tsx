@@ -873,7 +873,7 @@ export default function OpportunityDetail() {
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="notes" className="mt-4">
+                <TabsContent value="notes" className="mt-4 overflow-x-auto">
                   <TiptapNotesEditor
                     value={currentData.internalNotes || ''}
                     onChange={(html) => updateField('internalNotes', html)}
