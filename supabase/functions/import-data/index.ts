@@ -19,6 +19,31 @@ interface ImportBody {
   requiredFields?: string[];
 }
 
+const TABLE_COLUMNS: Record<string, Set<string>> = {
+  crm_contacts: new Set([
+    'id', 'type', 'first_name', 'last_name', 'email', 'emails', 'phone', 'phones',
+    'company_id', 'company_name', 'job_title', 'department', 'website', 'gstin',
+    'addresses', 'tags', 'notes', 'assigned_to', 'status', 'score',
+    'parent_contact_id', 'custom_fields',
+  ]),
+  crm_opportunities: new Set([
+    'id', 'name', 'contact_id', 'contact_name', 'company_id', 'company_name', 'email',
+    'phone', 'stage', 'stage_id', 'pipeline_id', 'expected_revenue', 'probability',
+    'priority', 'sales_team', 'expected_close_date', 'notes', 'assigned_to',
+  ]),
+};
+
+function sanitizeRow(table: string, row: Record<string, unknown>) {
+  const allowed = TABLE_COLUMNS[table];
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    if (allowed && !allowed.has(key)) continue;
+    if (value === null || value === undefined || value === '') continue;
+    out[key] = value;
+  }
+  return out;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') {
@@ -87,7 +112,7 @@ Deno.serve(async (req) => {
       errors.push({ row: rowNum, message: `Missing required field(s): ${missing.join(', ')}` });
       return;
     }
-    validRows.push(row);
+    validRows.push(sanitizeRow(body.table, row));
   });
 
   let succeeded = 0;
