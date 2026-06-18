@@ -707,11 +707,75 @@ export default function OpportunityDetail() {
 
                 {/* User Responsible */}
                 <OdooField label="User Responsible" avatar>
-                  <input
-                    className={INLINE_CSS}
-                    value={currentData.assignedTo || ''}
-                    onChange={e => updateField('assignedTo', e.target.value)}
-                  />
+                  <Popover open={assigneeOpen} onOpenChange={setAssigneeOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className={cn(
+                          INLINE_CSS,
+                          'text-left cursor-pointer',
+                          !currentData.assignedTo && 'text-muted-foreground/60 italic',
+                        )}
+                      >
+                        {currentData.assignedTo
+                          ? resolveAssignee(currentData.assignedTo).label
+                          : 'Unassigned'}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="p-0 w-72">
+                      <div className="p-2 border-b">
+                        <Input
+                          autoFocus
+                          placeholder="Search user..."
+                          value={assigneeSearch}
+                          onChange={(e) => setAssigneeSearch(e.target.value)}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="max-h-64 overflow-y-auto py-1">
+                        {currentData.assignedTo && (
+                          <button
+                            type="button"
+                            className="w-full text-left px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent"
+                            onClick={() => {
+                              updateField('assignedTo', '');
+                              setAssigneeOpen(false);
+                              setAssigneeSearch('');
+                            }}
+                          >
+                            Unassign
+                          </button>
+                        )}
+                        {appUsers
+                          .filter((u) => {
+                            const q = assigneeSearch.trim().toLowerCase();
+                            if (!q) return true;
+                            return (
+                              displayNameFor(u).toLowerCase().includes(q) ||
+                              u.email.toLowerCase().includes(q)
+                            );
+                          })
+                          .map((u) => (
+                            <button
+                              key={u.user_id}
+                              type="button"
+                              className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent flex flex-col"
+                              onClick={() => {
+                                updateField('assignedTo', u.user_id);
+                                setAssigneeOpen(false);
+                                setAssigneeSearch('');
+                              }}
+                            >
+                              <span className="font-medium">{displayNameFor(u)}</span>
+                              <span className="text-xs text-muted-foreground truncate">{u.email}</span>
+                            </button>
+                          ))}
+                        {appUsers.length === 0 && (
+                          <div className="px-3 py-2 text-xs text-muted-foreground">No users available</div>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </OdooField>
 
                 {/* Email */}
