@@ -103,6 +103,11 @@ export function TiptapNotesEditor({
           height: 0;
         }
         .tiptap-notes .tableWrapper { overflow-x: auto; margin: 0.5rem 0; max-width: 100%; }
+        .tiptap-notes .ProseMirror {
+          word-break: normal;
+          overflow-wrap: normal;
+          white-space: pre-wrap;
+        }
         .tiptap-notes table { border-collapse: collapse; table-layout: fixed; width: 100%; margin: 0; }
         .tiptap-notes table td, .tiptap-notes table th {
           border: 1px solid hsl(var(--border));
