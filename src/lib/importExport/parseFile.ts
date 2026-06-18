@@ -70,6 +70,7 @@ export function mapRowsToSchema(
       if (!col) continue;
       let v = coerceValue(r[header], col.type);
       if (col.transform) v = col.transform(v);
+      if (v === null || v === undefined || v === '') continue;
       out[key] = v;
     }
     return out;
