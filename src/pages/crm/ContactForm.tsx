@@ -92,6 +92,8 @@ export default function ContactForm() {
   const [newTag, setNewTag] = useState('');
   const [parentSearch, setParentSearch] = useState('');
   const [parentPopoverOpen, setParentPopoverOpen] = useState(false);
+  // Raw name input — preserves spaces while typing (split into first/last on save)
+  const [fullName, setFullName] = useState('');
 
   const allContacts = allContactsData;
 
@@ -140,6 +142,7 @@ export default function ContactForm() {
           priceList: contact.priceList || '',
           purchasePaymentTerms: contact.purchasePaymentTerms || '',
         });
+        setFullName(`${contact.firstName}${contact.lastName ? ' ' + contact.lastName : ''}`);
         // Emails
         const seedEmails: EmailEntry[] = [];
         if (contact.email) seedEmails.push({ email: contact.email, type: 'Work' });
@@ -207,10 +210,15 @@ export default function ContactForm() {
 
   const handleSubmit = (action: 'close' | 'new') => {
     const primaryEmail = emails[0]?.email?.trim() || '';
-    if (!formData.firstName || !primaryEmail) {
-      toast({ title: 'Name and primary email are required', variant: 'destructive' });
+    const primaryPhoneCheck = phones[0]?.phone?.trim() || '';
+    const trimmedName = fullName.trim();
+    if (!trimmedName || !primaryPhoneCheck) {
+      toast({ title: 'Name and primary phone are required', variant: 'destructive' });
       return;
     }
+    const nameParts = trimmedName.split(/\s+/);
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ');
 
     const cleanEmails = emails.filter(e => e.email.trim()).slice(1); // secondary only
     const cleanPhones = phones.filter(p => p.phone.trim()).slice(1);
@@ -228,8 +236,8 @@ export default function ContactForm() {
     saveContactMutation.mutate({
       ...(existingContact || {}),
       type: formData.type,
-      firstName: formData.firstName,
-      lastName: formData.lastName,
+      firstName,
+      lastName,
       email: primaryEmail,
       emails: cleanEmails.length ? cleanEmails : undefined,
       phone: primaryPhone,
@@ -282,6 +290,7 @@ export default function ContactForm() {
                 notes: '', tags: [], parentContactId: '',
                 salesperson: '', salesTeam: '', paymentTerms: '', priceList: '', purchasePaymentTerms: '',
               });
+              setFullName('');
               setEmails([{ email: '', type: 'Work' }]);
               setPhones([{ phone: '', type: 'Work' }]);
               setBilling(emptyAddress('billing'));
@@ -428,11 +437,8 @@ export default function ContactForm() {
             </div>
             <div className="flex-1 space-y-2">
               <Input
-                value={formData.firstName + (formData.lastName ? ' ' + formData.lastName : '')}
-                onChange={(e) => {
-                  const parts = e.target.value.split(' ');
-                  setFormData(prev => ({ ...prev, firstName: parts[0] || '', lastName: parts.slice(1).join(' ') }));
-                }}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 placeholder="e.g. Brandon Freeman"
                 className="text-2xl font-light h-auto py-1 border-0 border-b border-border rounded-none px-0 focus-visible:ring-0 bg-transparent"
               />
