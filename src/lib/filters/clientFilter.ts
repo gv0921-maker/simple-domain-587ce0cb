@@ -12,6 +12,39 @@ function getField(rec: Record<string, unknown>, key: string): unknown {
     if (Number.isNaN(d.getTime())) return null;
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   }
+  // Date-part virtual fields for createdAt
+  if (key.startsWith('createdAt_')) {
+    const v = rec['createdAt'] as string | undefined;
+    if (!v) return null;
+    const d = new Date(v);
+    if (Number.isNaN(d.getTime())) return null;
+    const part = key.replace('createdAt_', '');
+    const y = d.getFullYear();
+    switch (part) {
+      case 'year': return String(y);
+      case 'quarter': {
+        const q = Math.floor(d.getMonth() / 3) + 1;
+        return `${y}-Q${q}`;
+      }
+      case 'month': {
+        return `${y}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      }
+      case 'week': {
+        // ISO week: find Thursday of the week, then compute week number
+        const tmp = new Date(d.getTime());
+        tmp.setHours(0, 0, 0, 0);
+        tmp.setDate(tmp.getDate() + 3 - ((tmp.getDay() + 6) % 7));
+        const week1 = new Date(tmp.getFullYear(), 0, 4);
+        week1.setDate(week1.getDate() + 3 - ((week1.getDay() + 6) % 7));
+        const w = 1 + Math.floor((tmp.getTime() - week1.getTime()) / (7 * 24 * 60 * 60 * 1000));
+        return `${y}-W${String(w).padStart(2, '0')}`;
+      }
+      case 'day': {
+        return `${y}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+      default: return null;
+    }
+  }
   // Map snake_case keys to camelCase if present.
   const camel = key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
   if (camel in rec) return rec[camel];
