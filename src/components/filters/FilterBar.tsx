@@ -239,7 +239,7 @@ export function FilterBar({ config, value, onChange }: Props) {
           className="w-[760px] max-w-[95vw] p-0 max-h-[70vh] overflow-hidden"
           onOpenAutoFocus={e => e.preventDefault()}
         >
-          <div className="grid grid-cols-3 divide-x max-h-[70vh]">
+          <div className="grid grid-cols-3 divide-x h-[70vh] overflow-hidden">
             <FiltersColumn config={config} value={value} onChange={onChange} />
             <GroupByColumn
               config={config}
