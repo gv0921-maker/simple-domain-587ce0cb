@@ -165,6 +165,9 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
             }}
           />
         </TableCell>
+        <TableCell className="text-muted-foreground">
+          {format(parseISO(opp.createdAt), 'MM/dd/yyyy')}
+        </TableCell>
         <TableCell style={{ paddingLeft: indent ? `${indent * 16 + 16}px` : undefined }}>
           <span className="font-medium">{opp.name}</span>
         </TableCell>
