@@ -513,14 +513,16 @@ export default function WarehouseLocations() {
               <div className="grid gap-2">
                 <Label>Parent Location</Label>
                 <Select
-                  value={locationForm.parentId}
-                  onValueChange={(v) => setLocationForm({ ...locationForm, parentId: v })}
+                  value={locationForm.parentId || '__none__'}
+                  onValueChange={(v) =>
+                    setLocationForm({ ...locationForm, parentId: v === '__none__' ? '' : v })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="None (root location)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None (root location)</SelectItem>
+                    <SelectItem value="__none__">None (root location)</SelectItem>
                     {locations
                       .filter((l) => l.warehouseId === locationForm.warehouseId)
                       .map((loc) => (
@@ -593,14 +595,16 @@ export default function WarehouseLocations() {
               <div className="grid gap-2">
                 <Label>Source Warehouse</Label>
                 <Select
-                  value={routeForm.sourceWarehouseId}
-                  onValueChange={(v) => setRouteForm({ ...routeForm, sourceWarehouseId: v })}
+                  value={routeForm.sourceWarehouseId || '__external__'}
+                  onValueChange={(v) =>
+                    setRouteForm({ ...routeForm, sourceWarehouseId: v === '__external__' ? '' : v })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="External (Supplier)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">External (Supplier)</SelectItem>
+                    <SelectItem value="__external__">External (Supplier)</SelectItem>
                     {warehouses.map((wh) => (
                       <SelectItem key={wh.id} value={wh.id}>
                         {wh.name}
