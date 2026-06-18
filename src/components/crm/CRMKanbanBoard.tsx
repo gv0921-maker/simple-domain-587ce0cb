@@ -816,7 +816,6 @@ export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange
               New
             </Button>
             <span className="text-sm font-semibold text-foreground">Pipeline</span>
-            <Settings className="h-3.5 w-3.5 text-muted-foreground cursor-pointer hover:text-foreground" onClick={() => navigate('/settings/crm-pipelines')} />
             {isFetching && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
           </div>
 
@@ -834,7 +833,6 @@ export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange
             {[
               { icon: LayoutGrid, id: 'kanban' as const, title: 'Kanban' },
               { icon: List, id: 'list' as const, title: 'List' },
-              { icon: Clock, id: null, title: 'Activity' },
             ].map(({ icon: Icon, id, title }) => (
               <Tooltip key={title}>
                 <TooltipTrigger asChild>
