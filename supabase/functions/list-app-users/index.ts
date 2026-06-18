@@ -80,6 +80,10 @@ Deno.serve(async (req) => {
     const result = (usersPage.users ?? []).map((u: any) => ({
       user_id: u.id,
       email: u.email ?? '',
+      name:
+        (u.user_metadata?.name as string) ||
+        (u.user_metadata?.full_name as string) ||
+        (u.email ? String(u.email).split('@')[0] : ''),
       created_at: u.created_at,
       last_sign_in_at: u.last_sign_in_at ?? null,
       banned_until: u.banned_until ?? null,
