@@ -237,29 +237,114 @@ function Toolbar({ editor }: { editor: Editor }) {
         <LinkIcon className="h-3.5 w-3.5" />
       </Btn>
       <Sep />
+      <ColorPicker
+        title="Text color"
+        icon={<Palette className="h-3.5 w-3.5" />}
+        onPick={(c) => {
+          if (c === null) editor.chain().focus().unsetColor().run();
+          else editor.chain().focus().setColor(c).run();
+        }}
+      />
+      <ColorPicker
+        title="Highlight"
+        icon={<Highlighter className="h-3.5 w-3.5" />}
+        onPick={(c) => {
+          if (c === null) editor.chain().focus().unsetHighlight().run();
+          else editor.chain().focus().toggleHighlight({ color: c }).run();
+        }}
+        swatches={['#FFF3A1', '#FFD0A1', '#FFB3B3', '#C9F2C9', '#BEE3F8', '#E9D8FD', '#FBCFE8']}
+      />
+      <Sep />
       <Btn title="Insert table"
         onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
         <TableIcon className="h-3.5 w-3.5" />
       </Btn>
       {editor.isActive('table') && (
         <>
-          <Btn title="Add column" onClick={() => editor.chain().focus().addColumnAfter().run()}>
+          <Btn title="Add column before" onClick={() => editor.chain().focus().addColumnBefore().run()}>
+            <span className="text-[10px] font-bold">←C</span>
+          </Btn>
+          <Btn title="Add column after" onClick={() => editor.chain().focus().addColumnAfter().run()}>
             <Plus className="h-3.5 w-3.5" />
           </Btn>
           <Btn title="Delete column" onClick={() => editor.chain().focus().deleteColumn().run()}>
             <Minus className="h-3.5 w-3.5" />
           </Btn>
-          <Btn title="Add row" onClick={() => editor.chain().focus().addRowAfter().run()}>
+          <Btn title="Add row before" onClick={() => editor.chain().focus().addRowBefore().run()}>
+            <span className="text-[10px] font-bold">↑R</span>
+          </Btn>
+          <Btn title="Add row after" onClick={() => editor.chain().focus().addRowAfter().run()}>
             <span className="text-[10px] font-bold">+R</span>
           </Btn>
           <Btn title="Delete row" onClick={() => editor.chain().focus().deleteRow().run()}>
             <span className="text-[10px] font-bold">-R</span>
+          </Btn>
+          <Btn title="Toggle header row" onClick={() => editor.chain().focus().toggleHeaderRow().run()}>
+            <Heading className="h-3.5 w-3.5" />
+          </Btn>
+          <Btn title="Toggle header column" onClick={() => editor.chain().focus().toggleHeaderColumn().run()}>
+            <Columns className="h-3.5 w-3.5" />
+          </Btn>
+          <Btn title="Merge cells" onClick={() => editor.chain().focus().mergeCells().run()}
+            disabled={!editor.can().mergeCells()}>
+            <Merge className="h-3.5 w-3.5" />
+          </Btn>
+          <Btn title="Split cell" onClick={() => editor.chain().focus().splitCell().run()}
+            disabled={!editor.can().splitCell()}>
+            <Split className="h-3.5 w-3.5" />
           </Btn>
           <Btn title="Delete table" onClick={() => editor.chain().focus().deleteTable().run()}>
             <Trash2 className="h-3.5 w-3.5" />
           </Btn>
         </>
       )}
+    </div>
+  );
+}
+
+const DEFAULT_SWATCHES = [
+  '#000000', '#374151', '#6B7280', '#DC2626', '#EA580C', '#D97706',
+  '#65A30D', '#059669', '#0891B2', '#2563EB', '#7C3AED', '#DB2777',
+];
+
+function ColorPicker({
+  title, icon, onPick, swatches = DEFAULT_SWATCHES,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  onPick: (color: string | null) => void;
+  swatches?: string[];
+}) {
+  return (
+    <div className="relative group">
+      <button
+        type="button"
+        title={title}
+        onMouseDown={(e) => e.preventDefault()}
+        className="h-7 w-7 flex items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+      >
+        {icon}
+      </button>
+      <div className="absolute z-50 top-full left-0 mt-1 hidden group-hover:flex group-focus-within:flex flex-wrap gap-1 p-2 w-[152px] rounded-md border border-border bg-popover shadow-md">
+        {swatches.map((c) => (
+          <button
+            key={c}
+            type="button"
+            onMouseDown={(e) => { e.preventDefault(); onPick(c); }}
+            className="h-5 w-5 rounded border border-border hover:scale-110 transition-transform"
+            style={{ background: c }}
+            title={c}
+          />
+        ))}
+        <button
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); onPick(null); }}
+          className="h-5 px-1.5 text-[10px] rounded border border-border hover:bg-muted"
+          title="Clear"
+        >
+          Clear
+        </button>
+      </div>
     </div>
   );
 }
