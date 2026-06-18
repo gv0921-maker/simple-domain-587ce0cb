@@ -7,7 +7,7 @@ export const crmContactsImportSchema: ImportExportSchema = {
   upsertKey: 'id',
   permissions: { import: ['admin', 'super_admin'], export: ['user', 'admin', 'super_admin'] },
   columns: [
-    { key: 'first_name', label: 'First Name', type: 'text', required: true, exampleValue: 'Aarav' },
+    { key: 'first_name', label: 'First Name', type: 'text', exampleValue: 'Aarav' },
     { key: 'last_name', label: 'Last Name', type: 'text', exampleValue: 'Sharma' },
     { key: 'email', label: 'Email', type: 'text', exampleValue: 'aarav@example.com' },
     { key: 'phone', label: 'Phone', type: 'text', exampleValue: '+91 98765 43210' },
