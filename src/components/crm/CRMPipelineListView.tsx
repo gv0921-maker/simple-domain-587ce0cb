@@ -104,6 +104,15 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
     return m;
   }, [pipeline.stages]);
 
+  // Map stage slug (e.g. 'proposition') → resolved pipeline stage name (e.g. 'Estimate/Quotation')
+  const stageSlugToName = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const o of opportunities) {
+      if (o.stage && !m[o.stage]) m[o.stage] = stageNames[o.stageId] || o.stage;
+    }
+    return m;
+  }, [opportunities, stageNames]);
+
   const groupChain = useMemo<string[]>(() => {
     if (filterState.group_by_fields?.length) return filterState.group_by_fields;
     return filterState.group_by ? [filterState.group_by] : [];
@@ -115,7 +124,7 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
       filtered as unknown as Record<string, unknown>[],
       groupChain,
       (field, k) => {
-        if (field === 'stage') return stageNames[k] || k;
+        if (field === 'stage') return stageSlugToName[k] || stageNames[k] || k;
         if (field === 'assignedTo') return resolveUserName(k);
         if (field === 'createdAt_month') {
           // k format: "2026-06"
