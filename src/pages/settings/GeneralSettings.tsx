@@ -1,12 +1,11 @@
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Building2, Shield, Users, ShoppingCart, User, Cog,
-  ChevronRight, RefreshCw,
+  ChevronRight,
 } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
 import {
@@ -15,10 +14,6 @@ import {
   type SettingsNavSection,
 } from '@/lib/navigation/settings';
 import { useRoleCheck } from '@/hooks/auth/useRoleCheck';
-import { backfillContactsToCustomers } from '@/lib/sales/customerCrmSync';
-import { useQueryClient } from '@tanstack/react-query';
-import { salesKeys } from '@/hooks/sales/keys';
-import { toast } from '@/hooks/use-toast';
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   Building2, Shield, Users, ShoppingCart, User, Cog,
@@ -32,8 +27,6 @@ const ROLE_LABEL: Record<string, string> = {
 };
 
 export default function GeneralSettings() {
-  const qc = useQueryClient();
-  const [syncing, setSyncing] = useState(false);
   const { isSuperAdmin, isAdminOrSuper, isAdminOrHR, loading } = useRoleCheck();
 
   const visibleSections: SettingsNavSection[] = useMemo(
@@ -43,22 +36,6 @@ export default function GeneralSettings() {
       }),
     [isSuperAdmin, isAdminOrSuper, isAdminOrHR],
   );
-
-  const handleSyncContacts = async () => {
-    setSyncing(true);
-    try {
-      const res = await backfillContactsToCustomers();
-      await qc.invalidateQueries({ queryKey: salesKeys.customers() });
-      toast({
-        title: 'CRM Contacts synced to Customers',
-        description: `${res.inserted} added, ${res.skipped} already existed${res.failed ? `, ${res.failed} failed` : ''}.`,
-      });
-    } catch (e: any) {
-      toast({ title: 'Sync failed', description: e?.message || 'Unknown error', variant: 'destructive' });
-    } finally {
-      setSyncing(false);
-    }
-  };
 
   return (
     <AppLayout title="Settings" moduleNav={SETTINGS_SECTIONS}>
@@ -113,26 +90,6 @@ export default function GeneralSettings() {
               );
             })}
           </div>
-        )}
-
-        {isAdminOrSuper && (
-          <Card className="p-5 mt-6">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <RefreshCw className="h-4 w-4 text-muted-foreground" />
-                  <h3 className="text-sm font-medium">Sync CRM Contacts to Customers</h3>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Create matching Sales customer records for any CRM contacts that don't have one yet.
-                </p>
-              </div>
-              <Button onClick={handleSyncContacts} disabled={syncing} variant="outline" className="gap-1">
-                <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-                {syncing ? 'Syncing…' : 'Run Sync'}
-              </Button>
-            </div>
-          </Card>
         )}
       </div>
     </AppLayout>
