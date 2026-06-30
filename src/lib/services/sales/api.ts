@@ -39,6 +39,7 @@ export interface SbCustomer {
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
+  crmContactId: string | null;
 }
 
 export interface SbQuotationLine {
@@ -204,6 +205,7 @@ const mapCustomer = (r: any): SbCustomer => ({
   tags: Array.isArray(r.tags) ? r.tags : [],
   notes: r.notes ?? null,
   createdBy: r.created_by, createdAt: r.created_at, updatedAt: r.updated_at,
+  crmContactId: r.crm_contact_id ?? null,
 });
 const mapQuotationLine = (r: any): SbQuotationLine => ({
   id: r.id, quotationId: r.quotation_id, productId: r.product_id,

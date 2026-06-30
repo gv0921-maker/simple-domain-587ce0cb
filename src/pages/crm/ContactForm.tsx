@@ -34,7 +34,7 @@ import {
   readSalesReturnContext,
   clearSalesReturnContext,
 } from '@/lib/sales/contactPopulation';
-import { upsertCustomerFromContact, buildCustomerPopulationFields } from '@/lib/sales/customerCrmSync';
+import { resolveCustomerIdForContact, buildCustomerPopulationFields } from '@/lib/sales/customerCrmSync';
 import { useQueryClient } from '@tanstack/react-query';
 import { salesKeys } from '@/hooks/sales/keys';
 
@@ -259,25 +259,28 @@ export default function ContactForm() {
     }, {
       onSuccess: (saved) => {
         toast({ title: isEdit ? 'Contact updated' : 'Contact created' });
+        // Database trigger auto-creates/updates the linked `customers` row.
+        queryClient.invalidateQueries({ queryKey: salesKeys.customers() });
 
-        // Mirror to `customers` so this person is selectable in Sales forms.
-        upsertCustomerFromContact(saved)
-          .then((cust) => {
-            queryClient.invalidateQueries({ queryKey: salesKeys.customers() });
-
-            // When invoked from a Sales form, return there with the
-            // freshly-synced customer pre-selected (must be a customers.id).
+        // When invoked from a Sales form, return there with the
+        // freshly-synced customer pre-selected (must be a customers.id).
+        (async () => {
             if (returnToSales) {
               const ctx = readSalesReturnContext();
               clearSalesReturnContext();
-              const populated = cust
-                ? buildCustomerPopulationFields(cust)
+              const custId = await resolveCustomerIdForContact(saved.id);
+              const populated = custId
+                ? buildCustomerPopulationFields({
+                    id: custId,
+                    name: `${saved.firstName ?? ''} ${saved.lastName ?? ''}`.trim() || saved.companyName || '',
+                    phone: saved.phone,
+                  })
                 : buildContactPopulationFields(saved);
               const target = ctx?.returnTo || '/sales/quotations/new';
               navigate(target, {
                 state: {
                   restoredFormData: { ...(ctx?.formData || {}), ...populated },
-                  newCustomerId: cust?.id,
+                  newCustomerId: custId,
                 },
               });
               return;
@@ -306,14 +309,13 @@ export default function ContactForm() {
             } else {
               navigate('/crm/contacts');
             }
-          })
-          .catch((e) => {
-            toast({
-              title: 'Customer sync failed',
-              description: e?.message ?? String(e),
-              variant: 'destructive',
-            });
+        })().catch((e) => {
+          toast({
+            title: 'Customer sync failed',
+            description: e?.message ?? String(e),
+            variant: 'destructive',
           });
+        });
         return;
 
         // When invoked from a Sales form, always return there — even on

@@ -108,10 +108,10 @@ export default function CRMContactsList() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
-              Contacts
+              Customers
               {isFetching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
             </h1>
-            <p className="text-muted-foreground">Manage your contacts and customer relationships</p>
+            <p className="text-muted-foreground">Manage your customers and contact relationships</p>
           </div>
           <div className="flex gap-2">
             {isSuperAdmin && someSelected && (
@@ -129,7 +129,7 @@ export default function CRMContactsList() {
             {canCreateContacts && (
               <Button onClick={() => navigate('/crm/contacts/new')}>
                 <UserPlus className="h-4 w-4 mr-2" />
-                Add Contact
+                Add Customer
               </Button>
             )}
           </div>
