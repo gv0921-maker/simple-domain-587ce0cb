@@ -5,7 +5,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from '@/components/ui/command';
-import { useCustomers } from '@/hooks/sales';
+import { useContacts } from '@/hooks/crm/useCRMQueries';
+import { resolveCustomerIdForContact } from '@/lib/sales/customerCrmSync';
 import { cn } from '@/lib/utils';
 
 interface CustomerSelectorProps {
@@ -18,10 +19,9 @@ interface CustomerSelectorProps {
 
 /**
  * Shared searchable Customer combobox for Sales forms.
- * Loads rows from the `customers` table (via useCustomers) and emits the
- * full customer object on select so the parent can auto-populate. This is
- * the source of truth for `quotations.customer_id` / `sales_orders.customer_id`
- * — both FKs point to `customers.id`.
+ * Loads rows from `crm_contacts` (the unified customer/contact source) and
+ * resolves the matching `customers.id` via an RPC on selection — that's
+ * the FK stored on `quotations.customer_id` / `sales_orders.customer_id`.
  */
 export function CustomerSelector({
   value,
@@ -30,11 +30,19 @@ export function CustomerSelector({
   placeholder = 'Select customer...',
   onCreateNew,
 }: CustomerSelectorProps) {
-  const { data: customers = [], isLoading } = useCustomers();
+  const { data: contacts = [], isLoading } = useContacts();
   const [open, setOpen] = useState(false);
+  const [resolving, setResolving] = useState(false);
 
-  const selected: any = value ? customers.find((c: any) => c.id === value) : undefined;
-  const selectedLabel = selected?.name || '';
+  // `value` is a customers.id (FK); look up the linked contact for display.
+  const selectedLabel =
+    value
+      ? (() => {
+          const c = (contacts as any[]).find((x) => x.linkedCustomerId === value);
+          if (c) return `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || c.companyName || c.email || '';
+          return '';
+        })()
+      : '';
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -46,12 +54,12 @@ export function CustomerSelector({
           disabled={disabled || isLoading}
           className="w-full justify-between font-normal"
         >
-          {isLoading ? (
+          {isLoading || resolving ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <span className="truncate">{selectedLabel || placeholder}</span>
           )}
-          {!isLoading && <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
+          {!isLoading && !resolving && <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
@@ -65,19 +73,28 @@ export function CustomerSelector({
           <CommandList>
             <CommandEmpty>No customer found.</CommandEmpty>
             <CommandGroup>
-              {customers.map((c: any) => {
-                const fullName = c.name || '(No name)';
+              {contacts.map((c: any) => {
+                const fullName =
+                  `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || c.companyName || '(No name)';
                 const email = c.email || '';
                 const phone = c.phone || '';
-                const company = c.company || '';
+                const company = c.companyName || '';
                 const searchValue = `${fullName} ${email} ${phone} ${company}`;
                 return (
                   <CommandItem
                     key={c.id}
                     value={searchValue}
-                    onSelect={() => {
-                      onChange(c);
+                    onSelect={async () => {
                       setOpen(false);
+                      setResolving(true);
+                      try {
+                        const customerId = await resolveCustomerIdForContact(c.id);
+                        if (customerId) {
+                          onChange({ id: customerId, name: fullName, phone, email, company });
+                        }
+                      } finally {
+                        setResolving(false);
+                      }
                     }}
                     className="flex items-center justify-between gap-2"
                   >
@@ -90,7 +107,7 @@ export function CustomerSelector({
                     <Check
                       className={cn(
                         'h-4 w-4 shrink-0',
-                        value === c.id ? 'opacity-100' : 'opacity-0',
+                        'opacity-0',
                       )}
                     />
                   </CommandItem>
