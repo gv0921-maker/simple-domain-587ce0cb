@@ -2460,6 +2460,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           credit_limit: number | null
+          crm_contact_id: string | null
           default_billing_address: string | null
           default_delivery_address: string | null
           default_payment_terms: string | null
@@ -2488,6 +2489,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           credit_limit?: number | null
+          crm_contact_id?: string | null
           default_billing_address?: string | null
           default_delivery_address?: string | null
           default_payment_terms?: string | null
@@ -2516,6 +2518,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           credit_limit?: number | null
+          crm_contact_id?: string | null
           default_billing_address?: string | null
           default_delivery_address?: string | null
           default_payment_terms?: string | null
@@ -2536,6 +2539,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "customers_crm_contact_id_fkey"
+            columns: ["crm_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "customers_default_pricelist_id_fkey"
             columns: ["default_pricelist_id"]
@@ -9118,6 +9128,10 @@ export type Database = {
       get_invoice_delivery_summary: {
         Args: { p_invoice_id: string }
         Returns: Json
+      }
+      get_or_create_customer_for_contact: {
+        Args: { p_contact_id: string }
+        Returns: string
       }
       get_product_stock_breakdown: {
         Args: { p_product_id: string }
