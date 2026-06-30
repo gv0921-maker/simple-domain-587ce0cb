@@ -29,7 +29,6 @@ import {
 } from '@/lib/services/crm';
 import { useSaveContact, useContacts } from '@/hooks/crm/useCRMQueries';
 import { useToast } from '@/hooks/use-toast';
-import { upsertCustomerFromContact } from '@/lib/sales/customerCrmSync';
 import { useQueryClient } from '@tanstack/react-query';
 import { salesKeys } from '@/hooks/sales/keys';
 
@@ -128,14 +127,8 @@ export function ContactFormDialog({ open, onOpenChange, contact, onSave }: Conta
       ...(contact || {}),
       ...formData,
     });
-
-    // Mirror to `customers` so this person is selectable in Sales forms.
-    try {
-      await upsertCustomerFromContact(savedContact);
-      queryClient.invalidateQueries({ queryKey: salesKeys.customers() });
-    } catch (e: any) {
-      toast({ title: 'Customer sync failed', description: e?.message ?? String(e), variant: 'destructive' });
-    }
+    // Database trigger auto-creates/updates the linked `customers` row.
+    queryClient.invalidateQueries({ queryKey: salesKeys.customers() });
 
     toast({
       title: isEdit ? 'Contact Updated' : 'Contact Created',
