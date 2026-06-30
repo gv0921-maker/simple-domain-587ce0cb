@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CustomizationProvider } from "@/contexts/CustomizationContext";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
@@ -52,8 +52,6 @@ import WriteOffDetail from "@/pages/inventory/WriteOffDetail";
 
 // Sales pages
 import SalesOverview from "@/pages/sales/SalesOverview";
-import CustomersList from "@/pages/sales/CustomersList";
-import CustomerForm from "@/pages/sales/CustomerForm";
 import QuotationForm from "@/pages/sales/QuotationForm";
 import QuotationsList from "@/pages/sales/QuotationsList";
 import SalesOrdersList from "@/pages/sales/SalesOrdersList";
@@ -321,9 +319,9 @@ const App = () => (
             <Route path="/sales/reports/legacy" element={<ProtectedRoute><SalesReports /></ProtectedRoute>} />
             <Route path="/sales/reports/:reportKey" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
             <Route path="/sales/promotions" element={<ProtectedRoute><PromotionsPage /></ProtectedRoute>} />
-            <Route path="/sales/customers" element={<ProtectedRoute><CustomersList /></ProtectedRoute>} />
-            <Route path="/sales/customers/new" element={<ProtectedRoute><CustomerForm /></ProtectedRoute>} />
-            <Route path="/sales/customers/:id/edit" element={<ProtectedRoute><CustomerForm /></ProtectedRoute>} />
+            <Route path="/sales/customers" element={<Navigate to="/crm/contacts" replace />} />
+            <Route path="/sales/customers/new" element={<Navigate to="/crm/contacts/new" replace />} />
+            <Route path="/sales/customers/:id/edit" element={<Navigate to="/crm/contacts" replace />} />
 
             {/* Customer Portal (no auth required) */}
             <Route path="/portal" element={<CustomerPortal />} />
