@@ -41,7 +41,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useCRMPermissions } from '@/hooks/useCRMPermissions';
 import { canViewSensitive, maskEmail, maskPhone, displayRevenue } from '@/lib/crm/fieldMask';
-import { useQuotationsRich, useSalesOrdersRich } from '@/hooks/sales';
+import { useQuotationsRich, useSalesOrdersRich, useCustomers } from '@/hooks/sales';
 import DOMPurify from 'dompurify';
 
 export default function CRMContactDetail() {
@@ -56,14 +56,23 @@ export default function CRMContactDetail() {
   const { data: opportunities = [] } = useOpportunities();
   const { data: allQuotations = [] } = useQuotationsRich();
   const { data: allSalesOrders = [] } = useSalesOrdersRich();
+  const { data: allCustomers = [] } = useCustomers();
   const saveNoteMutation = useSaveNote();
   useNotesRealtime(id);
 
   const parentContact = contact?.parentContactId ? allContacts.find(c => c.id === contact.parentContactId) : undefined;
   const childContacts = id ? allContacts.filter(c => c.parentContactId === id) : [];
 
-  // Sales history
-  const linkedQuotations = useMemo(() => allQuotations.filter(q => q.customerId === id), [allQuotations, id]);
+  // Sales history — find the `customers.id` linked to this CRM contact, then
+  // match sales documents by that FK.
+  const linkedCustomerId = useMemo(
+    () => (allCustomers as any[]).find((c) => c.crmContactId === id)?.id as string | undefined,
+    [allCustomers, id],
+  );
+  const linkedQuotations = useMemo(
+    () => allQuotations.filter((q) => q.customerId === linkedCustomerId),
+    [allQuotations, linkedCustomerId],
+  );
   const linkedOrders = useMemo(
     () => allSalesOrders.filter(o => linkedQuotations.some(q => q.id === o.quotationId)),
     [allSalesOrders, linkedQuotations],
