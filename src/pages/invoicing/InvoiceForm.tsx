@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, Plus, Trash2, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { CustomerSelector } from '@/components/sales/CustomerSelector';
 import {
   useSaveInvoice, useSetInvoicePriceApproval,
   type InvoiceType, type PaymentMethod,
@@ -215,14 +216,11 @@ export default function InvoiceForm() {
               </div>
               <div className="grid gap-2">
                 <Label>Customer *</Label>
-                <Select value={customerId} onValueChange={setCustomerId}>
-                  <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
-                  <SelectContent>
-                    {customers.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <CustomerSelector
+                  value={customerId}
+                  onChange={(c) => setCustomerId(c?.id ?? '')}
+                  placeholder="Select customer"
+                />
               </div>
               <div className="grid gap-2">
                 <Label>Invoice Date</Label>

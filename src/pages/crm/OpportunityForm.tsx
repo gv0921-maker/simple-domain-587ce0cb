@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Plus, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ContactSearchCombobox } from '@/components/crm/ContactSearchCombobox';
 import { useContacts, useSaveOpportunity } from '@/hooks/crm/useCRMQueries';
 import { useToast } from '@/hooks/use-toast';
 import { useStudioConfig } from '@/hooks/useStudioConfig';
@@ -106,29 +106,18 @@ export default function OpportunityForm() {
             {studio.isFieldVisible('contact') && (
               <div className="grid gap-2">
                 <Label>{studio.getFieldLabel('contact', 'Contact')}</Label>
-                <Select value={formData.contactId} onValueChange={(v) => {
-                  if (v === '__create_new__') {
+                <ContactSearchCombobox
+                  value={formData.contactId}
+                  onChange={(c) => setFormData({ ...formData, contactId: c?.id ?? '' })}
+                  placeholder="Select contact"
+                  onCreateNew={() => {
                     const returnData = encodeURIComponent(JSON.stringify({
                       returnTo: '/crm/opportunities/new',
                       opportunityData: formData,
                     }));
                     navigate(`/crm/contacts/new?returnContext=${returnData}`);
-                    return;
-                  }
-                  setFormData({ ...formData, contactId: v });
-                }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select contact" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__create_new__" className="text-primary font-medium">
-                      <span className="flex items-center gap-1.5"><Plus className="h-3.5 w-3.5" /> Create New</span>
-                    </SelectItem>
-                    {contacts.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.firstName} {c.lastName}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  }}
+                />
               </div>
             )}
             <div className="grid grid-cols-2 gap-4">
