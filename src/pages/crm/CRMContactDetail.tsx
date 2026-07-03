@@ -24,6 +24,8 @@ import {
   Loader2,
   Pencil,
   Award,
+  Globe,
+  Receipt,
 } from 'lucide-react';
 import { type Note } from '@/lib/services/crm';
 import {
@@ -181,6 +183,23 @@ export default function CRMContactDetail() {
                   <InfoRow icon={Building} label="Company" value={contact.companyName || '—'} />
                   <InfoRow icon={Briefcase} label="Job Title" value={contact.jobTitle || '—'} />
                   <InfoRow icon={User} label="Department" value={contact.department || '—'} />
+                  <InfoRow icon={Receipt} label="GSTIN" value={contact.gstin || '—'} />
+                  <InfoRow
+                    icon={Globe}
+                    label="Website"
+                    value={
+                      contact.website ? (
+                        <a
+                          href={contact.website.startsWith('http') ? contact.website : `https://${contact.website}`}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="text-primary hover:underline break-all"
+                        >
+                          {contact.website}
+                        </a>
+                      ) : '—'
+                    }
+                  />
                   <InfoRow
                     icon={Calendar}
                     label="Created"
@@ -525,13 +544,13 @@ export default function CRMContactDetail() {
   );
 }
 
-function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
+function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start gap-3">
       <Icon className="h-4 w-4 text-muted-foreground mt-0.5" />
       <div>
         <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-sm font-medium">{value}</p>
+        <div className="text-sm font-medium">{value}</div>
       </div>
     </div>
   );
