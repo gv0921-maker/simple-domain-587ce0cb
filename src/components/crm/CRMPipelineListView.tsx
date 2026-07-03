@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/tooltip';
 import {
   List, LayoutGrid, ChevronDown, ChevronUp, ChevronRight,
-  Clock, Settings, Loader2,
+  Clock, Settings, Loader2, Star, User,
 } from 'lucide-react';
 import { type Opportunity, type Pipeline } from '@/lib/services/crm';
 import { useOpportunities, useDefaultPipeline, useActivities, useContacts } from '@/hooks/crm/useCRMQueries';
@@ -27,7 +27,6 @@ import { crmOpportunitiesFilterConfig } from '@/lib/filters/modules/crmOpportuni
 import { applyFilterState, groupByFieldsNested, type NestedGroup } from '@/lib/filters/clientFilter';
 import { EMPTY_FILTER_STATE, type FilterState } from '@/lib/filters/types';
 import { displayRevenue, canViewSensitive } from '@/lib/crm/fieldMask';
-import { Star } from 'lucide-react';
 
 interface CRMPipelineListViewProps {
   onNewOpportunity?: () => void;
