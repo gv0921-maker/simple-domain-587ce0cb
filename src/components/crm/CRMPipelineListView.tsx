@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/tooltip';
 import {
   List, LayoutGrid, ChevronDown, ChevronUp, ChevronRight,
-  Clock, Settings, Loader2,
+  Clock, Settings, Loader2, Star, User,
 } from 'lucide-react';
 import { type Opportunity, type Pipeline } from '@/lib/services/crm';
 import { useOpportunities, useDefaultPipeline, useActivities, useContacts } from '@/hooks/crm/useCRMQueries';
@@ -246,18 +246,14 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
   return (
     <div className="h-full flex flex-col">
       {/* Toolbar — matching kanban */}
-      <div className="border-b border-border bg-card px-4 py-2">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+      <div className="border-b border-border bg-card px-3 md:px-4 py-2 space-y-2 md:space-y-0">
+        <div className="flex flex-wrap items-center justify-between gap-2 md:gap-3">
+          <div className="flex items-center gap-2 min-w-0">
             <Button size="sm" onClick={onNewOpportunity} className="gap-1 h-8 text-xs font-semibold bg-[#875A7B] hover:bg-[#6e4a64] text-white" disabled={!canCreateOpportunities}>
               New
             </Button>
-            <span className="text-sm font-semibold text-foreground">Pipeline</span>
+            <span className="text-sm font-semibold text-foreground truncate">Pipeline</span>
             {isFetching && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
-          </div>
-
-          <div className="flex-1 max-w-3xl">
-            <FilterBar config={crmOpportunitiesFilterConfig} value={filterState} onChange={setFilterState} />
           </div>
 
           <div className="flex items-center gap-1">
@@ -281,11 +277,72 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
               </Tooltip>
             ))}
           </div>
+
+          <div className="w-full md:flex-1 md:max-w-3xl order-last md:order-none">
+            <FilterBar config={crmOpportunitiesFilterConfig} value={filterState} onChange={setFilterState} />
+          </div>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="flex-1 overflow-auto">
+      {/* Mobile card list */}
+      <div className="flex-1 overflow-auto md:hidden p-3 space-y-2">
+        {filtered.length === 0 ? (
+          <div className="text-center py-16 text-muted-foreground text-sm">
+            No opportunity found. Let's create one!
+          </div>
+        ) : (
+          filtered.map((opp) => {
+            const stageName = pipeline.stages.find(s => s.id === opp.stageId)?.name || opp.stage;
+            const stageColor = pipeline.stages.find(s => s.id === opp.stageId)?.color;
+            return (
+              <button
+                key={opp.id}
+                type="button"
+                onClick={() => navigate(`/crm/opportunities/${opp.id}`)}
+                className="w-full text-left border rounded-lg bg-card p-3 hover:bg-muted/40 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-sm truncate">{opp.name}</div>
+                    {opp.contactName && (
+                      <div className="text-xs text-muted-foreground truncate">{opp.contactName}</div>
+                    )}
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] capitalize font-medium border-0 px-2 py-0.5 shrink-0"
+                    style={{ backgroundColor: stageColor ? `${stageColor}20` : undefined, color: stageColor || undefined }}
+                  >
+                    {stageName}
+                  </Badge>
+                </div>
+                <div className="mt-1.5 flex items-center justify-between gap-2 text-xs">
+                  <span className="font-medium text-foreground">
+                    {displayRevenue(opp.expectedRevenue, user?.id, 'crm')}
+                  </span>
+                  <span className="text-muted-foreground">
+                    Closing {format(parseISO(opp.expectedCloseDate), 'dd/MM/yyyy')}
+                  </span>
+                </div>
+                <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <span className="inline-flex items-center gap-1 truncate">
+                    <User className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{resolveUserName(opp.assignedTo) || '—'}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-0.5 shrink-0">
+                    {[1,2,3].map(n => (
+                      <Star key={n} className={cn('h-3 w-3', n <= opp.priority ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/40')} />
+                    ))}
+                  </span>
+                </div>
+              </button>
+            );
+          })
+        )}
+      </div>
+
+      {/* Table (desktop / tablet) */}
+      <div className="flex-1 overflow-auto hidden md:block">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/30 hover:bg-muted/30">
