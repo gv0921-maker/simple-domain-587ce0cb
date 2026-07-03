@@ -8,7 +8,9 @@ import { CRM_NAV } from '@/lib/navigation/crm';
 
 export default function CRMPipeline() {
   const navigate = useNavigate();
-  const [view, setView] = useState<'kanban' | 'list'>('kanban');
+  const [view, setView] = useState<'kanban' | 'list'>(() =>
+    typeof window !== 'undefined' && window.innerWidth < 768 ? 'list' : 'kanban'
+  );
 
   const handleNewOpportunity = () => {
     navigate('/crm/opportunities/new');
