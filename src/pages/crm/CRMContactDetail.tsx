@@ -24,6 +24,8 @@ import {
   Loader2,
   Pencil,
   Award,
+  Globe,
+  Receipt,
 } from 'lucide-react';
 import { type Note } from '@/lib/services/crm';
 import {
@@ -181,6 +183,23 @@ export default function CRMContactDetail() {
                   <InfoRow icon={Building} label="Company" value={contact.companyName || '—'} />
                   <InfoRow icon={Briefcase} label="Job Title" value={contact.jobTitle || '—'} />
                   <InfoRow icon={User} label="Department" value={contact.department || '—'} />
+                  <InfoRow icon={Receipt} label="GSTIN" value={contact.gstin || '—'} />
+                  <InfoRow
+                    icon={Globe}
+                    label="Website"
+                    value={
+                      contact.website ? (
+                        <a
+                          href={contact.website.startsWith('http') ? contact.website : `https://${contact.website}`}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="text-primary hover:underline break-all"
+                        >
+                          {contact.website}
+                        </a>
+                      ) : '—'
+                    }
+                  />
                   <InfoRow
                     icon={Calendar}
                     label="Created"
