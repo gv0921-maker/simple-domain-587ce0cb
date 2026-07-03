@@ -45,7 +45,7 @@ export function ContactSearchCombobox({
 
   const pool = useMemo(
     () =>
-      (contacts as Contact[]).filter((c) => (activeOnly ? c.status !== 'inactive' : true)),
+      (contacts as Contact[]).filter((c) => (activeOnly ? c.status !== 'archived' : true)),
     [contacts, activeOnly],
   );
 
