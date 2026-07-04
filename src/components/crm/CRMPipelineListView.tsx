@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { applyFilterState, groupByFieldsNested, type NestedGroup } from '@/lib/filters/clientFilter';
 import { EMPTY_FILTER_STATE, type FilterState } from '@/lib/filters/types';
-import { displayRevenue } from '@/lib/crm/fieldMask';
+import { displayRevenue, canViewSensitive } from '@/lib/crm/fieldMask';
 import { PipelineToolbar } from '@/components/crm/PipelineToolbar';
 
 interface CRMPipelineListViewProps {
@@ -239,44 +239,17 @@ export function CRMPipelineListView({ onNewOpportunity, view, onViewChange }: CR
 
   return (
     <div className="h-full flex flex-col">
-      {/* Toolbar — matching kanban */}
-      <div className="border-b border-border bg-card px-3 md:px-4 py-2 space-y-2 md:space-y-0">
-        <div className="flex flex-wrap items-center justify-between gap-2 md:gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <Button size="sm" onClick={onNewOpportunity} className="gap-1 h-8 text-xs font-semibold bg-[#875A7B] hover:bg-[#6e4a64] text-white" disabled={!canCreateOpportunities}>
-              New
-            </Button>
-            <span className="text-sm font-semibold text-foreground truncate">Pipeline</span>
-            {isFetching && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
-          </div>
-
-          <div className="flex items-center gap-1">
-            {[
-              { icon: LayoutGrid, id: 'kanban' as const, title: 'Kanban' },
-              { icon: List, id: 'list' as const, title: 'List' },
-            ].map(({ icon: Icon, id, title }) => (
-              <Tooltip key={title}>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => id && onViewChange(id)}
-                    className={cn(
-                      'h-8 w-8 flex items-center justify-center rounded transition-colors',
-                      id && view === id ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">{title}</TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-
-          <div className="w-full md:flex-1 md:max-w-3xl order-last md:order-none">
-            <FilterBar config={crmOpportunitiesFilterConfig} value={filterState} onChange={setFilterState} />
-          </div>
-        </div>
-      </div>
+      <PipelineToolbar
+        onNewOpportunity={onNewOpportunity}
+        canCreate={canCreateOpportunities}
+        isFetching={isFetching}
+        view={view}
+        onViewChange={onViewChange}
+        filterState={filterState}
+        onFilterChange={setFilterState}
+        filteredRecords={filtered}
+        allRecords={allOpportunities}
+      />
 
       {/* Mobile card list */}
       <div className="flex-1 overflow-auto md:hidden p-3 space-y-2">
