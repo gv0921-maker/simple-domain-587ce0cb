@@ -68,12 +68,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useCRMPermissions } from '@/hooks/useCRMPermissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { FilterBar } from '@/components/filters/FilterBar';
 import { crmOpportunitiesFilterConfig } from '@/lib/filters/modules/crmOpportunities';
 import { applyFilterState, groupByField } from '@/lib/filters/clientFilter';
 import { EMPTY_FILTER_STATE, type FilterState } from '@/lib/filters/types';
 import { displayRevenue } from '@/lib/crm/fieldMask';
-import { ImportExportButton } from '@/components/importExport/ImportExportButton';
+import { PipelineToolbar } from '@/components/crm/PipelineToolbar';
 
 // Map a pipeline stage (whose name may be customized, e.g. "Follow-Up",
 // "Estimate/Quotation", "Sales/Billing") to the OpportunityStage enum
@@ -802,57 +801,17 @@ export function CRMKanbanBoard({ onNewOpportunity, view = 'kanban', onViewChange
 
   return (
     <div className="h-[calc(100vh-3.5rem)] flex flex-col">
-      {/* Odoo-style control panel */}
-      <div className="border-b border-border bg-card px-4 py-2">
-        <div className="flex items-center justify-between gap-3">
-          {/* Left: New + Pipeline label */}
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              onClick={onNewOpportunity}
-              className="gap-1 bg-[#875A7B] hover:bg-[#6e4a64] text-white h-8 text-xs font-semibold rounded"
-              disabled={!canCreateOpportunities}
-            >
-              New
-            </Button>
-            <span className="text-sm font-semibold text-foreground">Pipeline</span>
-            {isFetching && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
-          </div>
-
-          <div className="flex-1 max-w-3xl">
-            <FilterBar config={crmOpportunitiesFilterConfig} value={filterState} onChange={setFilterState} />
-          </div>
-
-          {/* Right: View toggle icons */}
-          <div className="flex items-center gap-1">
-            <ImportExportButton
-              schema="crm_opportunities"
-              currentRecords={filteredOpportunities as unknown as Record<string, unknown>[]}
-              allRecords={allOpportunities as unknown as Record<string, unknown>[]}
-            />
-            {[
-              { icon: LayoutGrid, id: 'kanban' as const, title: 'Kanban' },
-              { icon: List, id: 'list' as const, title: 'List' },
-            ].map(({ icon: Icon, id, title }) => (
-              <Tooltip key={title}>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => id && onViewChange?.(id)}
-                    disabled={!id}
-                    className={cn(
-                      'h-8 w-8 flex items-center justify-center rounded transition-colors',
-                      id && view === id ? 'bg-muted text-foreground' : !id ? 'text-muted-foreground/30 cursor-not-allowed' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">{!id ? 'Coming soon' : title}</TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        </div>
-      </div>
+      <PipelineToolbar
+        onNewOpportunity={onNewOpportunity}
+        canCreate={canCreateOpportunities}
+        isFetching={isFetching}
+        view={view}
+        onViewChange={(v) => onViewChange?.(v)}
+        filterState={filterState}
+        onFilterChange={setFilterState}
+        filteredRecords={filteredOpportunities}
+        allRecords={allOpportunities}
+      />
 
       {/* Kanban board */}
       {/* Desktop: horizontal kanban */}
