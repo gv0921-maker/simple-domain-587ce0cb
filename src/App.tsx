@@ -26,6 +26,7 @@ import InventorySetupCategories from "@/pages/inventory/setup/InventorySetupCate
 import InventorySetupAttributes from "@/pages/inventory/setup/InventorySetupAttributes";
 import InventorySetupUnits from "@/pages/inventory/setup/InventorySetupUnits";
 import InventorySetupOperationTypes from "@/pages/inventory/setup/InventorySetupOperationTypes";
+import InventoryOperationsOverview from "@/pages/inventory/InventoryOperationsOverview";
 import InventoryReporting from "@/pages/inventory/InventoryReporting";
 import InventoryAdjustments from "@/pages/inventory/InventoryAdjustments";
 import ReorderRules from "@/pages/inventory/ReorderRules";
@@ -283,6 +284,7 @@ const App = () => (
             <Route path="/inventory/reorder-rules/:id/edit" element={<ProtectedRoute><ReorderRuleForm /></ProtectedRoute>} />
             <Route path="/inventory/stock-dashboard" element={<ProtectedRoute><StockDashboard /></ProtectedRoute>} />
             <Route path="/inventory/delivery-notes" element={<ProtectedRoute><DeliveryNotesList /></ProtectedRoute>} />
+            <Route path="/inventory/operations" element={<ProtectedRoute><InventoryOperationsOverview /></ProtectedRoute>} />
             <Route path="/inventory/delivery-notes/:id" element={<ProtectedRoute><DeliveryNoteDetail /></ProtectedRoute>} />
             <Route path="/inventory/delivery-notes/:id/print" element={<ProtectedRoute><DeliveryNotePrint /></ProtectedRoute>} />
             <Route path="/inventory/goods-receipts" element={<ProtectedRoute><GoodsReceiptsList /></ProtectedRoute>} />
