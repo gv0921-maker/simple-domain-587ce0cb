@@ -8529,10 +8529,15 @@ export type Database = {
           bin: string | null
           code: string
           created_at: string
+          cyclic_count_frequency_days: number | null
           id: string
           is_active: boolean
+          last_count_date: string | null
           name: string
+          next_count_date: string | null
+          notes: string | null
           parent_location_id: string | null
+          removal_strategy: string | null
           shelf: string | null
           type: string
           updated_at: string
@@ -8544,10 +8549,15 @@ export type Database = {
           bin?: string | null
           code: string
           created_at?: string
+          cyclic_count_frequency_days?: number | null
           id?: string
           is_active?: boolean
+          last_count_date?: string | null
           name: string
+          next_count_date?: string | null
+          notes?: string | null
           parent_location_id?: string | null
+          removal_strategy?: string | null
           shelf?: string | null
           type?: string
           updated_at?: string
@@ -8559,10 +8569,15 @@ export type Database = {
           bin?: string | null
           code?: string
           created_at?: string
+          cyclic_count_frequency_days?: number | null
           id?: string
           is_active?: boolean
+          last_count_date?: string | null
           name?: string
+          next_count_date?: string | null
+          notes?: string | null
           parent_location_id?: string | null
+          removal_strategy?: string | null
           shelf?: string | null
           type?: string
           updated_at?: string
