@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, X, ChevronDown, ChevronRight, ArrowUpDown } from 'lucide-react';
+import { Search, X, ChevronDown, ChevronRight, ArrowUpDown, Star } from 'lucide-react';
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@/components/ui/popover';
