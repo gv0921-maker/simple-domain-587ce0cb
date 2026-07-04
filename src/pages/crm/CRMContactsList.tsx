@@ -34,7 +34,7 @@ import {
 import { type Contact } from '@/lib/services/crm';
 import { useContacts, useDeleteContact } from '@/hooks/crm/useCRMQueries';
 import { CRM_NAV } from '@/lib/navigation/crm';
-import { CRMImportDialog, CRMExportButton } from '@/components/crm/CRMImportExport';
+import { CRMImportDialog } from '@/components/crm/CRMImportExport';
 import { ImportExportButton } from '@/components/importExport/ImportExportButton';
 import { FilterBar } from '@/components/filters/FilterBar';
 import { crmContactsFilterConfig } from '@/lib/filters/modules/crmContacts';
@@ -120,7 +120,6 @@ export default function CRMContactsList() {
                 Delete ({selectedIds.size})
               </Button>
             )}
-            <CRMExportButton type="contacts" />
             <ImportExportButton
               schema="crm_contacts"
               currentRecords={filteredContacts as unknown as Record<string, unknown>[]}
