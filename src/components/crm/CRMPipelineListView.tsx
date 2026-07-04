@@ -2,17 +2,12 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-  Tooltip, TooltipContent, TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
-  List, LayoutGrid, ChevronDown, ChevronUp, ChevronRight,
-  Clock, Settings, Loader2, Star, User,
+  ChevronDown, ChevronUp, ChevronRight, Star, User,
 } from 'lucide-react';
 import { type Opportunity, type Pipeline } from '@/lib/services/crm';
 import { useOpportunities, useDefaultPipeline, useActivities, useContacts } from '@/hooks/crm/useCRMQueries';
@@ -22,11 +17,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAppUsers, displayNameFor } from '@/hooks/useAppUsers';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
-import { FilterBar } from '@/components/filters/FilterBar';
-import { crmOpportunitiesFilterConfig } from '@/lib/filters/modules/crmOpportunities';
 import { applyFilterState, groupByFieldsNested, type NestedGroup } from '@/lib/filters/clientFilter';
 import { EMPTY_FILTER_STATE, type FilterState } from '@/lib/filters/types';
-import { displayRevenue, canViewSensitive } from '@/lib/crm/fieldMask';
+import { displayRevenue } from '@/lib/crm/fieldMask';
+import { PipelineToolbar } from '@/components/crm/PipelineToolbar';
 
 interface CRMPipelineListViewProps {
   onNewOpportunity?: () => void;
