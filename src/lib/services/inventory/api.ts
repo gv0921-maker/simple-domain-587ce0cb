@@ -115,6 +115,11 @@ function mapLocation(r: Row<any>): Location {
     aisle: r.aisle ?? undefined,
     shelf: r.shelf ?? undefined,
     bin: r.bin ?? undefined,
+    removalStrategy: r.removal_strategy ?? 'fifo',
+    cyclicCountFrequencyDays: r.cyclic_count_frequency_days ?? 0,
+    lastCountDate: r.last_count_date ?? undefined,
+    nextCountDate: r.next_count_date ?? undefined,
+    notes: r.notes ?? undefined,
   };
 }
 function locationToRow(l: Partial<Location>): any {
@@ -129,6 +134,11 @@ function locationToRow(l: Partial<Location>): any {
   if (l.aisle !== undefined) out.aisle = l.aisle || null;
   if (l.shelf !== undefined) out.shelf = l.shelf || null;
   if (l.bin !== undefined) out.bin = l.bin || null;
+  if (l.removalStrategy !== undefined) out.removal_strategy = l.removalStrategy;
+  if (l.cyclicCountFrequencyDays !== undefined) out.cyclic_count_frequency_days = l.cyclicCountFrequencyDays;
+  if (l.lastCountDate !== undefined) out.last_count_date = l.lastCountDate || null;
+  if (l.nextCountDate !== undefined) out.next_count_date = l.nextCountDate || null;
+  if (l.notes !== undefined) out.notes = l.notes || null;
   return out;
 }
 
