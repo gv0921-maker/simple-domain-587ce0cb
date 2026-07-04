@@ -3,7 +3,11 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
-import { Upload, Download, AlertTriangle } from 'lucide-react';
+import { Upload, Download, AlertTriangle, ChevronDown } from 'lucide-react';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   useQuotationsRich, useSaveQuotationRich,
   useSalesOrdersRich, useSaveSalesOrderRich,
@@ -129,12 +133,24 @@ export function SalesImportExport({ type, onImportComplete }: SalesImportExportP
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={handleExport}>
-        <Download className="h-4 w-4 mr-1" /> Export
-      </Button>
-      <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
-        <Upload className="h-4 w-4 mr-1" /> Import
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="h-8 gap-1 text-xs">
+            <Upload className="h-3.5 w-3.5" />
+            Import / Export
+            <ChevronDown className="h-3 w-3" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuItem onClick={handleExport}>
+            <Download className="h-3.5 w-3.5 mr-2" /> Export all (CSV)
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => setImportOpen(true)}>
+            <Upload className="h-3.5 w-3.5 mr-2" /> Import from file…
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
         <DialogContent>
