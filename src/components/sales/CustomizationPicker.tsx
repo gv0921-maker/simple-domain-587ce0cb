@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { useProductCustomizationOptions } from '@/hooks/products/customizationOptions';
+import { useProductAssignedAttributes } from '@/hooks/inventory/config';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,6 +25,8 @@ export interface CustomizationValue {
   referenceImages?: string[];
   /** Sum of additionalPrice from chosen predefined options. */
   priceAdjustment?: number;
+  /** Freeform choices keyed by attribute name (for global attributes assigned to the product). */
+  attributes?: Record<string, string>;
 }
 
 interface Props {
@@ -48,6 +51,7 @@ const fmtPrice = (n: number) =>
 
 export function CustomizationPicker({ productId, value, onChange, disabled }: Props) {
   const { data: options = [] } = useProductCustomizationOptions(productId);
+  const { data: assignedAttrs = [] } = useProductAssignedAttributes(productId);
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -70,11 +74,28 @@ export function CustomizationPicker({ productId, value, onChange, disabled }: Pr
       const match = (grouped.get(type) ?? []).find((o) => o.optionValue === v);
       if (match) total += match.additionalPrice || 0;
     }
+    // Global attribute assignments: add extra_price from selected values.
+    const attrChoices = next.attributes ?? {};
+    for (const a of assignedAttrs) {
+      const chosen = attrChoices[a.name];
+      if (!chosen) continue;
+      const val = (a.values ?? []).find((v) => v.value === chosen);
+      if (val) total += val.extraPrice || 0;
+    }
     return total;
   };
 
   const updateField = (key: keyof CustomizationValue, newValue: string | undefined) => {
     const next: CustomizationValue = { ...value, [key]: newValue };
+    next.priceAdjustment = recomputeAdjustment(next);
+    onChange(next);
+  };
+
+  const updateAttribute = (attrName: string, newValue: string | undefined) => {
+    const nextAttrs = { ...(value.attributes ?? {}) };
+    if (newValue == null || newValue === '') delete nextAttrs[attrName];
+    else nextAttrs[attrName] = newValue;
+    const next: CustomizationValue = { ...value, attributes: nextAttrs };
     next.priceAdjustment = recomputeAdjustment(next);
     onChange(next);
   };
@@ -110,6 +131,45 @@ export function CustomizationPicker({ productId, value, onChange, disabled }: Pr
 
   return (
     <div className="space-y-3 rounded-md border border-dashed border-border p-3 bg-muted/20">
+      {assignedAttrs.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          {assignedAttrs.map((a) => {
+            const current = (value.attributes ?? {})[a.name] ?? '';
+            const vals = a.values ?? [];
+            return (
+              <div key={a.id} className="space-y-1">
+                <Label className="text-xs">{a.name}</Label>
+                <Select
+                  value={current || undefined}
+                  onValueChange={(v) => updateAttribute(a.name, v === CUSTOM_SENTINEL ? '' : v)}
+                  disabled={disabled}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder={`Select ${a.name.toLowerCase()}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vals.map((v) => (
+                      <SelectItem key={v.id} value={v.value}>
+                        {a.displayType === 'color' && v.colorHex && (
+                          <span
+                            className="inline-block h-3 w-3 rounded border align-middle mr-2"
+                            style={{ backgroundColor: v.colorHex }}
+                          />
+                        )}
+                        {v.value}
+                        {v.extraPrice > 0 && ` (+₹${fmtPrice(v.extraPrice)})`}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value={CUSTOM_SENTINEL}>Clear</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {assignedAttrs.length === 0 && (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         {TYPES.map(({ key, type, label }) => {
           const opts = grouped.get(type) ?? [];
@@ -153,6 +213,7 @@ export function CustomizationPicker({ productId, value, onChange, disabled }: Pr
           );
         })}
       </div>
+      )}
 
       {(value.priceAdjustment ?? 0) > 0 && (
         <div className="text-xs text-muted-foreground">

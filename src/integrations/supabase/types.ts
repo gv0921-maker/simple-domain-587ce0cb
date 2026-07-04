@@ -4786,6 +4786,66 @@ export type Database = {
         }
         Relationships: []
       }
+      operation_types: {
+        Row: {
+          create_backorder: string | null
+          create_new_lots: boolean | null
+          created_at: string
+          default_dest_location_id: string | null
+          default_source_location_id: string | null
+          id: string
+          is_active: boolean
+          name: string
+          operation_kind: string
+          sequence_prefix: string | null
+          updated_at: string
+          use_existing_lots: boolean | null
+        }
+        Insert: {
+          create_backorder?: string | null
+          create_new_lots?: boolean | null
+          created_at?: string
+          default_dest_location_id?: string | null
+          default_source_location_id?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          operation_kind: string
+          sequence_prefix?: string | null
+          updated_at?: string
+          use_existing_lots?: boolean | null
+        }
+        Update: {
+          create_backorder?: string | null
+          create_new_lots?: boolean | null
+          created_at?: string
+          default_dest_location_id?: string | null
+          default_source_location_id?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          operation_kind?: string
+          sequence_prefix?: string | null
+          updated_at?: string
+          use_existing_lots?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operation_types_default_dest_location_id_fkey"
+            columns: ["default_dest_location_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operation_types_default_source_location_id_fkey"
+            columns: ["default_source_location_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_activities: {
         Row: {
           action: string
@@ -5479,6 +5539,145 @@ export type Database = {
           },
         ]
       }
+      product_attribute_assignments: {
+        Row: {
+          attribute_id: string
+          created_at: string
+          id: string
+          product_id: string
+        }
+        Insert: {
+          attribute_id: string
+          created_at?: string
+          id?: string
+          product_id: string
+        }
+        Update: {
+          attribute_id?: string
+          created_at?: string
+          id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_attribute_assignments_attribute_id_fkey"
+            columns: ["attribute_id"]
+            isOneToOne: false
+            referencedRelation: "product_attributes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_attribute_assignments_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_attribute_values: {
+        Row: {
+          attribute_id: string
+          color_hex: string | null
+          extra_price: number
+          id: string
+          sort_order: number
+          value: string
+        }
+        Insert: {
+          attribute_id: string
+          color_hex?: string | null
+          extra_price?: number
+          id?: string
+          sort_order?: number
+          value: string
+        }
+        Update: {
+          attribute_id?: string
+          color_hex?: string | null
+          extra_price?: number
+          id?: string
+          sort_order?: number
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_attribute_values_attribute_id_fkey"
+            columns: ["attribute_id"]
+            isOneToOne: false
+            referencedRelation: "product_attributes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_attributes: {
+        Row: {
+          created_at: string
+          display_type: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          display_type?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          display_type?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      product_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          parent_category_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          parent_category_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          parent_category_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_categories_parent_category_id_fkey"
+            columns: ["parent_category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_customization_options: {
         Row: {
           additional_price: number
@@ -5528,6 +5727,7 @@ export type Database = {
           barcode: string | null
           barcodes: string[]
           category: string
+          category_id: string | null
           cost_method: string
           cost_price: number
           created_at: string
@@ -5549,6 +5749,7 @@ export type Database = {
           track_serials: boolean
           type: string
           unit_of_measure: string
+          uom_id: string | null
           updated_at: string
           variants: Json
           volume: number | null
@@ -5559,6 +5760,7 @@ export type Database = {
           barcode?: string | null
           barcodes?: string[]
           category?: string
+          category_id?: string | null
           cost_method?: string
           cost_price?: number
           created_at?: string
@@ -5580,6 +5782,7 @@ export type Database = {
           track_serials?: boolean
           type?: string
           unit_of_measure?: string
+          uom_id?: string | null
           updated_at?: string
           variants?: Json
           volume?: number | null
@@ -5590,6 +5793,7 @@ export type Database = {
           barcode?: string | null
           barcodes?: string[]
           category?: string
+          category_id?: string | null
           cost_method?: string
           cost_price?: number
           created_at?: string
@@ -5611,6 +5815,7 @@ export type Database = {
           track_serials?: boolean
           type?: string
           unit_of_measure?: string
+          uom_id?: string | null
           updated_at?: string
           variants?: Json
           volume?: number | null
@@ -5619,10 +5824,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "products_default_location_fk"
             columns: ["default_location_id"]
             isOneToOne: false
             referencedRelation: "warehouse_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_uom_id_fkey"
+            columns: ["uom_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
             referencedColumns: ["id"]
           },
         ]
@@ -8022,6 +8241,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      units_of_measure: {
+        Row: {
+          abbreviation: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          ratio: number
+          uom_type: string
+          updated_at: string
+        }
+        Insert: {
+          abbreviation: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          ratio?: number
+          uom_type?: string
+          updated_at?: string
+        }
+        Update: {
+          abbreviation?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          ratio?: number
+          uom_type?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
