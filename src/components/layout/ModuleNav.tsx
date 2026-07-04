@@ -22,7 +22,8 @@ import {
 
 interface NavItem {
   label: string;
-  href: string;
+  href?: string;
+  heading?: boolean;
   children?: NavItem[];
 }
 
@@ -69,9 +70,10 @@ export function ModuleNav({ items: rawItems }: ModuleNavProps) {
   // Flatten children for active detection & mobile select
   const flatItems: NavItem[] = items.flatMap((i) =>
     i.children && i.children.length > 0 ? [i, ...i.children] : [i],
-  );
+  ).filter((i) => !i.heading && !!i.href);
 
   const isItemActive = (item: NavItem): boolean => {
+    if (item.heading || !item.href) return false;
     if (isIndexTab(item)) {
       return (
         location.pathname === moduleRoot || location.pathname === item.href
@@ -90,6 +92,7 @@ export function ModuleNav({ items: rawItems }: ModuleNavProps) {
     [...flatItems]
       .sort((a, b) => b.href.length - a.href.length)
       .find((i) => {
+        if (i.heading || !i.href) return false;
         if (isIndexTab(i)) {
           return (
             location.pathname === moduleRoot || location.pathname === i.href
