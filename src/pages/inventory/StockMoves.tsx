@@ -159,6 +159,10 @@ export default function StockMoves() {
   return (
     <AppLayout title="Inventory" moduleNav={INVENTORY_NAV}>
       <div className="p-6 space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Stock Moves</h1>
+          <p className="text-muted-foreground">Complete history of all stock movements across locations</p>
+        </div>
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <Card className="animate-slide-up">
