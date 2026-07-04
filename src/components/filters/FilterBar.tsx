@@ -37,12 +37,27 @@ export function FilterBar({ config, value, onChange }: Props) {
   const deleteFilterMut = useDeleteFilter(config.moduleKey);
   const setUserDefaultMut = useSetUserDefault(config.moduleKey);
 
+  // Any mutation to filter criteria strips the saved-filter markers, so a
+  // pristine favourite chip immediately reverts to raw chips once edited.
+  const mutate = useCallback((next: FilterState) => {
+    if (next.saved_filter_id || next.saved_filter_name) {
+      const { saved_filter_id: _a, saved_filter_name: _b, ...clean } = next;
+      onChange(clean);
+    } else {
+      onChange(next);
+    }
+  }, [onChange]);
+
   // Hydrate from default filter or last-used localStorage once.
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     if (hydrated) return;
     if (defaultFilter) {
-      onChange(defaultFilter.filter_state);
+      onChange({
+        ...defaultFilter.filter_state,
+        saved_filter_id: defaultFilter.id,
+        saved_filter_name: defaultFilter.name,
+      });
       setHydrated(true);
     } else {
       try {
