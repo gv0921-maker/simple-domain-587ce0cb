@@ -182,26 +182,40 @@ export function ModuleNav({ items: rawItems }: ModuleNavProps) {
             )}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="min-w-[200px]">
-            {item.children.map((c) => (
-              <DropdownMenuItem
-                key={c.href}
-                onSelect={() => navigate(c.href)}
-                className={cn(
-                  isItemActive(c) && 'bg-accent text-accent-foreground',
-                )}
-              >
-                {c.label}
-              </DropdownMenuItem>
-            ))}
+            {item.children.map((c, idx) => {
+              if (c.heading) {
+                return (
+                  <div
+                    key={`h-${c.label}-${idx}`}
+                    className="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                  >
+                    {c.label}
+                  </div>
+                );
+              }
+              if (!c.href) return null;
+              return (
+                <DropdownMenuItem
+                  key={c.href}
+                  onSelect={() => navigate(c.href!)}
+                  className={cn(
+                    isItemActive(c) && 'bg-accent text-accent-foreground',
+                  )}
+                >
+                  {c.label}
+                </DropdownMenuItem>
+              );
+            })}
           </DropdownMenuContent>
         </DropdownMenu>
       );
     }
 
+    if (!item.href) return null;
     return (
       <Link
         key={item.href}
-        to={item.href}
+        to={item.href!}
         ref={setRef as (el: HTMLAnchorElement | null) => void}
         className={tabClass}
       >
