@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -55,12 +55,28 @@ export function ModuleNav({ items: rawItems }: ModuleNavProps) {
 
   if (items.length === 0) return null;
 
+  // Module root is the first path segment of the first tab. The index tab
+  // (usually the module overview/default sub-path) should only match exactly,
+  // so it is not underlined for every child route.
+  const moduleRoot = useMemo(() => {
+    const firstHref = items[0]?.href ?? '';
+    return '/' + firstHref.split('/').filter(Boolean)[0];
+  }, [items]);
+
+  const indexHref = items[0]?.href ?? '';
+  const isIndexTab = (item: NavItem): boolean => item.href === indexHref;
+
   // Flatten children for active detection & mobile select
   const flatItems: NavItem[] = items.flatMap((i) =>
     i.children && i.children.length > 0 ? [i, ...i.children] : [i],
   );
 
   const isItemActive = (item: NavItem): boolean => {
+    if (isIndexTab(item)) {
+      return (
+        location.pathname === moduleRoot || location.pathname === item.href
+      );
+    }
     if (
       location.pathname === item.href ||
       location.pathname.startsWith(item.href + '/')
@@ -73,11 +89,17 @@ export function ModuleNav({ items: rawItems }: ModuleNavProps) {
   const activeItem =
     [...flatItems]
       .sort((a, b) => b.href.length - a.href.length)
-      .find(
-        (i) =>
+      .find((i) => {
+        if (isIndexTab(i)) {
+          return (
+            location.pathname === moduleRoot || location.pathname === i.href
+          );
+        }
+        return (
           location.pathname === i.href ||
-          location.pathname.startsWith(i.href + '/'),
-      ) ?? items[0];
+          location.pathname.startsWith(i.href + '/')
+        );
+      }) ?? items[0];
 
   // Scroll arrows
   const scrollRef = useRef<HTMLDivElement>(null);

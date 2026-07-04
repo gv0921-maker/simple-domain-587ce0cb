@@ -150,15 +150,9 @@ export function TopNav({ title, subtitle }: TopNavProps) {
           <span className="text-sm font-bold text-foreground hidden sm:inline">GLF</span>
         </Link>
         {title && (
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-foreground font-medium truncate">{title}</span>
-            {subtitle && (
-              <>
-                <span className="text-muted-foreground hidden sm:inline">/</span>
-                <span className="text-muted-foreground hidden sm:inline truncate">{subtitle}</span>
-              </>
-            )}
-          </div>
+          <span className="text-foreground font-medium truncate min-w-0">
+            {title}
+          </span>
         )}
       </div>
 
