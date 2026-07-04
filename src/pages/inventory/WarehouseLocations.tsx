@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -21,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Table,
   TableBody,
@@ -35,636 +37,584 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Search,
-  Plus,
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-  MapPin,
-  ArrowRight,
-  FolderTree,
-  Route,
+  Search, Plus, MoreHorizontal, Pencil, Archive, ArchiveRestore,
+  MapPin, ChevronRight, ChevronDown,
 } from 'lucide-react';
 import { useWarehouses } from '@/hooks/inventory';
-import type { Warehouse } from '@/lib/services/inventory';
-import { getItem, setItem } from '@/lib/storage';
+import {
+  useLocationsQuery,
+  useCreateLocation,
+  useUpdateLocation,
+  useArchiveLocation,
+  useUnarchiveLocation,
+  buildLocationTree,
+  migrateLegacyLocations,
+} from '@/hooks/inventory/useLocations';
+import type { Location, LocationType } from '@/lib/data/inventory/types';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-interface Location {
-  id: string;
+type RemovalStrategy = NonNullable<Location['removalStrategy']>;
+
+const LOCATION_TYPES: { value: LocationType; label: string }[] = [
+  { value: 'internal',   label: 'Internal Storage' },
+  { value: 'customer',   label: 'Customer Location' },
+  { value: 'vendor',     label: 'Vendor Location' },
+  { value: 'transit',    label: 'In Transit' },
+  { value: 'virtual',    label: 'Virtual / Adjustment' },
+  { value: 'production', label: 'Factory / Production' },
+];
+
+const REMOVAL_STRATEGIES: { value: RemovalStrategy; label: string; hint: string }[] = [
+  { value: 'fifo',    label: 'First In First Out (FIFO)', hint: 'Oldest stock leaves first — recommended for furniture' },
+  { value: 'lifo',    label: 'Last In First Out (LIFO)',  hint: 'Newest stock leaves first' },
+  { value: 'closest', label: 'Closest Location',          hint: 'Nearest bin/shelf goes first for pickers' },
+  { value: 'manual',  label: 'Manual',                    hint: 'Operator chooses at pick time' },
+];
+
+interface FormState {
   name: string;
   code: string;
   warehouseId: string;
-  parentId?: string;
-  type: 'internal' | 'customer' | 'supplier' | 'inventory' | 'transit' | 'production';
+  parentId: string;
+  type: LocationType;
+  barcode: string;
+  aisle: string;
+  shelf: string;
+  bin: string;
+  removalStrategy: RemovalStrategy;
+  cyclicCountFrequencyDays: number;
+  lastCountDate: string;
+  notes: string;
   isActive: boolean;
 }
 
-interface WarehouseRoute {
-  id: string;
-  name: string;
-  sourceWarehouseId: string;
-  destinationWarehouseId: string;
-  operationType: string;
-  isActive: boolean;
+const blankForm = (warehouseId = ''): FormState => ({
+  name: '', code: '', warehouseId, parentId: '',
+  type: 'internal', barcode: '', aisle: '', shelf: '', bin: '',
+  removalStrategy: 'fifo', cyclicCountFrequencyDays: 0,
+  lastCountDate: '', notes: '', isActive: true,
+});
+
+function suggestCode(name: string): string {
+  return name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 20);
 }
-
-const DEFAULT_LOCATIONS: Location[] = [];
-
-const DEFAULT_ROUTES: WarehouseRoute[] = [];
-
-const LOCATION_TYPES = [
-  { value: 'internal', label: 'Internal Location' },
-  { value: 'customer', label: 'Customer Location' },
-  { value: 'supplier', label: 'Supplier Location' },
-  { value: 'inventory', label: 'Inventory Loss' },
-  { value: 'transit', label: 'Transit Location' },
-  { value: 'production', label: 'Production' },
-];
+function computeNextCount(last: string, freq: number): string {
+  if (!freq || freq <= 0) return '';
+  const base = last ? new Date(last) : new Date();
+  if (isNaN(base.getTime())) return '';
+  base.setDate(base.getDate() + freq);
+  return base.toISOString().slice(0, 10);
+}
 
 export default function WarehouseLocations() {
   const { toast } = useToast();
   const { data: warehouses = [] } = useWarehouses();
-  const [locations, setLocations] = useState<Location[]>(
-    getItem('warehouse_locations', DEFAULT_LOCATIONS)
-  );
-  const [routes, setRoutes] = useState<WarehouseRoute[]>(
-    getItem('warehouse_routes', DEFAULT_ROUTES)
-  );
+  const { data: locations = [], isLoading } = useLocationsQuery();
+  const createMut = useCreateLocation();
+  const updateMut = useUpdateLocation();
+  const archiveMut = useArchiveLocation();
+  const unarchiveMut = useUnarchiveLocation();
+
+  // One-shot migration of any leftover localStorage locations.
+  useEffect(() => { migrateLegacyLocations().catch(() => undefined); }, []);
+
   const [search, setSearch] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>('all');
+  const [showArchived, setShowArchived] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
-  // Location dialog
-  const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false);
-  const [editingLocation, setEditingLocation] = useState<Location | null>(null);
-  const [locationForm, setLocationForm] = useState({
-    name: '',
-    code: '',
-    warehouseId: '',
-    parentId: '',
-    type: 'internal' as Location['type'],
-    isActive: true,
-  });
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Location | null>(null);
+  const [form, setForm] = useState<FormState>(blankForm());
+  const [codeTouched, setCodeTouched] = useState(false);
 
-  // Route dialog
-  const [isRouteDialogOpen, setIsRouteDialogOpen] = useState(false);
-  const [editingRoute, setEditingRoute] = useState<WarehouseRoute | null>(null);
-  const [routeForm, setRouteForm] = useState({
-    name: '',
-    sourceWarehouseId: '',
-    destinationWarehouseId: '',
-    operationType: 'Internal Transfer',
-    isActive: true,
-  });
+  const warehouseName = (id: string) => warehouses.find((w) => w.id === id)?.name || '—';
 
-  const filteredLocations = locations.filter((loc) => {
-    const matchesSearch =
-      loc.name.toLowerCase().includes(search.toLowerCase()) ||
-      loc.code.toLowerCase().includes(search.toLowerCase());
-    const matchesWarehouse = selectedWarehouse === 'all' || loc.warehouseId === selectedWarehouse;
-    return matchesSearch && matchesWarehouse;
-  });
-
-  const getWarehouseName = (id: string) => {
-    return warehouses.find((w) => w.id === id)?.name || 'External';
-  };
-
-  const getParentLocationName = (parentId?: string) => {
-    if (!parentId) return '—';
-    return locations.find((l) => l.id === parentId)?.name || '—';
-  };
-
-  // Location handlers
-  const handleOpenLocationDialog = (location?: Location) => {
-    if (location) {
-      setEditingLocation(location);
-      setLocationForm({
-        name: location.name,
-        code: location.code,
-        warehouseId: location.warehouseId,
-        parentId: location.parentId || '',
-        type: location.type,
-        isActive: location.isActive,
-      });
-    } else {
-      setEditingLocation(null);
-      setLocationForm({
-        name: '',
-        code: '',
-        warehouseId: warehouses[0]?.id || '',
-        parentId: '',
-        type: 'internal',
-        isActive: true,
-      });
-    }
-    setIsLocationDialogOpen(true);
-  };
-
-  const handleSaveLocation = () => {
-    if (!locationForm.name || !locationForm.code || !locationForm.warehouseId) {
-      toast({ title: 'Name, code and warehouse are required', variant: 'destructive' });
-      return;
-    }
-
-    const locationData: Location = {
-      id: editingLocation?.id || crypto.randomUUID(),
-      name: locationForm.name,
-      code: locationForm.code,
-      warehouseId: locationForm.warehouseId,
-      parentId: locationForm.parentId || undefined,
-      type: locationForm.type,
-      isActive: locationForm.isActive,
-    };
-
-    let updated: Location[];
-    if (editingLocation) {
-      updated = locations.map((l) => (l.id === editingLocation.id ? locationData : l));
-    } else {
-      updated = [...locations, locationData];
-    }
-
-    setLocations(updated);
-    setItem('warehouse_locations', updated);
-    setIsLocationDialogOpen(false);
-    toast({
-      title: editingLocation ? 'Location Updated' : 'Location Created',
-      description: `${locationForm.name} has been saved.`,
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return locations.filter((l) => {
+      if (!showArchived && !l.isActive) return false;
+      if (selectedWarehouse !== 'all' && l.warehouseId !== selectedWarehouse) return false;
+      if (!q) return true;
+      return (
+        l.name.toLowerCase().includes(q) ||
+        (l.code || '').toLowerCase().includes(q) ||
+        (l.barcode || '').toLowerCase().includes(q)
+      );
     });
-  };
+  }, [locations, search, selectedWarehouse, showArchived]);
 
-  const handleDeleteLocation = (id: string) => {
-    const updated = locations.filter((l) => l.id !== id);
-    setLocations(updated);
-    setItem('warehouse_locations', updated);
-    toast({ title: 'Location Deleted' });
-  };
-
-  // Route handlers
-  const handleOpenRouteDialog = (route?: WarehouseRoute) => {
-    if (route) {
-      setEditingRoute(route);
-      setRouteForm({
-        name: route.name,
-        sourceWarehouseId: route.sourceWarehouseId,
-        destinationWarehouseId: route.destinationWarehouseId,
-        operationType: route.operationType,
-        isActive: route.isActive,
-      });
-    } else {
-      setEditingRoute(null);
-      setRouteForm({
-        name: '',
-        sourceWarehouseId: '',
-        destinationWarehouseId: '',
-        operationType: 'Internal Transfer',
-        isActive: true,
-      });
-    }
-    setIsRouteDialogOpen(true);
-  };
-
-  const handleSaveRoute = () => {
-    if (!routeForm.name || !routeForm.destinationWarehouseId) {
-      toast({ title: 'Name and destination are required', variant: 'destructive' });
-      return;
-    }
-
-    const routeData: WarehouseRoute = {
-      id: editingRoute?.id || crypto.randomUUID(),
-      name: routeForm.name,
-      sourceWarehouseId: routeForm.sourceWarehouseId,
-      destinationWarehouseId: routeForm.destinationWarehouseId,
-      operationType: routeForm.operationType,
-      isActive: routeForm.isActive,
-    };
-
-    let updated: WarehouseRoute[];
-    if (editingRoute) {
-      updated = routes.map((r) => (r.id === editingRoute.id ? routeData : r));
-    } else {
-      updated = [...routes, routeData];
-    }
-
-    setRoutes(updated);
-    setItem('warehouse_routes', updated);
-    setIsRouteDialogOpen(false);
-    toast({
-      title: editingRoute ? 'Route Updated' : 'Route Created',
-      description: `${routeForm.name} has been saved.`,
+  const grouped = useMemo(() => {
+    const byWh = new Map<string, Location[]>();
+    filtered.forEach((l) => {
+      const arr = byWh.get(l.warehouseId) || [];
+      arr.push(l);
+      byWh.set(l.warehouseId, arr);
     });
-  };
+    return Array.from(byWh.entries()).map(([whId, locs]) => ({
+      warehouseId: whId,
+      warehouseName: warehouseName(whId),
+      tree: buildLocationTree(locs),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered, warehouses]);
 
-  const handleDeleteRoute = (id: string) => {
-    const updated = routes.filter((r) => r.id !== id);
-    setRoutes(updated);
-    setItem('warehouse_routes', updated);
-    toast({ title: 'Route Deleted' });
-  };
+  function openNew() {
+    setEditing(null);
+    setForm(blankForm(warehouses[0]?.id || ''));
+    setCodeTouched(false);
+    setDialogOpen(true);
+  }
+  function openEdit(l: Location) {
+    setEditing(l);
+    setForm({
+      name: l.name, code: l.code || '', warehouseId: l.warehouseId,
+      parentId: l.parentId || '', type: l.type, barcode: l.barcode || '',
+      aisle: l.aisle || '', shelf: l.shelf || '', bin: l.bin || '',
+      removalStrategy: l.removalStrategy || 'fifo',
+      cyclicCountFrequencyDays: l.cyclicCountFrequencyDays || 0,
+      lastCountDate: l.lastCountDate || '', notes: l.notes || '',
+      isActive: l.isActive,
+    });
+    setCodeTouched(true);
+    setDialogOpen(true);
+  }
 
-  const handleToggleRoute = (id: string, isActive: boolean) => {
-    const updated = routes.map((r) => (r.id === id ? { ...r, isActive } : r));
-    setRoutes(updated);
-    setItem('warehouse_routes', updated);
-  };
+  function onNameChange(v: string) {
+    setForm((f) => ({ ...f, name: v, code: codeTouched ? f.code : suggestCode(v) }));
+  }
+
+  async function handleSave() {
+    if (!form.name.trim()) { toast({ title: 'Name is required', variant: 'destructive' }); return; }
+    if (!form.warehouseId) { toast({ title: 'Warehouse is required', variant: 'destructive' }); return; }
+    const nextCountDate = computeNextCount(form.lastCountDate, form.cyclicCountFrequencyDays);
+    const payload: Partial<Location> = {
+      name: form.name.trim(),
+      code: (form.code || suggestCode(form.name)).trim(),
+      warehouseId: form.warehouseId,
+      parentId: form.parentId || undefined,
+      type: form.type,
+      barcode: form.barcode || undefined,
+      aisle: form.aisle || undefined,
+      shelf: form.shelf || undefined,
+      bin: form.bin || undefined,
+      removalStrategy: form.removalStrategy,
+      cyclicCountFrequencyDays: form.cyclicCountFrequencyDays || 0,
+      lastCountDate: form.lastCountDate || undefined,
+      nextCountDate: nextCountDate || undefined,
+      notes: form.notes || undefined,
+      isActive: form.isActive,
+    };
+    try {
+      if (editing) {
+        await updateMut.mutateAsync({ id: editing.id, patch: payload });
+        toast({ title: 'Location updated' });
+      } else {
+        await createMut.mutateAsync(payload as Omit<Location, 'id'>);
+        toast({ title: 'Location created' });
+      }
+      setDialogOpen(false);
+    } catch (e: any) {
+      toast({ title: 'Save failed', description: e?.message, variant: 'destructive' });
+    }
+  }
 
   return (
     <AppLayout title="Inventory" moduleNav={INVENTORY_NAV}>
       <div className="p-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Warehouse Locations & Routes</h1>
-          <p className="text-muted-foreground">Manage sub-locations and transfer routes</p>
+          <h1 className="text-2xl font-semibold text-foreground">Locations</h1>
+          <p className="text-muted-foreground">
+            Physical sub-locations inside each warehouse — shelves, racks, showroom bays, transit.
+          </p>
         </div>
 
-        <Tabs defaultValue="locations" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="locations" className="gap-2">
-              <FolderTree className="h-4 w-4" />
-              Locations
-            </TabsTrigger>
-            <TabsTrigger value="routes" className="gap-2">
-              <Route className="h-4 w-4" />
-              Routes
-            </TabsTrigger>
-          </TabsList>
+        {/* Toolbar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder=""
+                aria-label="Search locations"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
+              <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Warehouses</SelectItem>
+                {warehouses.map((wh) => (
+                  <SelectItem key={wh.id} value={wh.id}>{wh.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2 text-sm">
+              <Switch checked={showArchived} onCheckedChange={setShowArchived} id="archived" />
+              <Label htmlFor="archived" className="cursor-pointer">Show archived</Label>
+            </div>
+          </div>
+          <Button onClick={openNew} className="gap-2" disabled={!warehouses.length}>
+            <Plus className="h-4 w-4" /> New Location
+          </Button>
+        </div>
 
-          {/* Locations Tab */}
-          <TabsContent value="locations" className="space-y-4 animate-fade-in">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="relative w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        {/* Tree table grouped by warehouse */}
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Code</TableHead>
+                <TableHead>Removal</TableHead>
+                <TableHead>Cyclic</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-[60px]" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Loading…</TableCell></TableRow>
+              ) : grouped.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    {warehouses.length === 0
+                      ? 'Create a warehouse first to add locations.'
+                      : 'No locations yet. Click "New Location" to add one.'}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                grouped.map((g) => (
+                  <TreeGroup
+                    key={g.warehouseId}
+                    warehouseName={g.warehouseName}
+                    nodes={g.tree}
+                    expanded={expanded}
+                    setExpanded={setExpanded}
+                    onEdit={openEdit}
+                    onArchive={(id) => archiveMut.mutate(id)}
+                    onUnarchive={(id) => unarchiveMut.mutate(id)}
+                  />
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+
+        {/* Location Dialog — Odoo-style form */}
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editing ? 'Edit Location' : 'New Location'}</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-6 py-2">
+              {/* Header block */}
+              <div className="space-y-4">
+                <div>
+                  <Label>Location Name *</Label>
                   <Input
+                    value={form.name}
+                    onChange={(e) => onNameChange(e.target.value)}
+                    className="text-lg"
                     placeholder=""
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9"
                   />
                 </div>
-                <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="All Warehouses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Warehouses</SelectItem>
-                    {warehouses.map((wh) => (
-                      <SelectItem key={wh.id} value={wh.id}>
-                        {wh.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Warehouse *</Label>
+                    <Select value={form.warehouseId} onValueChange={(v) => setForm({ ...form, warehouseId: v, parentId: '' })}>
+                      <SelectTrigger><SelectValue placeholder="Select warehouse" /></SelectTrigger>
+                      <SelectContent>
+                        {warehouses.map((wh) => (
+                          <SelectItem key={wh.id} value={wh.id}>{wh.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Parent Location</Label>
+                    <Select
+                      value={form.parentId || '__none__'}
+                      onValueChange={(v) => setForm({ ...form, parentId: v === '__none__' ? '' : v })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">None (root)</SelectItem>
+                        {locations
+                          .filter((l) => l.warehouseId === form.warehouseId && l.id !== editing?.id)
+                          .map((l) => (<SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
-              <Button onClick={() => handleOpenLocationDialog()} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Add Location
-              </Button>
-            </div>
 
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Warehouse</TableHead>
-                    <TableHead>Parent</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[60px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredLocations.map((location) => (
-                    <TableRow key={location.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          {location.name}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{location.code}</TableCell>
-                      <TableCell>{getWarehouseName(location.warehouseId)}</TableCell>
-                      <TableCell>{getParentLocationName(location.parentId)}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize">
-                          {location.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={cn(
-                            location.isActive
-                              ? 'bg-success/20 text-success border-success'
-                              : 'bg-muted text-muted-foreground'
-                          )}
-                        >
-                          {location.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleOpenLocationDialog(location)}>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteLocation(location.id)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
+              <Separator />
+
+              {/* Two-column body */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Additional Information */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                    Additional Information
+                  </h3>
+                  <div>
+                    <Label>Location Type</Label>
+                    <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as LocationType })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {LOCATION_TYPES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Code</Label>
+                    <Input
+                      value={form.code}
+                      onChange={(e) => { setCodeTouched(true); setForm({ ...form, code: e.target.value }); }}
+                      placeholder=""
+                    />
+                  </div>
+                  <div>
+                    <Label>Barcode</Label>
+                    <Input
+                      value={form.barcode}
+                      onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+                      placeholder=""
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <Label>Aisle</Label>
+                      <Input value={form.aisle} onChange={(e) => setForm({ ...form, aisle: e.target.value })} placeholder="" />
+                    </div>
+                    <div>
+                      <Label>Shelf</Label>
+                      <Input value={form.shelf} onChange={(e) => setForm({ ...form, shelf: e.target.value })} placeholder="" />
+                    </div>
+                    <div>
+                      <Label>Bin</Label>
+                      <Input value={form.bin} onChange={(e) => setForm({ ...form, bin: e.target.value })} placeholder="" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cyclic Counting */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                    Cyclic Counting
+                  </h3>
+                  <div>
+                    <Label>Inventory Frequency (days)</Label>
+                    <Input
+                      type="number" min={0}
+                      value={form.cyclicCountFrequencyDays}
+                      onChange={(e) => setForm({ ...form, cyclicCountFrequencyDays: Number(e.target.value) || 0 })}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Set 0 to disable cyclic counting.</p>
+                  </div>
+                  <div>
+                    <Label>Last Count Date</Label>
+                    <Input
+                      type="date"
+                      value={form.lastCountDate}
+                      onChange={(e) => setForm({ ...form, lastCountDate: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Next Expected Count</Label>
+                    <Input
+                      type="date"
+                      value={computeNextCount(form.lastCountDate, form.cyclicCountFrequencyDays)}
+                      readOnly disabled
+                    />
+                  </div>
+                  <div className="flex items-center justify-between pt-2">
+                    <Label htmlFor="active-switch">Active</Label>
+                    <Switch
+                      id="active-switch"
+                      checked={form.isActive}
+                      onCheckedChange={(v) => setForm({ ...form, isActive: v })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Logistics */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                  Logistics
+                </h3>
+                <Label>Removal Strategy</Label>
+                <RadioGroup
+                  value={form.removalStrategy}
+                  onValueChange={(v) => setForm({ ...form, removalStrategy: v as RemovalStrategy })}
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-2"
+                >
+                  {REMOVAL_STRATEGIES.map((s) => (
+                    <label
+                      key={s.value}
+                      className={cn(
+                        'flex items-start gap-3 rounded-md border p-3 cursor-pointer transition-colors',
+                        form.removalStrategy === s.value ? 'border-primary bg-primary/5' : 'hover:bg-muted/40',
+                      )}
+                    >
+                      <RadioGroupItem value={s.value} id={`rs-${s.value}`} className="mt-0.5" />
+                      <div>
+                        <div className="text-sm font-medium">{s.label}</div>
+                        <div className="text-xs text-muted-foreground">{s.hint}</div>
+                      </div>
+                    </label>
                   ))}
-                </TableBody>
-              </Table>
-            </Card>
-          </TabsContent>
+                </RadioGroup>
+              </div>
 
-          {/* Routes Tab */}
-          <TabsContent value="routes" className="space-y-4 animate-fade-in">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-medium">Transfer Routes</h2>
-              <Button onClick={() => handleOpenRouteDialog()} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Add Route
-              </Button>
-            </div>
+              <Separator />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {routes.map((route, index) => (
-                <Card
-                  key={route.id}
-                  className={cn(
-                    'animate-slide-up',
-                    !route.isActive && 'opacity-60'
-                  )}
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">{route.name}</CardTitle>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleOpenRouteDialog(route)}>
-                            <Pencil className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteRoute(route.id)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-muted-foreground">
-                        {route.sourceWarehouseId
-                          ? getWarehouseName(route.sourceWarehouseId)
-                          : 'External'}
-                      </span>
-                      <ArrowRight className="h-4 w-4 text-primary" />
-                      <span className="font-medium">
-                        {getWarehouseName(route.destinationWarehouseId)}
-                      </span>
-                    </div>
-                    <Badge variant="outline">{route.operationType}</Badge>
-                    <div className="flex items-center justify-between pt-2 border-t">
-                      <Label className="text-sm">Active</Label>
-                      <Switch
-                        checked={route.isActive}
-                        onCheckedChange={(checked) => handleToggleRoute(route.id, checked)}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        {/* Location Dialog */}
-        <Dialog open={isLocationDialogOpen} onOpenChange={setIsLocationDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingLocation ? 'Edit Location' : 'New Location'}</DialogTitle>
-              <DialogDescription>
-                {editingLocation ? 'Update location details' : 'Create a new warehouse sub-location'}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label>Location Name *</Label>
-                <Input
-                  value={locationForm.name}
-                  onChange={(e) => setLocationForm({ ...locationForm, name: e.target.value })}
+              <div>
+                <Label>Notes</Label>
+                <Textarea
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  rows={3}
                   placeholder=""
                 />
               </div>
-              <div className="grid gap-2">
-                <Label>Code *</Label>
-                <Input
-                  value={locationForm.code}
-                  onChange={(e) => setLocationForm({ ...locationForm, code: e.target.value })}
-                  placeholder=""
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Warehouse *</Label>
-                <Select
-                  value={locationForm.warehouseId}
-                  onValueChange={(v) => setLocationForm({ ...locationForm, warehouseId: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select warehouse" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses.map((wh) => (
-                      <SelectItem key={wh.id} value={wh.id}>
-                        {wh.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label>Parent Location</Label>
-                <Select
-                  value={locationForm.parentId || '__none__'}
-                  onValueChange={(v) =>
-                    setLocationForm({ ...locationForm, parentId: v === '__none__' ? '' : v })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="None (root location)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">None (root location)</SelectItem>
-                    {locations
-                      .filter((l) => l.warehouseId === locationForm.warehouseId)
-                      .map((loc) => (
-                        <SelectItem key={loc.id} value={loc.id}>
-                          {loc.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label>Type</Label>
-                <Select
-                  value={locationForm.type}
-                  onValueChange={(v) =>
-                    setLocationForm({ ...locationForm, type: v as Location['type'] })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LOCATION_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center justify-between">
-                <Label>Active</Label>
-                <Switch
-                  checked={locationForm.isActive}
-                  onCheckedChange={(checked) =>
-                    setLocationForm({ ...locationForm, isActive: checked })
-                  }
-                />
-              </div>
             </div>
+
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsLocationDialogOpen(false)}>
-                Cancel
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleSave} disabled={createMut.isPending || updateMut.isPending}>
+                {editing ? 'Update' : 'Create'}
               </Button>
-              <Button onClick={handleSaveLocation}>
-                {editingLocation ? 'Update' : 'Create'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Route Dialog */}
-        <Dialog open={isRouteDialogOpen} onOpenChange={setIsRouteDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingRoute ? 'Edit Route' : 'New Route'}</DialogTitle>
-              <DialogDescription>
-                {editingRoute ? 'Update route configuration' : 'Create a transfer route between warehouses'}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label>Route Name *</Label>
-                <Input
-                  value={routeForm.name}
-                  onChange={(e) => setRouteForm({ ...routeForm, name: e.target.value })}
-                  placeholder=""
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Source Warehouse</Label>
-                <Select
-                  value={routeForm.sourceWarehouseId || '__external__'}
-                  onValueChange={(v) =>
-                    setRouteForm({ ...routeForm, sourceWarehouseId: v === '__external__' ? '' : v })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="External (Supplier)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__external__">External (Supplier)</SelectItem>
-                    {warehouses.map((wh) => (
-                      <SelectItem key={wh.id} value={wh.id}>
-                        {wh.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label>Destination Warehouse *</Label>
-                <Select
-                  value={routeForm.destinationWarehouseId}
-                  onValueChange={(v) => setRouteForm({ ...routeForm, destinationWarehouseId: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select destination" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses.map((wh) => (
-                      <SelectItem key={wh.id} value={wh.id}>
-                        {wh.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label>Operation Type</Label>
-                <Select
-                  value={routeForm.operationType}
-                  onValueChange={(v) => setRouteForm({ ...routeForm, operationType: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Receipt">Receipt</SelectItem>
-                    <SelectItem value="Delivery">Delivery</SelectItem>
-                    <SelectItem value="Internal Transfer">Internal Transfer</SelectItem>
-                    <SelectItem value="Return">Return</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center justify-between">
-                <Label>Active</Label>
-                <Switch
-                  checked={routeForm.isActive}
-                  onCheckedChange={(checked) => setRouteForm({ ...routeForm, isActive: checked })}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsRouteDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveRoute}>{editingRoute ? 'Update' : 'Create'}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
     </AppLayout>
+  );
+}
+
+// ---------- Tree renderer ----------
+function TreeGroup({
+  warehouseName, nodes, expanded, setExpanded, onEdit, onArchive, onUnarchive,
+}: {
+  warehouseName: string;
+  nodes: ReturnType<typeof buildLocationTree>;
+  expanded: Record<string, boolean>;
+  setExpanded: (u: Record<string, boolean>) => void;
+  onEdit: (l: Location) => void;
+  onArchive: (id: string) => void;
+  onUnarchive: (id: string) => void;
+}) {
+  return (
+    <>
+      <TableRow className="bg-muted/40">
+        <TableCell colSpan={7} className="font-medium text-sm">{warehouseName}</TableCell>
+      </TableRow>
+      {nodes.map((n) => (
+        <TreeRow
+          key={n.id}
+          node={n}
+          depth={0}
+          expanded={expanded}
+          setExpanded={setExpanded}
+          onEdit={onEdit}
+          onArchive={onArchive}
+          onUnarchive={onUnarchive}
+        />
+      ))}
+    </>
+  );
+}
+
+function TreeRow({
+  node, depth, expanded, setExpanded, onEdit, onArchive, onUnarchive,
+}: {
+  node: ReturnType<typeof buildLocationTree>[number];
+  depth: number;
+  expanded: Record<string, boolean>;
+  setExpanded: (u: Record<string, boolean>) => void;
+  onEdit: (l: Location) => void;
+  onArchive: (id: string) => void;
+  onUnarchive: (id: string) => void;
+}) {
+  const hasChildren = node.children.length > 0;
+  const isOpen = expanded[node.id] ?? true;
+  return (
+    <>
+      <TableRow className={cn(!node.isActive && 'opacity-60')}>
+        <TableCell>
+          <div className="flex items-center gap-1" style={{ paddingLeft: depth * 20 }}>
+            {hasChildren ? (
+              <button
+                type="button"
+                className="p-0.5 hover:bg-muted rounded"
+                onClick={() => setExpanded({ ...expanded, [node.id]: !isOpen })}
+              >
+                {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </button>
+            ) : <span className="w-5" />}
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">{node.name}</span>
+          </div>
+        </TableCell>
+        <TableCell><Badge variant="outline" className="capitalize">{node.type}</Badge></TableCell>
+        <TableCell className="text-muted-foreground text-sm">{node.code || '—'}</TableCell>
+        <TableCell className="text-sm uppercase">{node.removalStrategy || 'fifo'}</TableCell>
+        <TableCell className="text-sm">
+          {node.cyclicCountFrequencyDays ? `${node.cyclicCountFrequencyDays}d` : '—'}
+        </TableCell>
+        <TableCell>
+          <Badge className={cn(node.isActive ? 'bg-success/20 text-success border-success' : 'bg-muted text-muted-foreground')}>
+            {node.isActive ? 'Active' : 'Archived'}
+          </Badge>
+        </TableCell>
+        <TableCell>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onEdit(node)}>
+                <Pencil className="h-4 w-4 mr-2" /> Edit
+              </DropdownMenuItem>
+              {node.isActive ? (
+                <DropdownMenuItem onClick={() => onArchive(node.id)} className="text-destructive">
+                  <Archive className="h-4 w-4 mr-2" /> Archive
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onClick={() => onUnarchive(node.id)}>
+                  <ArchiveRestore className="h-4 w-4 mr-2" /> Restore
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </TableCell>
+      </TableRow>
+      {isOpen && node.children.map((c) => (
+        <TreeRow
+          key={c.id}
+          node={c}
+          depth={depth + 1}
+          expanded={expanded}
+          setExpanded={setExpanded}
+          onEdit={onEdit}
+          onArchive={onArchive}
+          onUnarchive={onUnarchive}
+        />
+      ))}
+    </>
   );
 }
