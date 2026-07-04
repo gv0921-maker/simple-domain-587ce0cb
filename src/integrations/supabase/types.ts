@@ -2639,6 +2639,7 @@ export type Database = {
           invoice_id: string | null
           is_partial: boolean
           notes: string | null
+          operation_type_id: string | null
           products_json: Json
           qc_by: string | null
           reference: string | null
@@ -2666,6 +2667,7 @@ export type Database = {
           invoice_id?: string | null
           is_partial?: boolean
           notes?: string | null
+          operation_type_id?: string | null
           products_json?: Json
           qc_by?: string | null
           reference?: string | null
@@ -2693,6 +2695,7 @@ export type Database = {
           invoice_id?: string | null
           is_partial?: boolean
           notes?: string | null
+          operation_type_id?: string | null
           products_json?: Json
           qc_by?: string | null
           reference?: string | null
@@ -2715,6 +2718,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_operation_type_id_fkey"
+            columns: ["operation_type_id"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
             referencedColumns: ["id"]
           },
           {
@@ -3669,6 +3679,7 @@ export type Database = {
           labels_generated: boolean
           labels_generated_at: string | null
           notes: string | null
+          operation_type_id: string | null
           received_at: string | null
           received_by: string | null
           source_document_id: string | null
@@ -3690,6 +3701,7 @@ export type Database = {
           labels_generated?: boolean
           labels_generated_at?: string | null
           notes?: string | null
+          operation_type_id?: string | null
           received_at?: string | null
           received_by?: string | null
           source_document_id?: string | null
@@ -3711,6 +3723,7 @@ export type Database = {
           labels_generated?: boolean
           labels_generated_at?: string | null
           notes?: string | null
+          operation_type_id?: string | null
           received_at?: string | null
           received_by?: string | null
           source_document_id?: string | null
@@ -3721,6 +3734,13 @@ export type Database = {
           warehouse_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "goods_receipts_operation_type_id_fkey"
+            columns: ["operation_type_id"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "goods_receipts_warehouse_id_fkey"
             columns: ["warehouse_id"]
@@ -3887,6 +3907,7 @@ export type Database = {
           movement_number: string
           movement_type: string
           notes: string | null
+          operation_type_id: string | null
           reason: string | null
           status: string
           to_location_id: string | null
@@ -3904,6 +3925,7 @@ export type Database = {
           movement_number: string
           movement_type: string
           notes?: string | null
+          operation_type_id?: string | null
           reason?: string | null
           status?: string
           to_location_id?: string | null
@@ -3921,13 +3943,22 @@ export type Database = {
           movement_number?: string
           movement_type?: string
           notes?: string | null
+          operation_type_id?: string | null
           reason?: string | null
           status?: string
           to_location_id?: string | null
           to_location_type?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "internal_movements_operation_type_id_fkey"
+            columns: ["operation_type_id"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       internal_transfer_order_lines: {
         Row: {
@@ -4788,6 +4819,8 @@ export type Database = {
       }
       operation_types: {
         Row: {
+          allow_extra_products: boolean | null
+          card_color: string | null
           create_backorder: string | null
           create_new_lots: boolean | null
           created_at: string
@@ -4795,13 +4828,21 @@ export type Database = {
           default_source_location_id: string | null
           id: string
           is_active: boolean
+          mandatory_scan_lot_serial: boolean | null
+          mandatory_scan_product: boolean | null
           name: string
           operation_kind: string
+          print_delivery_slip: boolean | null
+          print_lot_serial_labels: boolean | null
+          print_product_labels: boolean | null
+          returns_operation_type_id: string | null
           sequence_prefix: string | null
           updated_at: string
           use_existing_lots: boolean | null
         }
         Insert: {
+          allow_extra_products?: boolean | null
+          card_color?: string | null
           create_backorder?: string | null
           create_new_lots?: boolean | null
           created_at?: string
@@ -4809,13 +4850,21 @@ export type Database = {
           default_source_location_id?: string | null
           id?: string
           is_active?: boolean
+          mandatory_scan_lot_serial?: boolean | null
+          mandatory_scan_product?: boolean | null
           name: string
           operation_kind: string
+          print_delivery_slip?: boolean | null
+          print_lot_serial_labels?: boolean | null
+          print_product_labels?: boolean | null
+          returns_operation_type_id?: string | null
           sequence_prefix?: string | null
           updated_at?: string
           use_existing_lots?: boolean | null
         }
         Update: {
+          allow_extra_products?: boolean | null
+          card_color?: string | null
           create_backorder?: string | null
           create_new_lots?: boolean | null
           created_at?: string
@@ -4823,8 +4872,14 @@ export type Database = {
           default_source_location_id?: string | null
           id?: string
           is_active?: boolean
+          mandatory_scan_lot_serial?: boolean | null
+          mandatory_scan_product?: boolean | null
           name?: string
           operation_kind?: string
+          print_delivery_slip?: boolean | null
+          print_lot_serial_labels?: boolean | null
+          print_product_labels?: boolean | null
+          returns_operation_type_id?: string | null
           sequence_prefix?: string | null
           updated_at?: string
           use_existing_lots?: boolean | null
@@ -4842,6 +4897,13 @@ export type Database = {
             columns: ["default_source_location_id"]
             isOneToOne: false
             referencedRelation: "warehouse_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operation_types_returns_operation_type_id_fkey"
+            columns: ["returns_operation_type_id"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
             referencedColumns: ["id"]
           },
         ]
