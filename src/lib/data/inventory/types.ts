@@ -93,6 +93,11 @@ export interface Location {
   aisle?: string;
   shelf?: string;
   bin?: string;
+  removalStrategy?: 'fifo' | 'lifo' | 'closest' | 'manual';
+  cyclicCountFrequencyDays?: number;
+  lastCountDate?: string;
+  nextCountDate?: string;
+  notes?: string;
 }
 
 // ========== STOCK MOVES ==========
