@@ -45,6 +45,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useStudioConfig } from '@/hooks/useStudioConfig';
 import { useInventoryAccess } from '@/hooks/useInventoryPermissions';
 import { ProductCustomizationOptionsTab } from '@/components/products/ProductCustomizationOptionsTab';
+import { ProductAttributesAssignment } from '@/components/inventory/config/ProductAttributesAssignment';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -343,6 +344,7 @@ export default function ProductDetail() {
                 <SelectItem value="variants">Variants</SelectItem>
                 {!isNew && <SelectItem value="qc">QC History</SelectItem>}
                 {!isNew && isAdmin && <SelectItem value="customization">Customization Options</SelectItem>}
+                {!isNew && isAdmin && <SelectItem value="attributes">Attributes</SelectItem>}
               </SelectContent>
             </Select>
           </div>
@@ -353,6 +355,9 @@ export default function ProductDetail() {
             {!isNew && <TabsTrigger value="qc">QC History</TabsTrigger>}
             {!isNew && isAdmin && (
               <TabsTrigger value="customization">Customization Options</TabsTrigger>
+            )}
+            {!isNew && isAdmin && (
+              <TabsTrigger value="attributes">Attributes</TabsTrigger>
             )}
           </TabsList>
 
@@ -724,6 +729,12 @@ export default function ProductDetail() {
           {!isNew && id && isAdmin && (
             <TabsContent value="customization" className="space-y-6 animate-fade-in">
               <ProductCustomizationOptionsTab productId={id} />
+            </TabsContent>
+          )}
+
+          {!isNew && id && isAdmin && (
+            <TabsContent value="attributes" className="space-y-6 animate-fade-in">
+              <ProductAttributesAssignment productId={id} />
             </TabsContent>
           )}
         </Tabs>
