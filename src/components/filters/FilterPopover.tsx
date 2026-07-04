@@ -461,7 +461,7 @@ export function GroupByColumn({ config, fieldLabel, chain, onChange }: GroupByCo
 interface FavoritesColumnProps {
   saved: SavedFilter[];
   isSuperAdmin: boolean;
-  onApply: (state: FilterState) => void;
+  onApply: (filter: SavedFilter) => void;
   onSetDefault: (id: string) => void;
   onDelete: (id: string) => void;
   onSave: (args: { name: string; isDefault: boolean; isSystemDefault: boolean }) => void;
@@ -498,7 +498,7 @@ export function FavoritesColumn({
             <button
               type="button"
               className="flex-1 text-left truncate flex items-center gap-1.5"
-              onClick={() => onApply(f.filter_state)}
+              onClick={() => onApply(f)}
             >
               <Star
                 className={`h-3.5 w-3.5 ${

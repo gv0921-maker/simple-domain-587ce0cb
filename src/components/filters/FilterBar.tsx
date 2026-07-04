@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, X, ChevronDown, ChevronRight, ArrowUpDown } from 'lucide-react';
+import { Search, X, ChevronDown, ChevronRight, ArrowUpDown, Star } from 'lucide-react';
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@/components/ui/popover';
@@ -37,12 +37,27 @@ export function FilterBar({ config, value, onChange }: Props) {
   const deleteFilterMut = useDeleteFilter(config.moduleKey);
   const setUserDefaultMut = useSetUserDefault(config.moduleKey);
 
+  // Any mutation to filter criteria strips the saved-filter markers, so a
+  // pristine favourite chip immediately reverts to raw chips once edited.
+  const mutate = useCallback((next: FilterState) => {
+    if (next.saved_filter_id || next.saved_filter_name) {
+      const { saved_filter_id: _a, saved_filter_name: _b, ...clean } = next;
+      onChange(clean);
+    } else {
+      onChange(next);
+    }
+  }, [onChange]);
+
   // Hydrate from default filter or last-used localStorage once.
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     if (hydrated) return;
     if (defaultFilter) {
-      onChange(defaultFilter.filter_state);
+      onChange({
+        ...defaultFilter.filter_state,
+        saved_filter_id: defaultFilter.id,
+        saved_filter_name: defaultFilter.name,
+      });
       setHydrated(true);
     } else {
       try {
@@ -77,14 +92,14 @@ export function FilterBar({ config, value, onChange }: Props) {
       ?? config.groupByFields?.find(x => x === k) ?? k, [config]);
 
   const removeGroup = useCallback((id: string) => {
-    onChange({ ...value, groups: value.groups.filter(g => g.id !== id) });
-  }, [value, onChange]);
+    mutate({ ...value, groups: value.groups.filter(g => g.id !== id) });
+  }, [value, mutate]);
   const clearAll = useCallback(() => {
     onChange({ groups: [] });
   }, [onChange]);
 
-  const setSort = (s?: SortSpec) => onChange({ ...value, sort_by: s });
-  const setSearch = (q: string) => onChange({ ...value, search: q });
+  const setSort = (s?: SortSpec) => mutate({ ...value, sort_by: s });
+  const setSearch = (q: string) => mutate({ ...value, search: q });
 
   // Multi-level group-by helpers — `group_by_fields` is the source of truth;
   // legacy `group_by` is treated as a single-element chain.
@@ -94,13 +109,14 @@ export function FilterBar({ config, value, onChange }: Props) {
   }, [value.group_by_fields, value.group_by]);
 
   const setGroupChain = (chain: string[]) => {
-    onChange({ ...value, group_by_fields: chain.length ? chain : undefined, group_by: undefined });
+    mutate({ ...value, group_by_fields: chain.length ? chain : undefined, group_by: undefined });
   };
   const removeGroupBy = (k: string) => setGroupChain(groupChain.filter(x => x !== k));
 
   const sortFields = useMemo(() => config.sortFields ?? config.fields.map(f => f.key), [config]);
 
   const activeCount = (value.groups?.length || 0) + (value.sort_by ? 1 : 0) + (groupChain.length ? 1 : 0);
+  const savedActive = !!value.saved_filter_id;
 
   return (
     <div className="space-y-2">
@@ -112,6 +128,20 @@ export function FilterBar({ config, value, onChange }: Props) {
           <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
 
           <div className="flex-1 flex items-center gap-1 flex-wrap min-w-0 py-1">
+            {savedActive ? (
+              <Badge
+                variant="outline"
+                className="gap-1 text-xs h-6 border-primary bg-primary/5 text-primary max-w-[240px]"
+                title={value.saved_filter_name}
+              >
+                <Star className="h-3 w-3 fill-current" />
+                <span className="font-medium truncate">{value.saved_filter_name}</span>
+                <button onClick={clearAll} className="hover:text-destructive ml-0.5 shrink-0" aria-label="Remove saved filter">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ) : (
+              <>
             {/* Filter chips */}
             {value.groups?.map(g => (
               <Badge
@@ -163,13 +193,15 @@ export function FilterBar({ config, value, onChange }: Props) {
                 </button>
               </Badge>
             )}
+              </>
+            )}
 
             <input
               ref={searchRef}
               value={value.search ?? ''}
               onChange={e => setSearch(e.target.value)}
               placeholder={
-                activeCount === 0
+                (activeCount === 0 && !savedActive)
                   ? (config.searchPlaceholder ?? 'Search…')
                   : ''
               }
@@ -211,7 +243,7 @@ export function FilterBar({ config, value, onChange }: Props) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {activeCount > 0 && (
+          {(activeCount > 0 || savedActive) && (
             <button
               type="button"
               title="Clear all"
@@ -240,7 +272,7 @@ export function FilterBar({ config, value, onChange }: Props) {
           onOpenAutoFocus={e => e.preventDefault()}
         >
           <div className="grid grid-cols-3 divide-x h-[70vh] overflow-hidden">
-            <FiltersColumn config={config} value={value} onChange={onChange} />
+            <FiltersColumn config={config} value={value} onChange={mutate} />
             <GroupByColumn
               config={config}
               fieldLabel={fieldLabel}
@@ -250,7 +282,7 @@ export function FilterBar({ config, value, onChange }: Props) {
             <FavoritesColumn
               saved={saved}
               isSuperAdmin={isSuperAdmin}
-              onApply={(state) => onChange(state)}
+              onApply={(f) => onChange({ ...f.filter_state, saved_filter_id: f.id, saved_filter_name: f.name })}
               onSetDefault={(id) => setUserDefaultMut.mutate(id)}
               onDelete={(id) => deleteFilterMut.mutate(id)}
               onSave={({ name, isDefault, isSystemDefault }) =>

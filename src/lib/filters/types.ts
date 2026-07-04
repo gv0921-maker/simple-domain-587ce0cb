@@ -38,6 +38,12 @@ export interface FilterState {
   /** Multi-level nested group-by chain. Takes precedence over `group_by`. */
   group_by_fields?: string[];
   search?: string;
+  /** When a saved filter is applied, these identify it so the UI can show a
+   * single named chip instead of expanding every underlying criterion.
+   * Any manual mutation to groups / sort / group-by / search should strip
+   * these markers to indicate the state is no longer the pristine favorite. */
+  saved_filter_id?: string;
+  saved_filter_name?: string;
 }
 
 export const EMPTY_FILTER_STATE: FilterState = { groups: [] };
