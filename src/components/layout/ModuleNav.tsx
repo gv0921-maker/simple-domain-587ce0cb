@@ -22,7 +22,8 @@ import {
 
 interface NavItem {
   label: string;
-  href: string;
+  href?: string;
+  heading?: boolean;
   children?: NavItem[];
 }
 
@@ -69,9 +70,10 @@ export function ModuleNav({ items: rawItems }: ModuleNavProps) {
   // Flatten children for active detection & mobile select
   const flatItems: NavItem[] = items.flatMap((i) =>
     i.children && i.children.length > 0 ? [i, ...i.children] : [i],
-  );
+  ).filter((i) => !i.heading && !!i.href);
 
   const isItemActive = (item: NavItem): boolean => {
+    if (item.heading || !item.href) return false;
     if (isIndexTab(item)) {
       return (
         location.pathname === moduleRoot || location.pathname === item.href
@@ -90,6 +92,7 @@ export function ModuleNav({ items: rawItems }: ModuleNavProps) {
     [...flatItems]
       .sort((a, b) => b.href.length - a.href.length)
       .find((i) => {
+        if (i.heading || !i.href) return false;
         if (isIndexTab(i)) {
           return (
             location.pathname === moduleRoot || location.pathname === i.href
@@ -179,26 +182,40 @@ export function ModuleNav({ items: rawItems }: ModuleNavProps) {
             )}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="min-w-[200px]">
-            {item.children.map((c) => (
-              <DropdownMenuItem
-                key={c.href}
-                onSelect={() => navigate(c.href)}
-                className={cn(
-                  isItemActive(c) && 'bg-accent text-accent-foreground',
-                )}
-              >
-                {c.label}
-              </DropdownMenuItem>
-            ))}
+            {item.children.map((c, idx) => {
+              if (c.heading) {
+                return (
+                  <div
+                    key={`h-${c.label}-${idx}`}
+                    className="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                  >
+                    {c.label}
+                  </div>
+                );
+              }
+              if (!c.href) return null;
+              return (
+                <DropdownMenuItem
+                  key={c.href}
+                  onSelect={() => navigate(c.href!)}
+                  className={cn(
+                    isItemActive(c) && 'bg-accent text-accent-foreground',
+                  )}
+                >
+                  {c.label}
+                </DropdownMenuItem>
+              );
+            })}
           </DropdownMenuContent>
         </DropdownMenu>
       );
     }
 
+    if (!item.href) return null;
     return (
       <Link
         key={item.href}
-        to={item.href}
+        to={item.href!}
         ref={setRef as (el: HTMLAnchorElement | null) => void}
         className={tabClass}
       >

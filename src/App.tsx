@@ -18,11 +18,14 @@ import TransferDetail from "@/pages/inventory/TransferDetail";
 import TransferForm from "@/pages/inventory/TransferForm";
 import ProductsList from "@/pages/inventory/ProductsList";
 import ProductDetail from "@/pages/inventory/ProductDetail";
-import OperationsList from "@/pages/inventory/OperationsList";
 import WarehousesList from "@/pages/inventory/WarehousesList";
 import WarehouseLocations from "@/pages/inventory/WarehouseLocations";
 import StockMoves from "@/pages/inventory/StockMoves";
 import InventoryConfiguration from "@/pages/inventory/InventoryConfiguration";
+import InventorySetupCategories from "@/pages/inventory/setup/InventorySetupCategories";
+import InventorySetupAttributes from "@/pages/inventory/setup/InventorySetupAttributes";
+import InventorySetupUnits from "@/pages/inventory/setup/InventorySetupUnits";
+import InventorySetupOperationTypes from "@/pages/inventory/setup/InventorySetupOperationTypes";
 import InventoryReporting from "@/pages/inventory/InventoryReporting";
 import InventoryAdjustments from "@/pages/inventory/InventoryAdjustments";
 import ReorderRules from "@/pages/inventory/ReorderRules";
@@ -260,7 +263,6 @@ const App = () => (
 
             {/* Inventory module */}
             <Route path="/inventory" element={<ProtectedRoute><InventoryOverview /></ProtectedRoute>} />
-            <Route path="/inventory/operations" element={<ProtectedRoute><OperationsList /></ProtectedRoute>} />
             <Route path="/inventory/products" element={<ProtectedRoute><ProductsList /></ProtectedRoute>} />
             <Route path="/inventory/products/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
             <Route path="/inventory/transfers/:id" element={<ProtectedRoute><TransferDetail /></ProtectedRoute>} />
@@ -271,6 +273,10 @@ const App = () => (
             <Route path="/inventory/stock-moves" element={<ProtectedRoute><StockMoves /></ProtectedRoute>} />
             <Route path="/inventory/reporting" element={<ProtectedRoute><InventoryReporting /></ProtectedRoute>} />
             <Route path="/inventory/configuration" element={<ProtectedRoute><InventoryConfiguration /></ProtectedRoute>} />
+            <Route path="/inventory/setup/categories" element={<ProtectedRoute><InventorySetupCategories /></ProtectedRoute>} />
+            <Route path="/inventory/setup/attributes" element={<ProtectedRoute><InventorySetupAttributes /></ProtectedRoute>} />
+            <Route path="/inventory/setup/units" element={<ProtectedRoute><InventorySetupUnits /></ProtectedRoute>} />
+            <Route path="/inventory/setup/operation-types" element={<ProtectedRoute><InventorySetupOperationTypes /></ProtectedRoute>} />
             <Route path="/inventory/adjustments" element={<ProtectedRoute><InventoryAdjustments /></ProtectedRoute>} />
             <Route path="/inventory/reorder-rules" element={<ProtectedRoute><ReorderRules /></ProtectedRoute>} />
             <Route path="/inventory/reorder-rules/new" element={<ProtectedRoute><ReorderRuleForm /></ProtectedRoute>} />
