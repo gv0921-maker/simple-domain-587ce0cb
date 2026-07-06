@@ -166,11 +166,17 @@ export async function completeItoWithQc(itoId: string): Promise<CompleteItoResul
   if (passedRows.length === 0) throw new Error('No passed units to move');
 
   const warehouseId = passedRows[0].current_warehouse_id;
-  if (!warehouseId) throw new Error('Reserved serials are missing a warehouse — cannot resolve transit location');
+  if (!warehouseId) {
+    throw new Error('Reserved serials are missing a warehouse — cannot resolve transit location.');
+  }
   const transit = await getTransitLocationForWarehouse(warehouseId);
   if (!transit) {
+    const { data: wh } = await sb
+      .from('warehouses').select('name, code').eq('id', warehouseId).maybeSingle();
+    const wLabel = wh?.name ?? wh?.code ?? warehouseId;
     throw new Error(
-      'No transit location configured for this warehouse. Set one up in Setup → Warehouse Locations (type: transit).',
+      `No transit location configured for warehouse "${wLabel}". ` +
+      `Create one in Setup → Locations with type = "transit".`,
     );
   }
 
