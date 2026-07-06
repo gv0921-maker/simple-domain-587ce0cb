@@ -5908,6 +5908,65 @@ export type Database = {
           },
         ]
       }
+      qc_inspections: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          document_id: string
+          document_line_id: string | null
+          document_type: string
+          id: string
+          inspected_at: string | null
+          inspected_by: string | null
+          photo_urls: Json
+          product_id: string | null
+          qc_notes: string | null
+          qc_status: string
+          serial_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          document_id: string
+          document_line_id?: string | null
+          document_type: string
+          id?: string
+          inspected_at?: string | null
+          inspected_by?: string | null
+          photo_urls?: Json
+          product_id?: string | null
+          qc_notes?: string | null
+          qc_status?: string
+          serial_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          document_id?: string
+          document_line_id?: string | null
+          document_type?: string
+          id?: string
+          inspected_at?: string | null
+          inspected_by?: string | null
+          photo_urls?: Json
+          product_id?: string | null
+          qc_notes?: string | null
+          qc_status?: string
+          serial_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qc_inspections_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quotation_lines: {
         Row: {
           barcode: string | null
