@@ -2,8 +2,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ActivityChatter } from '@/components/shared/ActivityChatter';
 import { INVENTORY_NAV } from '@/lib/navigation';
-import { useDeliveryNote, useMarkDeliveryNoteDelivered } from '@/hooks/inventory/deliveryNotes';
-import { useConfirmDelivery } from '@/hooks/sales/deliveryNotes';
+import { useDeliveryNote } from '@/hooks/inventory/deliveryNotes';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -12,9 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { ArrowLeft, Printer, CheckCircle2, ScanLine } from 'lucide-react';
+import { ArrowLeft, Printer, Lock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
+import { ScanQCPanel } from '@/components/inventory/ScanQCPanel';
+import { useCanCreateDeliveryForSO, useCompleteDeliveryWithQc } from '@/hooks/inventory/workflow1';
 
 const statusVariant: Record<string, string> = {
   draft: 'bg-muted text-muted-foreground',
@@ -26,9 +27,9 @@ export default function DeliveryNoteDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: note, isLoading } = useDeliveryNote(id);
-  const markDelivered = useMarkDeliveryNoteDelivered();
-  const confirmDelivery = useConfirmDelivery();
+  const complete = useCompleteDeliveryWithQc();
   const [signature, setSignature] = useState(false);
+  const { data: gate } = useCanCreateDeliveryForSO(note?.salesOrderId ?? undefined);
 
   if (isLoading || !note) {
     return (
@@ -38,24 +39,25 @@ export default function DeliveryNoteDetail() {
     );
   }
 
-  const handleMarkDelivered = () => {
-    markDelivered.mutate(note.id, {
-      onSuccess: () => toast.success('Delivery complete. Stock updated.'),
-      onError: (e: any) => toast.error(e?.message ?? 'Failed to mark as delivered'),
-    });
+  const handleComplete = async () => {
+    try {
+      const res = await complete.mutateAsync({ dnId: note.id, signatureReceived: signature });
+      toast.success(res.soClosed
+        ? `Delivery complete — ${res.delivered} unit(s) handed off. Sales order closed.`
+        : `Delivery complete — ${res.delivered} unit(s) handed off.`);
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Failed to complete delivery');
+    }
   };
 
-  const handleConfirmDelivery = () => {
-    confirmDelivery.mutate(
-      { dnId: note.id, signatureReceived: signature },
-      {
-        onSuccess: (r) => toast.success(r.so_closed
-          ? 'Delivery confirmed. Sales order closed.'
-          : 'Delivery confirmed.'),
-        onError: (e: any) => toast.error(e?.message ?? 'Failed to confirm delivery'),
-      },
-    );
-  };
+  // Expected lines from products_json (each product's serials become expected units)
+  const expectedLines = note.productsJson.map((p, idx) => ({
+    lineId: `${p.product_id}-${idx}`,
+    productId: p.product_id,
+    productName: p.product_name,
+    expectedQty: p.serial_numbers.length || p.quantity,
+    serials: p.serial_numbers,
+  }));
 
   return (
     <AppLayout title="Delivery Notes" subtitle={note.reference} moduleNav={INVENTORY_NAV}>
@@ -80,35 +82,43 @@ export default function DeliveryNoteDetail() {
             <Button variant="outline" onClick={() => window.open(`/print/delivery_note/${note.id}`, '_blank')}>
               <Printer className="h-4 w-4 mr-2" /> Print
             </Button>
-            {(note as any).invoiceId && (
-              <Button variant="outline" onClick={() => window.open(`/barcode/scan?doc=delivery_note&id=${note.id}`, '_blank')}>
-                <ScanLine className="h-4 w-4 mr-2" /> Pre-delivery Scan
-              </Button>
-            )}
-            {note.status !== 'delivered' && (
-              <Button onClick={handleMarkDelivered} disabled={markDelivered.isPending}>
-                <CheckCircle2 className="h-4 w-4 mr-2" />
-                {markDelivered.isPending ? 'Marking…' : 'Mark as Delivered'}
-              </Button>
-            )}
           </div>
         </div>
 
-        {(note as any).invoiceId && note.status !== 'delivered' && (
+        {/* Payment gate */}
+        {note.status !== 'delivered' && gate && !gate.allowed && (
+          <Card className="border-amber-300 bg-amber-50">
+            <CardContent className="p-4 flex items-start gap-3 text-sm text-amber-900">
+              <Lock className="h-4 w-4 mt-0.5" />
+              <div>
+                <div className="font-medium">Delivery locked</div>
+                <div>{gate.message}</div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Scan + QC engine */}
+        {note.status !== 'delivered' && gate?.allowed && (
           <Card>
-            <CardHeader><CardTitle className="text-base">Customer Signature & Confirmation</CardTitle></CardHeader>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Scan &amp; QC — handoff to customer</CardTitle>
+            </CardHeader>
             <CardContent className="space-y-3">
               <label className="flex items-center gap-2 text-sm">
                 <Checkbox checked={signature} onCheckedChange={(v) => setSignature(!!v)} />
                 Customer signature received (today)
               </label>
-              <Button onClick={handleConfirmDelivery} disabled={confirmDelivery.isPending}>
-                <CheckCircle2 className="h-4 w-4 mr-2" />
-                {confirmDelivery.isPending ? 'Confirming…' : 'Confirm Delivery'}
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                Marks delivered serials as <span className="font-medium">sold</span>. If this is the last delivery for the linked Sales Order, the order will be closed.
-              </p>
+              <ScanQCPanel
+                documentType="delivery_note"
+                documentId={note.id}
+                expectedLines={expectedLines}
+                requireQC={true}
+                requirePhotos={true}
+                onComplete={handleComplete}
+                completing={complete.isPending}
+                completeButtonLabel="Complete Delivery"
+              />
             </CardContent>
           </Card>
         )}

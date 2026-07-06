@@ -15,6 +15,7 @@ import HomePage from "@/pages/HomePage";
 // Inventory pages
 import InventoryOverview from "@/pages/inventory/InventoryOverview";
 import TransferDetail from "@/pages/inventory/TransferDetail";
+import ItoDetail from "@/pages/inventory/ItoDetail";
 import TransferForm from "@/pages/inventory/TransferForm";
 import ProductsList from "@/pages/inventory/ProductsList";
 import ProductDetail from "@/pages/inventory/ProductDetail";
@@ -269,6 +270,7 @@ const App = () => (
             <Route path="/inventory/transfers/:id" element={<ProtectedRoute><TransferDetail /></ProtectedRoute>} />
             <Route path="/inventory/transfers/new" element={<ProtectedRoute><TransferForm /></ProtectedRoute>} />
             <Route path="/inventory/transfers/:id/edit" element={<ProtectedRoute><TransferForm /></ProtectedRoute>} />
+            <Route path="/inventory/ito/:id" element={<ProtectedRoute><ItoDetail /></ProtectedRoute>} />
             <Route path="/inventory/warehouses" element={<ProtectedRoute><WarehousesList /></ProtectedRoute>} />
             <Route path="/inventory/locations" element={<ProtectedRoute><WarehouseLocations /></ProtectedRoute>} />
             <Route path="/inventory/stock-moves" element={<ProtectedRoute><StockMoves /></ProtectedRoute>} />

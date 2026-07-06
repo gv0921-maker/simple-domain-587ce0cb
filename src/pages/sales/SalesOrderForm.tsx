@@ -18,6 +18,7 @@ import {
 import { ArrowLeft, Save, XCircle, ShoppingCart, CreditCard, FileText, CheckCircle2, Printer } from 'lucide-react';
 import { PaymentsSection } from '@/components/sales/PaymentsSection';
 import { FulfillmentSection } from '@/components/sales/FulfillmentSection';
+import { Workflow1Tracker } from '@/components/sales/Workflow1Tracker';
 import { InvoicingSection } from '@/components/sales/InvoicingSection';
 import { usePaymentSummary } from '@/hooks/sales/payments';
 import { confirmSalesOrder, overrideAdvanceGate } from '@/lib/services/sales/api';
@@ -537,6 +538,9 @@ export default function SalesOrderForm() {
               salesOrderCreatedBy={(formData as any).createdBy ?? null}
             />
           </div>
+        )}
+        {!isNew && id && (
+          <Workflow1Tracker salesOrderId={id} salesOrderStatus={status} />
         )}
 
         {!isNew && id && (

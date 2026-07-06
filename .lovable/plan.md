@@ -1,63 +1,69 @@
-# CRM Fix Batch 2 — Odoo-style Stackable Filters
+## Workflow 1 wiring — plan
 
-Build a reusable, stackable filter framework and wire it into CRM Pipeline + Contacts. Backed by a new `user_saved_filters` Supabase table with per-user and system-wide defaults.
+Note: the earlier build error was transient S3 upload throttling from the preview host, not a code problem. No source change fixes it; the next build will retry.
 
-## 1. Database (Supabase migration)
+### 1. Database (one migration)
 
-New table `public.user_saved_filters`:
-- `id uuid pk`, `user_id uuid → auth.users`, `module text`, `name text`, `filter_state jsonb`, `is_default bool`, `is_system_default bool`, `created_at`, `updated_at`
-- Unique `(user_id, module, name)`
-- Indexes: `(user_id, module)`, `(module, is_system_default)`
-- GRANTs to `authenticated` + `service_role`
-- RLS: select own OR `is_system_default=true`; insert/update/delete own only; only `super_admin` may set `is_system_default=true` (enforced via a BEFORE trigger using `has_role`)
-- `updated_at` trigger
+Two Postgres RPCs and one helper. Everything scoped to `SECURITY DEFINER` with `search_path = public` and gated on `public.can_write_inventory()`.
 
-RPCs (SECURITY DEFINER, search_path=public):
-- `set_user_default_filter(p_module text, p_filter_id uuid)` — unsets other defaults for caller+module, sets target true
-- `set_system_default_filter(p_module text, p_filter_id uuid)` — super_admin only; same for `is_system_default`
+- `public.complete_ito_with_qc(p_ito_id uuid)` returns `jsonb`
+  - Reads `qc_inspections` for `document_type='ito', document_id=p_ito_id`.
+  - Validates every expected line unit has a `pass` or `fail` inspection.
+  - Resolves the ITO's destination warehouse's `transit` location from `warehouse_locations` (type `transit`).
+  - For each passed unit: updates `goods_receipt_serials` (or the serial ledger the ITO source uses) `current_location = <transit id>`, `stock_status = 'reserved'` (bucket), and inserts a `stock_moves` row (source → transit).
+  - For each failed unit: leaves stock, creates a `correction_orders` row referencing the ITO + failing serial (uses existing `correction_orders` service pattern).
+  - If any failed units exist → raise exception `'ITO cannot complete: failed units require correction'`.
+  - Sets ITO status to `completed`.
+  - Inserts notifications for SO creator, `sales_manager`, `super_admin` roles.
+  - Returns `{ moved: n, failed: n, correction_order_id }`.
 
-## 2. Filter framework (shared, module-agnostic)
+- `public.complete_delivery_with_qc(p_dn_id uuid, p_signature_url text)` returns `jsonb`
+  - Verifies related SO `payment_status = 'paid'` (or `amount_paid >= total_amount`). Raises if not.
+  - Verifies every expected serial inspected + no un-photographed fails.
+  - Moves each passed serial from transit → customer location (bucket `sold`, `stock_status='sold'`, `delivered_at=now()`, `delivered_to=<customer_id>`).
+  - Inserts stock_moves rows for the transit-out.
+  - Sets DN `status='delivered'`, stores signature url.
+  - If SO now 100% delivered → sets SO `status='closed'`.
+  - Notifies SO creator + `super_admin`.
 
-New folder `src/lib/filters/`:
-- `types.ts` — `FilterState`, `FilterGroup`, `Operator`, `FieldConfig`, `ModuleFilterConfig`
-- `applyFilters.ts` — `buildSupabaseQuery(query, state)` translates operators to PostgREST builder calls; resolves relative dates (`today`, `this_week`, `this_month`, `last_n_days`) at call time
-- `clientFilter.ts` — same logic applied to in-memory arrays (used by Pipeline kanban, which already fetches all opportunities)
-- `modules/crmOpportunities.ts`, `modules/crmContacts.ts` — field/group-by/sort configs
+Grants: `EXECUTE ... TO authenticated`.
 
-## 3. Service + hooks
+### 2. Service layer
 
-- `src/lib/services/savedFilters.ts` — `getSavedFilters`, `saveFilter`, `updateFilter`, `deleteFilter`, `getDefaultFilter`, `setUserDefault`, `setSystemDefault`
-- `src/hooks/useSavedFilters.ts` — TanStack Query hooks (`useSavedFilters(module)`, `useDefaultFilter(module)`, mutations)
+`src/lib/services/inventory/workflow1.ts` (new) — thin wrappers:
+- `completeItoWithQc(itoId)`
+- `completeDeliveryWithQc(dnId, signatureUrl)`
+- `getTransitLocationForWarehouse(warehouseId)` (client-side helper for pre-flight UX)
+- `canCreateDeliveryForSO(soId)` → `{ allowed, paidAmount, totalAmount, message }`
 
-## 4. UI components
+Corresponding hooks in `src/hooks/inventory/workflow1.ts` (TanStack Query).
 
-`src/components/filters/`:
-- `FilterBar.tsx` — search input · Filters button (with active count badge) · Group By dropdown · Sort dropdown · Favorites dropdown (load / set default / delete / save as…) · Clear All. Renders chips below for active filter groups (`Field · Operator · Value` with ×). Persists `last_used` to localStorage per module. Keyboard shortcut `F` opens FilterPopover.
-- `FilterPopover.tsx` — pick field → operator → value editor. Operators auto-derived from field type (text/numeric/date/choice/multi_choice). Multi-select uses Command list.
-- `SaveFilterDialog.tsx` — name + "set as my default" + (super_admin only) "set as default for everyone".
-- `FilterEmptyState.tsx` — shown when results empty; Clear All button.
+### 3. UI wiring
 
-## 5. Wire into CRM
+**`src/pages/inventory/TransferDetail.tsx`**
+- When ITO status is `confirmed`/`ready`, render `<ScanQCPanel documentType="ito" ... requirePhotos={false}>`.
+- `onComplete` → call `completeItoWithQc`. On success toast, invalidate ITO, navigate refresh. On failed-unit error, show inline banner "N units failed QC — Correction Order #X created; resolve before completing."
+- `expectedLines` derived from ITO lines; serials pulled from reserved `goods_receipt_serials` for that ITO's source.
 
-- `CRMPipeline.tsx` + `CRMKanbanBoard.tsx` + `CRMPipelineListView.tsx` — replace `CRMSearchDropdown` usage with `<FilterBar config={crmOpportunitiesFilterConfig} value={state} onChange={...} />`. Apply filters client-side via `clientFilter.ts` on the already-fetched opportunity list (kanban stays grouped by stage; if `group_by` is set in list view, list re-groups; in kanban view, an info chip notes group-by is shown in list view only).
-- `CRMContactsList.tsx` — replace search input with `<FilterBar config={crmContactsFilterConfig} ... />`. Sort + group-by handled in-list.
-- On mount: load `getDefaultFilter(module)` (user default → system default → empty) AND merge `localStorage.last_used_<module>` if present and no explicit default.
+**`src/pages/inventory/DeliveryNoteDetail.tsx`**
+- Show a payment-gate banner sourced from `canCreateDeliveryForSO`. If not fully paid, disable QC panel + show "Delivery available after full payment. Current: ₹X paid of ₹Y".
+- If paid, render `<ScanQCPanel documentType="delivery_note" ... requirePhotos={true}>`.
+- `onComplete` → call existing signature-capture, then `completeDeliveryWithQc`.
 
-## 6. Cleanup
+**Sales Order detail (existing page)**
+- Add `<Workflow1Tracker soId>` component (new, `src/components/sales/Workflow1Tracker.tsx`) showing 6 steps with status chips and links: SO Confirmed → ITO → Packed → Invoice Paid → Delivery → Closed.
+- Add payment-gate "Create Delivery Order" button using `canCreateDeliveryForSO`.
 
-- Migrate any legacy `crm_saved_searches` localStorage entries to `user_saved_filters` on first authenticated load (best-effort, then drop the localStorage key).
-- Delete `src/lib/crm/searchFilters.ts` and remove its imports (`CRMSearchBar.tsx` if no longer used — verify and remove or refactor to FilterBar).
-- Keep `CRMSearchDropdown.tsx` only if still referenced; otherwise delete.
+### 4. Notes
 
-## 7. Verification
+- No changes to the `ScanQCPanel` engine itself.
+- Correction Order creation reuses existing `correction_orders` service; only the trigger point is new (inside the RPC).
+- Existing "part-delivery restricted to invoiced items" logic remains; the paid-in-full check layers on top in the SO detail + RPC.
+- Stock Dashboard already reads serial `current_location` and `stock_status`, so the transit view lights up automatically.
 
-- `tsc --noEmit` clean.
-- Manually: add Stage=New, then Salesperson=me, save as favorite, set as default, refresh → auto-applies. Group By Salesperson re-groups list view. Sort by Expected Revenue desc works.
+### Files touched
 
-## Technical notes
+New: 1 migration, `src/lib/services/inventory/workflow1.ts`, `src/hooks/inventory/workflow1.ts`, `src/components/sales/Workflow1Tracker.tsx`.
+Edited: `src/pages/inventory/TransferDetail.tsx`, `src/pages/inventory/DeliveryNoteDetail.tsx`, SO detail page.
 
-- Relative dates resolved in `applyFilters.ts` using `date-fns` (already in deps) to avoid stale ranges.
-- Filter chip labels resolved via `fieldConfig.loadOptions` cache so FK ids render as human names.
-- `FilterBar` is generic — Batch 3+ modules (Sales Orders, Invoices, etc.) can adopt it by adding a `modules/<x>.ts` config.
-
-After approval I'll create the migration first (so types regenerate), then implement the framework, components, wire CRM pages, and verify.
+After migration + code changes: run `bunx tsgo --noEmit`.
