@@ -471,7 +471,7 @@ export default function SalesOrderForm() {
                 <Save className="h-4 w-4 mr-2" /> Save
               </Button>
             )}
-            {(status === 'draft' || status === 'awaiting_advance') && !isNew && id && (
+            {(status === 'estimate' || status === 'draft' || status === 'awaiting_advance') && !isNew && id && (
               <ConfirmOrderButton
                 orderId={id}
                 grandTotal={formData.grandTotal || formData.total || 0}
