@@ -24,6 +24,69 @@ import { useFactoryProgressForSO } from '@/hooks/shopfloor';
 import { useVendorOrdersForSO } from '@/hooks/vendor-orders';
 import { VO_STATUS_LABEL } from '@/lib/services/vendor-orders';
 
+// Resolve real source + destination location names for each product on an ITO.
+// Source  = warehouse_locations.name of the serials reserved for this SO
+//           (or 'Multiple' if serials span >1 location).
+// Destination = the transit location of the source warehouse.
+function useItoLineLocations(salesOrderId: string, productIds: string[]) {
+  const key = ['ito-line-locations', salesOrderId, [...productIds].sort().join(',')];
+  return useQuery({
+    queryKey: key,
+    enabled: !!salesOrderId && productIds.length > 0,
+    queryFn: async () => {
+      const sb = supabase as any;
+      const { data: serials } = await sb
+        .from('goods_receipt_serials')
+        .select('product_id, current_location, current_warehouse_id')
+        .eq('reserved_for_so_id', salesOrderId)
+        .in('product_id', productIds);
+      const rows = (serials ?? []) as Array<{
+        product_id: string; current_location: string | null; current_warehouse_id: string | null;
+      }>;
+      const locIds = Array.from(new Set(rows.map(r => r.current_location).filter((x): x is string => !!x)));
+      const whIds = Array.from(new Set(rows.map(r => r.current_warehouse_id).filter((x): x is string => !!x)));
+      const [{ data: locs }, { data: transit }] = await Promise.all([
+        locIds.length > 0
+          ? sb.from('warehouse_locations').select('id, name, warehouse_id').in('id', locIds)
+          : Promise.resolve({ data: [] }),
+        whIds.length > 0
+          ? sb
+              .from('warehouse_locations')
+              .select('id, name, warehouse_id')
+              .in('warehouse_id', whIds)
+              .eq('type', 'transit')
+              .eq('is_active', true)
+          : Promise.resolve({ data: [] }),
+      ]);
+      const locById = new Map<string, { name: string; warehouse_id: string }>();
+      ((locs ?? []) as any[]).forEach(l => locById.set(l.id, { name: l.name, warehouse_id: l.warehouse_id }));
+      const transitByWh = new Map<string, string>();
+      ((transit ?? []) as any[]).forEach(t => transitByWh.set(t.warehouse_id, t.name));
+
+      const out = new Map<string, { source: string; destination: string }>();
+      for (const pid of productIds) {
+        const productRows = rows.filter(r => r.product_id === pid);
+        const locNames = Array.from(
+          new Set(productRows.map(r => (r.current_location ? locById.get(r.current_location)?.name : null))
+            .filter((x): x is string => !!x)),
+        );
+        const whs = Array.from(new Set(productRows.map(r => r.current_warehouse_id).filter((x): x is string => !!x)));
+        const source =
+          locNames.length === 0 ? '—'
+          : locNames.length === 1 ? locNames[0]
+          : 'Multiple locations';
+        const transitNames = Array.from(new Set(whs.map(w => transitByWh.get(w)).filter((x): x is string => !!x)));
+        const destination =
+          transitNames.length === 0 ? 'Transit (not configured)'
+          : transitNames.length === 1 ? transitNames[0]
+          : 'Transit (multiple)';
+        out.set(pid, { source, destination });
+      }
+      return out;
+    },
+  });
+}
+
 interface Props {
   salesOrderId: string;
   salesOrderStatus: string;
@@ -84,6 +147,16 @@ export function FulfillmentSection({ salesOrderId, salesOrderStatus, salesOrderC
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [preview, setPreview] = useState<ITOSuggestionLine[]>([]);
+  const previewProductIds = useMemo(() => preview.map(p => p.product_id), [preview]);
+  const itoProductIds = useMemo(
+    () => (itoDetail?.lines ?? []).map(l => l.product_id),
+    [itoDetail?.lines],
+  );
+  const productIdsForLocations = useMemo(
+    () => Array.from(new Set([...previewProductIds, ...itoProductIds])),
+    [previewProductIds, itoProductIds],
+  );
+  const { data: locationMap } = useItoLineLocations(salesOrderId, productIdsForLocations);
 
   const openSuggest = async () => {
     try {
