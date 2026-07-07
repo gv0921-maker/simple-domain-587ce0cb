@@ -92,17 +92,21 @@ export async function recordScan(input: RecordScanInput): Promise<QCInspection> 
   const serial = input.serialNumber.trim();
   if (!serial) throw new Error('Serial is empty');
 
-  // Match to an expected line: prefer the provided line, else fall back to
-  // whichever line lists this serial.
-  const explicit = input.expectedLines.find(l => l.lineId === input.documentLineId);
-  const bySerial = input.expectedLines.find(
-    l => l.serials && l.serials.map(s => s.toLowerCase()).includes(serial.toLowerCase()),
+  // If no line advertises any reserved serials, the caller has no stock pool
+  // to scan against — refuse every scan with a clear message.
+  const anySerialsReserved = input.expectedLines.some(l => (l.serials?.length ?? 0) > 0);
+  if (!anySerialsReserved) {
+    throw new Error(
+      'No stock reserved for this order. Ensure goods have been received and stock is available.',
+    );
+  }
+
+  // The serial MUST belong to one of the reserved serial lists on this document.
+  const line = input.expectedLines.find(
+    l => l.serials?.some(s => s.toLowerCase() === serial.toLowerCase()),
   );
-  const line = bySerial ?? explicit;
-  if (!line) throw new Error('Serial is not part of this document');
-  if (line.serials && line.serials.length > 0) {
-    const ok = line.serials.some(s => s.toLowerCase() === serial.toLowerCase());
-    if (!ok) throw new Error('Serial is not part of this document');
+  if (!line) {
+    throw new Error(`Serial ${serial} is not reserved for this order`);
   }
 
   // Duplicate check (client-side + DB unique index as backstop).
