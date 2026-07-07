@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  useITOsForSO, useITODetail, useSuggestITO, useCreateITO, useITOQueueId, useSOReadyToInvoice,
+  useITOsForSO, useITODetail, useSuggestITO, useCreateITO, useSOReadyToInvoice,
 } from '@/hooks/inventory/internalTransfers';
 import type { ITOSuggestionLine, ProductSource, ITOLineStatus } from '@/lib/services/inventory/internalTransfers';
 import { logFieldChange } from '@/lib/services/activityLog';
@@ -137,7 +137,6 @@ export function FulfillmentSection({ salesOrderId, salesOrderStatus, salesOrderC
   const { data: itos = [] } = useITOsForSO(salesOrderId);
   const activeITO = useMemo(() => itos.find((i) => i.status !== 'cancelled') ?? null, [itos]);
   const { data: itoDetail } = useITODetail(activeITO?.id);
-  const { data: queueId } = useITOQueueId(activeITO?.id);
   const { data: readyToInvoice } = useSOReadyToInvoice(salesOrderId);
   const { data: factoryWOs = [] } = useFactoryProgressForSO(salesOrderId);
   const { data: vendorOrders = [] } = useVendorOrdersForSO(salesOrderId);
