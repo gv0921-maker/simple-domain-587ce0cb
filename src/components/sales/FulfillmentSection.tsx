@@ -347,11 +347,6 @@ export function FulfillmentSection({ salesOrderId, salesOrderStatus, salesOrderC
                   <ScanLine className="h-4 w-4 mr-2" /> Open ITO — Scan &amp; QC
                 </Button>
               )}
-              {queueId && !isCompleted && (
-                <Button size="sm" variant="outline" onClick={() => navigate(`/barcode/scan/${queueId}`)}>
-                  Legacy Scanner
-                </Button>
-              )}
               {readyToInvoice && (
                 <Button size="sm" onClick={() => navigate(`/invoicing/invoices/new?sales_order=${salesOrderId}`)}>
                   <Receipt className="h-4 w-4 mr-2" /> Generate Invoice
