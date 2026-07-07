@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Truck } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useITODetail } from '@/hooks/inventory/internalTransfers';
@@ -31,6 +32,12 @@ export default function ItoDetail() {
   const { ito } = detail;
   const isCompleted = ito.status === 'completed';
   const isCancelled = ito.status === 'cancelled';
+  const noSerialsReserved =
+    !expLoading && expected.length > 0 && expected.every(l => (l.serials?.length ?? 0) === 0);
+  const partiallyReserved =
+    !expLoading &&
+    expected.some(l => (l.serials?.length ?? 0) > 0) &&
+    expected.some(l => (l.serials?.length ?? 0) < l.expectedQty);
 
   const handleComplete = async () => {
     if (!id) return;
@@ -90,7 +97,26 @@ export default function ItoDetail() {
             <CardContent>
               {expLoading ? (
                 <div className="text-sm text-muted-foreground">Loading expected units…</div>
+              ) : noSerialsReserved ? (
+                <div className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                  <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" />
+                  <div>
+                    <div className="font-medium">No stock reserved for this order.</div>
+                    <div className="text-amber-800 mt-1">
+                      Ensure goods have been received (Goods Receipt → QC pass) so serials are
+                      available before scanning. If stock has been received, cancel and re-create
+                      this ITO to reserve fresh serials.
+                    </div>
+                  </div>
+                </div>
               ) : id ? (
+                <>
+                  {partiallyReserved && (
+                    <div className="mb-3 flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                      <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                      <span>Some lines don't have enough available stock reserved — those units can't be scanned until more stock is received.</span>
+                    </div>
+                  )}
                 <ScanQCPanel
                   documentType="ito"
                   documentId={id}
@@ -101,6 +127,7 @@ export default function ItoDetail() {
                   completing={complete.isPending}
                   completeButtonLabel="Complete Transfer & Move to Transit"
                 />
+                </>
               ) : null}
             </CardContent>
           </Card>
