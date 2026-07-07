@@ -242,7 +242,7 @@ export function FulfillmentSection({ salesOrderId, salesOrderStatus, salesOrderC
                 <TableHeader>
                   <TableRow>
                     <TableHead>Product</TableHead>
-                    <TableHead>Source</TableHead>
+                    <TableHead>Source → Destination</TableHead>
                     <TableHead className="text-right">Qty</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
@@ -252,9 +252,16 @@ export function FulfillmentSection({ salesOrderId, salesOrderStatus, salesOrderC
                     <TableRow key={l.sales_order_line_id}>
                       <TableCell className="font-medium">{l.product_name ?? l.product_id}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={SOURCE_BADGE[l.product_source]}>
-                          {SOURCE_LABEL[l.product_source]}
-                        </Badge>
+                        <div className="flex flex-col gap-1">
+                          <div className="text-sm">
+                            <span className="font-medium">{locationMap?.get(l.product_id)?.source ?? '—'}</span>
+                            <span className="mx-1 text-muted-foreground">→</span>
+                            <span className="text-muted-foreground">{locationMap?.get(l.product_id)?.destination ?? 'Transit'}</span>
+                          </div>
+                          <Badge variant="outline" className={`${SOURCE_BADGE[l.product_source]} w-fit text-[10px] px-1.5 py-0`}>
+                            {SOURCE_LABEL[l.product_source]}
+                          </Badge>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">{l.quantity}</TableCell>
                       <TableCell>
@@ -360,7 +367,7 @@ export function FulfillmentSection({ salesOrderId, salesOrderStatus, salesOrderC
               <TableHeader>
                 <TableRow>
                   <TableHead>Product</TableHead>
-                  <TableHead>Source</TableHead>
+                  <TableHead>Source → Destination</TableHead>
                   <TableHead className="text-right">Expected</TableHead>
                   <TableHead className="text-right">Scanned</TableHead>
                   <TableHead>Status</TableHead>
@@ -371,9 +378,16 @@ export function FulfillmentSection({ salesOrderId, salesOrderStatus, salesOrderC
                   <TableRow key={l.id}>
                     <TableCell className="font-mono text-xs">{l.product_id.slice(0, 8)}…</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={SOURCE_BADGE[l.product_source]}>
-                        {SOURCE_LABEL[l.product_source]}
-                      </Badge>
+                      <div className="flex flex-col gap-1">
+                        <div className="text-sm">
+                          <span className="font-medium">{locationMap?.get(l.product_id)?.source ?? '—'}</span>
+                          <span className="mx-1 text-muted-foreground">→</span>
+                          <span className="text-muted-foreground">{locationMap?.get(l.product_id)?.destination ?? 'Transit'}</span>
+                        </div>
+                        <Badge variant="outline" className={`${SOURCE_BADGE[l.product_source]} w-fit text-[10px] px-1.5 py-0`}>
+                          {SOURCE_LABEL[l.product_source]}
+                        </Badge>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">{l.quantity_expected}</TableCell>
                     <TableCell className="text-right">{l.quantity_scanned}</TableCell>
