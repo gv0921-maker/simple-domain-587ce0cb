@@ -17,6 +17,7 @@ export type Database = {
       activity_log: {
         Row: {
           action_type: string
+          attachments: Json
           changed_at: string
           changed_by: string
           deleted_at: string | null
@@ -32,6 +33,7 @@ export type Database = {
         }
         Insert: {
           action_type: string
+          attachments?: Json
           changed_at?: string
           changed_by: string
           deleted_at?: string | null
@@ -47,6 +49,7 @@ export type Database = {
         }
         Update: {
           action_type?: string
+          attachments?: Json
           changed_at?: string
           changed_by?: string
           deleted_at?: string | null
@@ -9462,6 +9465,7 @@ export type Database = {
         }
         Returns: {
           action_type: string
+          attachments: Json
           changed_at: string
           changed_by: string
           changed_by_email: string

@@ -1,21 +1,27 @@
 // Canonical activity panel — chatter-style UI backed by activity_log.
 // Three tabs: Send message (stub), Log note, Activity (field/status changes).
 // Used across every detail page (CRM, Sales, Manufacturing, Returns, etc.).
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { MessageSquare, Edit3, Activity as ActivityIcon, Trash2, Send } from 'lucide-react';
+import {
+  MessageSquare, Edit3, Activity as ActivityIcon, Trash2, Send,
+  Paperclip, X as XIcon, Download, Share2, FileText, Image as ImageIcon,
+} from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRoleCheck } from '@/hooks/auth/useRoleCheck';
 import {
   useActivityLog, useAddManualNote, useSoftDeleteLogEntry,
 } from '@/hooks/useActivityLog';
-import type { ActivityLogEntry, ActivityRecordType } from '@/lib/services/activityLog';
+import type { ActivityAttachment, ActivityLogEntry, ActivityRecordType } from '@/lib/services/activityLog';
+import { uploadActivityAttachment } from '@/lib/services/activityLog';
+import { ShareImageToChatDialog } from './ShareImageToChatDialog';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -49,14 +55,79 @@ function displayValue(v: string | null): string {
   return v;
 }
 
+function humanSize(bytes: number): string {
+  if (!bytes) return '';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let i = 0; let n = bytes;
+  while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+  return `${n.toFixed(n < 10 ? 1 : 0)} ${units[i]}`;
+}
+
+function AttachmentsGallery({
+  items,
+  onPreview,
+}: {
+  items: ActivityAttachment[];
+  onPreview: (a: ActivityAttachment) => void;
+}) {
+  if (!items?.length) return null;
+  const images = items.filter((a) => a.kind === 'image');
+  const files = items.filter((a) => a.kind !== 'image');
+  return (
+    <div className="mt-2 space-y-2">
+      {images.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {images.map((a, i) => (
+            <button
+              key={`${a.path}-${i}`}
+              type="button"
+              onClick={() => onPreview(a)}
+              className="group relative rounded-md border overflow-hidden bg-muted hover:opacity-90 transition"
+              aria-label={`Preview ${a.name}`}
+            >
+              <img
+                src={a.url}
+                alt={a.name}
+                className="h-32 w-32 object-cover"
+                loading="lazy"
+              />
+            </button>
+          ))}
+        </div>
+      )}
+      {files.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          {files.map((a, i) => (
+            <a
+              key={`${a.path}-${i}`}
+              href={a.url}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-3 rounded border bg-card px-3 py-2 hover:bg-muted/60 transition text-sm max-w-md"
+            >
+              <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="truncate font-medium">{a.name}</div>
+                <div className="text-xs text-muted-foreground">{humanSize(a.size)}</div>
+              </div>
+              <Download className="h-4 w-4 text-muted-foreground" />
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EntryRow({
-  entry, canDelete, onDelete, currentUserId, currentUserName,
+  entry, canDelete, onDelete, currentUserId, currentUserName, onPreviewAttachment,
 }: {
   entry: ActivityLogEntry;
   canDelete: boolean;
   onDelete: (id: string) => void;
   currentUserId?: string;
   currentUserName?: string;
+  onPreviewAttachment: (a: ActivityAttachment) => void;
 }) {
   const isSelf = entry.changed_by === currentUserId;
   const who = isSelf
@@ -127,6 +198,9 @@ function EntryRow({
           )}
         </div>
         <div className="text-sm">{body}</div>
+        {isNote && entry.attachments?.length > 0 && (
+          <AttachmentsGallery items={entry.attachments} onPreview={onPreviewAttachment} />
+        )}
       </div>
     </div>
   );
@@ -138,6 +212,12 @@ export function ActivityChatter({ recordType, recordId, className }: Props) {
   const [tab, setTab] = useState<TabKey>('note');
   const [limit, setLimit] = useState(20);
   const [draft, setDraft] = useState('');
+  const [pending, setPending] = useState<ActivityAttachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [preview, setPreview] = useState<ActivityAttachment | null>(null);
+  const [shareTarget, setShareTarget] = useState<ActivityAttachment | null>(null);
 
   const { isSuperAdmin } = useRoleCheck();
 
@@ -154,16 +234,39 @@ export function ActivityChatter({ recordType, recordId, className }: Props) {
     return [];
   }, [entries, tab]);
 
+  const handleFilesPicked = async (files: FileList | null) => {
+    if (!files || files.length === 0 || !recordId) return;
+    setUploading(true);
+    try {
+      const uploaded: ActivityAttachment[] = [];
+      for (const f of Array.from(files)) {
+        const att = await uploadActivityAttachment(f, recordType, recordId);
+        uploaded.push(att);
+      }
+      setPending((p) => [...p, ...uploaded]);
+    } catch (e: any) {
+      toast({ title: 'Upload failed', description: e?.message, variant: 'destructive' });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const removePending = (path: string) => {
+    setPending((p) => p.filter((a) => a.path !== path));
+  };
+
   const handleSubmit = async () => {
     const t = draft.trim();
-    if (!t || !recordId) return;
+    if ((!t && pending.length === 0) || !recordId) return;
     if (tab === 'message') {
       toast({ title: 'Messaging not yet enabled', description: 'This will send to the customer/team once configured.' });
       return;
     }
     try {
-      await addNote.mutateAsync(t);
+      await addNote.mutateAsync({ note: t, attachments: pending });
       setDraft('');
+      setPending([]);
     } catch (e: any) {
       toast({ title: 'Failed to add note', description: e?.message, variant: 'destructive' });
     }
@@ -219,11 +322,62 @@ export function ActivityChatter({ recordType, recordId, className }: Props) {
               className="resize-none flex-1"
             />
           </div>
-          <div className="flex justify-end">
+
+          {/* Pending attachments preview */}
+          {pending.length > 0 && (
+            <div className="flex flex-wrap gap-2 pl-10">
+              {pending.map((a) => (
+                <div key={a.path} className="relative group">
+                  {a.kind === 'image' ? (
+                    <img
+                      src={a.url}
+                      alt={a.name}
+                      className="h-20 w-20 object-cover rounded-md border"
+                    />
+                  ) : (
+                    <div className="h-20 w-20 rounded-md border bg-muted flex flex-col items-center justify-center px-1 text-center">
+                      <FileText className="h-6 w-6 text-muted-foreground" />
+                      <span className="text-[10px] truncate max-w-full mt-1">{a.name}</span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removePending(a.path)}
+                    className="absolute -top-2 -right-2 bg-background border rounded-full p-0.5 shadow-sm hover:bg-muted"
+                    aria-label="Remove attachment"
+                  >
+                    <XIcon className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pl-10">
+            <div className="flex items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+                className="hidden"
+                onChange={(e) => handleFilesPicked(e.target.files)}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading || tab === 'message'}
+              >
+                <Paperclip className="h-3.5 w-3.5 mr-1.5" />
+                {uploading ? 'Uploading…' : 'Attach'}
+              </Button>
+            </div>
             <Button
               size="sm"
               onClick={handleSubmit}
-              disabled={!draft.trim() || addNote.isPending}
+              disabled={(!draft.trim() && pending.length === 0) || addNote.isPending || uploading}
             >
               {tab === 'message' ? <Send className="h-3.5 w-3.5 mr-1.5" /> : <Edit3 className="h-3.5 w-3.5 mr-1.5" />}
               {tab === 'message' ? 'Send' : addNote.isPending ? 'Logging…' : 'Log'}
@@ -252,6 +406,7 @@ export function ActivityChatter({ recordType, recordId, className }: Props) {
               onDelete={handleDelete}
               currentUserId={user?.id}
               currentUserName={user?.name}
+              onPreviewAttachment={setPreview}
             />
           ))
         )}
@@ -268,6 +423,60 @@ export function ActivityChatter({ recordType, recordId, className }: Props) {
           </div>
         )}
       </div>
+
+      {/* Image preview lightbox */}
+      <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
+        <DialogContent className="max-w-5xl w-[calc(100vw-2rem)] p-3 bg-background">
+          <DialogTitle className="truncate text-sm">
+            {preview?.name ?? 'Preview'}
+          </DialogTitle>
+          {preview && preview.kind === 'image' && (
+            <div className="flex items-center justify-center bg-muted rounded-md overflow-hidden">
+              <img
+                src={preview.url}
+                alt={preview.name}
+                className="w-full max-h-[75vh] object-contain"
+              />
+            </div>
+          )}
+          {preview && preview.kind !== 'image' && (
+            <div className="flex items-center gap-3 p-6 border rounded-md">
+              <FileText className="h-8 w-8 text-muted-foreground" />
+              <div className="flex-1 min-w-0">
+                <div className="truncate font-medium">{preview.name}</div>
+                <div className="text-xs text-muted-foreground">{humanSize(preview.size)}</div>
+              </div>
+            </div>
+          )}
+          <div className="flex items-center justify-end gap-2 pt-2">
+            {preview && (
+              <a
+                href={preview.url}
+                target="_blank"
+                rel="noreferrer"
+                download={preview.name}
+              >
+                <Button variant="outline" size="sm">
+                  <Download className="h-3.5 w-3.5 mr-1.5" /> Download
+                </Button>
+              </a>
+            )}
+            <Button
+              size="sm"
+              onClick={() => { if (preview) { setShareTarget(preview); } }}
+              disabled={!preview}
+            >
+              <Share2 className="h-3.5 w-3.5 mr-1.5" /> Share via Chat
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <ShareImageToChatDialog
+        open={!!shareTarget}
+        onOpenChange={(o) => { if (!o) setShareTarget(null); }}
+        attachment={shareTarget}
+      />
     </Card>
   );
 }

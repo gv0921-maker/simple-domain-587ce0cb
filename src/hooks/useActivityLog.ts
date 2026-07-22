@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   fetchActivityLog, addManualNote, softDeleteLogEntry,
-  type ActivityRecordType,
+  type ActivityRecordType, type ActivityAttachment,
 } from '@/lib/services/activityLog';
 
 export const activityLogKeys = {
@@ -27,7 +27,10 @@ export function useAddManualNote(
 ) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (note: string) => addManualNote(recordType, recordId, note),
+    mutationFn: (opts: string | { note: string; attachments?: ActivityAttachment[] }) => {
+      if (typeof opts === 'string') return addManualNote(recordType, recordId, opts);
+      return addManualNote(recordType, recordId, opts.note, opts.attachments ?? []);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['activity-log', recordType, recordId] });
     },
