@@ -88,6 +88,7 @@ import FactoryInventoryPage from "@/pages/shopfloor/FactoryInventory";
 import CRMOverview from "@/pages/crm/CRMOverview";
 import CRMPipeline from "@/pages/crm/CRMPipeline";
 import CRMContactsList from "@/pages/crm/CRMContactsList";
+import LeadsPage from "@/pages/crm/LeadsPage";
 import CRMContactDetail from "@/pages/crm/CRMContactDetail";
 import ContactForm from "@/pages/crm/ContactForm";
 import OpportunityForm from "@/pages/crm/OpportunityForm";
