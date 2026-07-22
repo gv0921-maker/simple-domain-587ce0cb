@@ -170,12 +170,7 @@ export default function LeadsPage() {
 
   function handleConvert(lead: LeadRow) {
     const prefill = {
-      name: lead.contact_name,
       contactId: lead.contact_id || '',
-      expectedRevenue: 0,
-      expectedCloseDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split('T')[0],
       leadId: lead.id,
     };
     navigate(
