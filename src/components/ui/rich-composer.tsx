@@ -3,10 +3,13 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Button } from '@/components/ui/button';
-import { Paperclip, X, AtSign, Send, FileText } from 'lucide-react';
+import { Paperclip, X, AtSign, Send, FileText, Download, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import DOMPurify from 'dompurify';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { ShareImageToChatDialog } from '@/components/shared/ShareImageToChatDialog';
+import type { ActivityAttachment } from '@/lib/services/activityLog';
 
 const SANITIZE_CONFIG = {
   ALLOWED_TAGS: ['p','b','i','ul','ol','li','strong','em','br','span','a','s','u','div'],
@@ -217,6 +220,28 @@ export function RichContent({
   attachments?: RichAttachment[];
   className?: string;
 }) {
+  const [preview, setPreview] = useState<RichAttachment | null>(null);
+  const [shareTarget, setShareTarget] = useState<ActivityAttachment | null>(null);
+
+  const isImage = (a: RichAttachment) =>
+    (a.type && a.type.startsWith('image/')) ||
+    !!a.dataUrl?.startsWith('data:image') ||
+    !!(a.url && /\.(png|jpe?g|gif|webp|svg|bmp)(\?|$)/i.test(a.url));
+
+  const hrefFor = (a: RichAttachment) => a.dataUrl || a.url || '';
+
+  const toActivityAttachment = (a: RichAttachment): ActivityAttachment => ({
+    path: a.name,
+    url: hrefFor(a),
+    name: a.name,
+    size: a.size ?? 0,
+    mime: a.type || (isImage(a) ? 'image/*' : 'application/octet-stream'),
+    kind: isImage(a) ? 'image' : 'file',
+  });
+
+  const images = (attachments ?? []).filter(isImage);
+  const files = (attachments ?? []).filter((a) => !isImage(a));
+
   return (
     <div className={className}>
       {html && (
@@ -225,12 +250,32 @@ export function RichContent({
           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html, SANITIZE_CONFIG) }}
         />
       )}
-      {attachments && attachments.length > 0 && (
+      {images.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
-          {attachments.map((a, i) => (
+          {images.map((a, i) => (
+            <button
+              key={`img-${i}`}
+              type="button"
+              onClick={() => setPreview(a)}
+              className="rounded-md border overflow-hidden bg-muted hover:opacity-90 transition"
+              aria-label={`Preview ${a.name}`}
+            >
+              <img
+                src={hrefFor(a)}
+                alt={a.name}
+                className="h-28 w-28 object-cover"
+                loading="lazy"
+              />
+            </button>
+          ))}
+        </div>
+      )}
+      {files.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {files.map((a, i) => (
             <a
-              key={i}
-              href={a.dataUrl || a.url || '#'}
+              key={`file-${i}`}
+              href={hrefFor(a) || '#'}
               download={a.name}
               className="flex items-center gap-1.5 bg-muted hover:bg-muted/70 rounded-md px-2 py-1 text-xs transition-colors"
             >
@@ -243,6 +288,43 @@ export function RichContent({
           ))}
         </div>
       )}
+
+      <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
+        <DialogContent className="max-w-5xl w-[calc(100vw-2rem)] p-3 bg-background">
+          <DialogTitle className="truncate text-sm">{preview?.name ?? 'Preview'}</DialogTitle>
+          {preview && (
+            <div className="flex items-center justify-center bg-muted rounded-md overflow-hidden">
+              <img
+                src={hrefFor(preview)}
+                alt={preview.name}
+                className="w-full max-h-[75vh] object-contain"
+              />
+            </div>
+          )}
+          <div className="flex items-center justify-end gap-2 pt-2">
+            {preview && (
+              <a href={hrefFor(preview)} target="_blank" rel="noreferrer" download={preview.name}>
+                <Button variant="outline" size="sm">
+                  <Download className="h-3.5 w-3.5 mr-1.5" /> Download
+                </Button>
+              </a>
+            )}
+            <Button
+              size="sm"
+              onClick={() => preview && setShareTarget(toActivityAttachment(preview))}
+              disabled={!preview}
+            >
+              <Share2 className="h-3.5 w-3.5 mr-1.5" /> Share via Chat
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <ShareImageToChatDialog
+        open={!!shareTarget}
+        onOpenChange={(o) => !o && setShareTarget(null)}
+        attachment={shareTarget}
+      />
     </div>
   );
 }
