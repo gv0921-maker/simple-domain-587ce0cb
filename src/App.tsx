@@ -467,14 +467,15 @@ const App = () => (
             <Route path="/appraisals/:id" element={<SuperAdminRoute label="Appraisals"><AppraisalDetail /></SuperAdminRoute>} />
 
             {/* CRM module */}
-            <Route path="/crm" element={<ProtectedRoute><CRMPipeline /></ProtectedRoute>} />
+            <Route path="/crm" element={<ProtectedRoute><LeadsPage /></ProtectedRoute>} />
+            <Route path="/crm/pipeline" element={<ProtectedRoute><CRMPipeline /></ProtectedRoute>} />
             <Route path="/crm/opportunities/new" element={<ProtectedRoute><OpportunityForm /></ProtectedRoute>} />
             <Route path="/crm/opportunities/:id" element={<ProtectedRoute><OpportunityDetail /></ProtectedRoute>} />
             <Route path="/crm/contacts" element={<ProtectedRoute><CRMContactsList /></ProtectedRoute>} />
             <Route path="/crm/contacts/new" element={<ProtectedRoute><ContactForm /></ProtectedRoute>} />
             <Route path="/crm/contacts/:id" element={<ProtectedRoute><CRMContactDetail /></ProtectedRoute>} />
             <Route path="/crm/contacts/:id/edit" element={<ProtectedRoute><ContactForm /></ProtectedRoute>} />
-            <Route path="/crm/leads" element={<ProtectedRoute><LeadsPage /></ProtectedRoute>} />
+            <Route path="/crm/leads" element={<Navigate to="/crm" replace />} />
 
             {/* Manufacturing module */}
             <Route path="/manufacturing" element={<ProtectedRoute><ManufacturingOverview /></ProtectedRoute>} />
