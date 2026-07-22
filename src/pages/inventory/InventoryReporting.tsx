@@ -23,11 +23,9 @@ import { Progress } from '@/components/ui/progress';
 import {
   Download,
   TrendingUp,
-  TrendingDown,
   Package,
   AlertTriangle,
   DollarSign,
-  BarChart3,
   FileText,
 } from 'lucide-react';
 import { useProducts, useWarehouses } from '@/hooks/inventory';
@@ -85,16 +83,6 @@ export default function InventoryReporting() {
         deficit: p.reorderLevel - p.stockOnHand,
       }))
       .sort((a, b) => a.stockOnHand - b.stockOnHand);
-  }, [products]);
-
-  const turnoverData = useMemo(() => {
-    // Simulated turnover data
-    return products.map((p) => ({
-      ...p,
-      turnoverRate: Math.random() * 12,
-      daysOfStock: Math.floor(Math.random() * 60) + 5,
-      lastSold: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-    }));
   }, [products]);
 
   const formatCurrency = (value: number) => {
@@ -208,10 +196,6 @@ export default function InventoryReporting() {
             <TabsTrigger value="alerts" className="gap-2">
               <AlertTriangle className="h-4 w-4" />
               Stock Alerts
-            </TabsTrigger>
-            <TabsTrigger value="turnover" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Turnover Analysis
             </TabsTrigger>
             <TabsTrigger value="category" className="gap-2">
               <FileText className="h-4 w-4" />
