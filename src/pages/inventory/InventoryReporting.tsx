@@ -313,64 +313,6 @@ export default function InventoryReporting() {
             </Card>
           </TabsContent>
 
-          {/* Turnover Analysis Tab */}
-          <TabsContent value="turnover" className="space-y-4 animate-fade-in">
-            <Card>
-              <CardHeader>
-                <CardTitle>Inventory Turnover</CardTitle>
-                <CardDescription>Stock movement and velocity analysis</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead className="text-right">Current Stock</TableHead>
-                      <TableHead className="text-right">Turnover Rate</TableHead>
-                      <TableHead className="text-right">Days of Stock</TableHead>
-                      <TableHead>Velocity</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {turnoverData.map((product) => {
-                      const velocity =
-                        product.turnoverRate > 8
-                          ? 'fast'
-                          : product.turnoverRate > 4
-                          ? 'medium'
-                          : 'slow';
-                      return (
-                        <TableRow key={product.id}>
-                          <TableCell className="font-medium">{product.name}</TableCell>
-                          <TableCell className="text-muted-foreground">{product.category}</TableCell>
-                          <TableCell className="text-right">{product.stockOnHand}</TableCell>
-                          <TableCell className="text-right">{product.turnoverRate.toFixed(1)}x</TableCell>
-                          <TableCell className="text-right">{product.daysOfStock} days</TableCell>
-                          <TableCell>
-                            <Badge
-                              className={cn(
-                                velocity === 'fast'
-                                  ? 'bg-success/20 text-success border-success'
-                                  : velocity === 'medium'
-                                  ? 'bg-warning/20 text-warning-foreground border-warning'
-                                  : 'bg-muted text-muted-foreground'
-                              )}
-                            >
-                              {velocity === 'fast' && <TrendingUp className="h-3 w-3 mr-1" />}
-                              {velocity === 'slow' && <TrendingDown className="h-3 w-3 mr-1" />}
-                              {velocity.charAt(0).toUpperCase() + velocity.slice(1)}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           {/* Category Breakdown Tab */}
           <TabsContent value="category" className="space-y-4 animate-fade-in">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
