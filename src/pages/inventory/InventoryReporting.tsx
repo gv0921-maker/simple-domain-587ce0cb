@@ -23,11 +23,9 @@ import { Progress } from '@/components/ui/progress';
 import {
   Download,
   TrendingUp,
-  TrendingDown,
   Package,
   AlertTriangle,
   DollarSign,
-  BarChart3,
   FileText,
 } from 'lucide-react';
 import { useProducts, useWarehouses } from '@/hooks/inventory';
@@ -85,16 +83,6 @@ export default function InventoryReporting() {
         deficit: p.reorderLevel - p.stockOnHand,
       }))
       .sort((a, b) => a.stockOnHand - b.stockOnHand);
-  }, [products]);
-
-  const turnoverData = useMemo(() => {
-    // Simulated turnover data
-    return products.map((p) => ({
-      ...p,
-      turnoverRate: Math.random() * 12,
-      daysOfStock: Math.floor(Math.random() * 60) + 5,
-      lastSold: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-    }));
   }, [products]);
 
   const formatCurrency = (value: number) => {
@@ -209,10 +197,6 @@ export default function InventoryReporting() {
               <AlertTriangle className="h-4 w-4" />
               Stock Alerts
             </TabsTrigger>
-            <TabsTrigger value="turnover" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Turnover Analysis
-            </TabsTrigger>
             <TabsTrigger value="category" className="gap-2">
               <FileText className="h-4 w-4" />
               By Category
@@ -325,64 +309,6 @@ export default function InventoryReporting() {
                     </TableBody>
                   </Table>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Turnover Analysis Tab */}
-          <TabsContent value="turnover" className="space-y-4 animate-fade-in">
-            <Card>
-              <CardHeader>
-                <CardTitle>Inventory Turnover</CardTitle>
-                <CardDescription>Stock movement and velocity analysis</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead className="text-right">Current Stock</TableHead>
-                      <TableHead className="text-right">Turnover Rate</TableHead>
-                      <TableHead className="text-right">Days of Stock</TableHead>
-                      <TableHead>Velocity</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {turnoverData.map((product) => {
-                      const velocity =
-                        product.turnoverRate > 8
-                          ? 'fast'
-                          : product.turnoverRate > 4
-                          ? 'medium'
-                          : 'slow';
-                      return (
-                        <TableRow key={product.id}>
-                          <TableCell className="font-medium">{product.name}</TableCell>
-                          <TableCell className="text-muted-foreground">{product.category}</TableCell>
-                          <TableCell className="text-right">{product.stockOnHand}</TableCell>
-                          <TableCell className="text-right">{product.turnoverRate.toFixed(1)}x</TableCell>
-                          <TableCell className="text-right">{product.daysOfStock} days</TableCell>
-                          <TableCell>
-                            <Badge
-                              className={cn(
-                                velocity === 'fast'
-                                  ? 'bg-success/20 text-success border-success'
-                                  : velocity === 'medium'
-                                  ? 'bg-warning/20 text-warning-foreground border-warning'
-                                  : 'bg-muted text-muted-foreground'
-                              )}
-                            >
-                              {velocity === 'fast' && <TrendingUp className="h-3 w-3 mr-1" />}
-                              {velocity === 'slow' && <TrendingDown className="h-3 w-3 mr-1" />}
-                              {velocity.charAt(0).toUpperCase() + velocity.slice(1)}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
               </CardContent>
             </Card>
           </TabsContent>
