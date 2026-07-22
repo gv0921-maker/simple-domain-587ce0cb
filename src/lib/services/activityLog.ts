@@ -8,6 +8,20 @@ export type ActivityRecordType =
 export type ActivityActionType =
   | 'field_change' | 'status_change' | 'manual_note' | 'created' | 'deleted';
 
+export const ACTIVITY_ATTACHMENTS_BUCKET = 'activity-attachments';
+export const MAX_ACTIVITY_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+
+export interface ActivityAttachment {
+  path: string;
+  url: string;
+  name: string;
+  size: number;
+  mime: string;
+  kind: 'image' | 'file';
+  width?: number | null;
+  height?: number | null;
+}
+
 export interface ActivityLogEntry {
   id: string;
   record_type: string;
@@ -22,6 +36,7 @@ export interface ActivityLogEntry {
   is_deleted: boolean;
   deleted_by: string | null;
   deleted_at: string | null;
+  attachments: ActivityAttachment[];
   // joined
   changed_by_name?: string | null;
   changed_by_avatar?: string | null;
@@ -61,6 +76,7 @@ export async function fetchActivityLog(
     is_deleted: r.is_deleted,
     deleted_by: r.deleted_by,
     deleted_at: r.deleted_at,
+    attachments: Array.isArray(r.attachments) ? r.attachments as ActivityAttachment[] : [],
     changed_by_name: r.changed_by_name,
   }));
   return { entries, total };
@@ -84,13 +100,78 @@ async function insertEntry(row: Record<string, unknown>) {
 
 export async function addManualNote(
   recordType: ActivityRecordType, recordId: string, noteText: string,
+  attachments: ActivityAttachment[] = [],
 ) {
   const t = noteText.trim();
-  if (!t) return;
+  if (!t && attachments.length === 0) return;
   await insertEntry({
     record_type: recordType, record_id: recordId,
     action_type: 'manual_note', note_text: t,
+    attachments: attachments as unknown as Record<string, unknown>,
   });
+}
+
+export async function uploadActivityAttachment(
+  file: File,
+  recordType: ActivityRecordType,
+  recordId: string,
+): Promise<ActivityAttachment> {
+  if (file.size > MAX_ACTIVITY_ATTACHMENT_BYTES) {
+    throw new Error(`File "${file.name}" exceeds 25 MB limit`);
+  }
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not signed in');
+
+  const stamp = Date.now();
+  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${recordType}/${recordId}/${user.id}/${stamp}-${safe}`;
+
+  const { error: upErr } = await supabase.storage
+    .from(ACTIVITY_ATTACHMENTS_BUCKET)
+    .upload(path, file, { upsert: false, contentType: file.type });
+  if (upErr) throw upErr;
+
+  const { data: signed, error: sErr } = await supabase.storage
+    .from(ACTIVITY_ATTACHMENTS_BUCKET)
+    .createSignedUrl(path, 60 * 60 * 24 * 7);
+  if (sErr) throw sErr;
+
+  const mime = file.type || 'application/octet-stream';
+  const kind: ActivityAttachment['kind'] = mime.startsWith('image/') ? 'image' : 'file';
+
+  let width: number | null = null;
+  let height: number | null = null;
+  if (kind === 'image' && typeof window !== 'undefined') {
+    try {
+      const dims = await new Promise<{ w: number; h: number }>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+      });
+      width = dims.w; height = dims.h;
+    } catch { /* ignore */ }
+  }
+
+  return {
+    path,
+    url: signed?.signedUrl ?? path,
+    name: file.name,
+    size: file.size,
+    mime,
+    kind,
+    width,
+    height,
+  };
+}
+
+// Refresh a signed URL for a stored path (URLs expire after 7 days).
+export async function refreshActivityAttachmentUrl(path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage
+    .from(ACTIVITY_ATTACHMENTS_BUCKET)
+    .createSignedUrl(path, 60 * 60 * 24 * 7);
+  if (error) return null;
+  return data?.signedUrl ?? null;
 }
 
 export async function logFieldChange(
