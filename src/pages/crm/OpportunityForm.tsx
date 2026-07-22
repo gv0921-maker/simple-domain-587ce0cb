@@ -31,7 +31,7 @@ export default function OpportunityForm() {
           name: parsed.name || '',
           contactId: parsed.contactId || '',
           expectedRevenue: parsed.expectedRevenue || 0,
-          expectedCloseDate: parsed.expectedCloseDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          expectedCloseDate: parsed.expectedCloseDate || '',
           leadId: parsed.leadId || '',
         };
       } catch { /* fall through */ }
@@ -40,7 +40,7 @@ export default function OpportunityForm() {
       name: '',
       contactId: '',
       expectedRevenue: 0,
-      expectedCloseDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      expectedCloseDate: '',
       leadId: '',
     };
   });
@@ -52,8 +52,20 @@ export default function OpportunityForm() {
   }, []);
 
   const handleSubmit = () => {
-    if (!formData.name) {
+    if (!formData.name.trim()) {
       toast({ title: 'Opportunity name is required', variant: 'destructive' });
+      return;
+    }
+    if (!formData.contactId) {
+      toast({ title: 'Contact is required', variant: 'destructive' });
+      return;
+    }
+    if (!formData.expectedRevenue || formData.expectedRevenue <= 0) {
+      toast({ title: 'Expected revenue is required', variant: 'destructive' });
+      return;
+    }
+    if (!formData.expectedCloseDate) {
+      toast({ title: 'Expected closing date is required', variant: 'destructive' });
       return;
     }
 
@@ -114,7 +126,7 @@ export default function OpportunityForm() {
             )}
             {studio.isFieldVisible('contact') && (
               <div className="grid gap-2">
-                <Label>{studio.getFieldLabel('contact', 'Contact')}</Label>
+                <Label>{studio.getFieldLabel('contact', 'Contact')} *</Label>
                 <ContactSearchCombobox
                   value={formData.contactId}
                   onChange={(c) => setFormData({ ...formData, contactId: c?.id ?? '' })}
@@ -132,7 +144,7 @@ export default function OpportunityForm() {
             <div className="grid grid-cols-2 gap-4">
               {studio.isFieldVisible('expectedRevenue') && (
                 <div className="grid gap-2">
-                  <Label>{studio.getFieldLabel('expectedRevenue', 'Expected Revenue')}</Label>
+                  <Label>{studio.getFieldLabel('expectedRevenue', 'Expected Revenue')} *</Label>
                   <div className="relative">
                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₹</span>
                     <Input
@@ -147,12 +159,13 @@ export default function OpportunityForm() {
               )}
               {studio.isFieldVisible('expectedCloseDate') && (
                 <div className="grid gap-2">
-                  <Label>{studio.getFieldLabel('expectedCloseDate', 'Expected Closing')}</Label>
+                  <Label>{studio.getFieldLabel('expectedCloseDate', 'Expected Closing')} *</Label>
                   <Input
                     type="date"
                     value={formData.expectedCloseDate}
                     onChange={(e) => setFormData({ ...formData, expectedCloseDate: e.target.value })}
                     readOnly={studio.isFieldReadOnly('expectedCloseDate')}
+                    required
                   />
                 </div>
               )}
