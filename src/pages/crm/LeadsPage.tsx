@@ -188,16 +188,16 @@ export default function LeadsPage() {
 
   return (
     <AppLayout title="CRM" moduleNav={CRM_NAV}>
-      <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
+      <div className="p-3 md:p-6 max-w-5xl mx-auto space-y-4 md:space-y-6">
         <Card>
-          <CardHeader>
-            <CardTitle>Capture Lead</CardTitle>
+          <CardHeader className="p-4 md:p-6 pb-2 md:pb-4">
+            <CardTitle className="text-base md:text-lg">Capture Lead</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="p-4 md:p-6 pt-2 md:pt-2 space-y-4 md:space-y-6">
             <div>
-              <Label className="mb-2 block">Phone number</Label>
-              <div className="flex flex-wrap gap-2 items-center">
-                <span className="text-sm text-muted-foreground mr-1">+91</span>
+              <Label className="mb-2 block text-sm">Phone number</Label>
+              <div className="flex items-center gap-1 md:gap-2">
+                <span className="text-xs md:text-sm text-muted-foreground shrink-0 mr-0.5">+91</span>
                 {digits.map((d, i) => (
                   <input
                     key={i}
@@ -210,7 +210,7 @@ export default function LeadsPage() {
                     onKeyDown={(e) => handleKeyDown(i, e)}
                     onFocus={(e) => e.currentTarget.select()}
                     className={cn(
-                      'h-12 w-10 md:h-14 md:w-12 rounded-md border border-input bg-background text-center text-lg font-medium',
+                      'h-11 w-7 md:h-14 md:w-12 min-w-0 flex-1 md:flex-none rounded-md border border-input bg-background text-center text-base md:text-lg font-medium p-0',
                       'focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring',
                     )}
                     aria-label={`Phone digit ${i + 1}`}
@@ -221,34 +221,34 @@ export default function LeadsPage() {
 
             {isComplete && match && (
               <Card className="border-primary/40 bg-primary/5">
-                <CardContent className="pt-6 flex items-start justify-between gap-4">
-                  <div>
+                <CardContent className="p-4 md:pt-6 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2 text-sm text-primary mb-1">
                       <CheckCircle2 className="h-4 w-4" />
                       Existing contact
                     </div>
-                    <div className="font-semibold text-lg">
+                    <div className="font-semibold text-base md:text-lg truncate">
                       {match.firstName} {match.lastName}
                     </div>
-                    <div className="text-sm text-muted-foreground">{match.phone}</div>
+                    <div className="text-sm text-muted-foreground truncate">{match.phone}</div>
                     {match.email && (
-                      <div className="text-sm text-muted-foreground">{match.email}</div>
+                      <div className="text-sm text-muted-foreground truncate">{match.email}</div>
                     )}
                     {match.companyName && (
-                      <div className="text-sm text-muted-foreground">{match.companyName}</div>
+                      <div className="text-sm text-muted-foreground truncate">{match.companyName}</div>
                     )}
                   </div>
-                  <Badge variant="secondary">Match</Badge>
+                  <Badge variant="secondary" className="shrink-0">Match</Badge>
                 </CardContent>
               </Card>
             )}
 
             {nameNeeded && (
               <Card className="border-dashed">
-                <CardContent className="pt-6 space-y-3">
+                <CardContent className="p-4 md:pt-6 space-y-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <UserPlus className="h-4 w-4" />
-                    No customer with this number — create a new one
+                    <span>No customer with this number — create a new one</span>
                   </div>
                   <div>
                     <Label htmlFor="lead-name">Name</Label>
@@ -265,7 +265,7 @@ export default function LeadsPage() {
             )}
 
             <div className="flex justify-end">
-              <Button onClick={handleSaveLead} disabled={!canSave || saving}>
+              <Button onClick={handleSaveLead} disabled={!canSave || saving} className="w-full md:w-auto">
                 {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Save Lead
               </Button>
@@ -274,10 +274,10 @@ export default function LeadsPage() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Leads</CardTitle>
+          <CardHeader className="p-4 md:p-6 pb-2 md:pb-4">
+            <CardTitle className="text-base md:text-lg">Leads</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
             {loadingLeads ? (
               <div className="py-8 text-center text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin inline mr-2" /> Loading…
@@ -322,22 +322,26 @@ export default function LeadsPage() {
                   </Table>
                 </div>
                 {/* Mobile */}
-                <div className="md:hidden space-y-3">
+                <div className="md:hidden space-y-2">
                   {leads.map((l) => (
-                    <div key={l.id} className="border rounded-md p-3 space-y-1">
-                      <div className="font-medium">{l.contact_name}</div>
-                      <div className="text-sm text-muted-foreground">{l.phone || '—'}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {l.created_by || '—'} · {new Date(l.created_at).toLocaleDateString()}
-                      </div>
-                      <div className="pt-2">
-                        {l.converted_to_opportunity_id ? (
-                          <Badge variant="secondary">Converted</Badge>
-                        ) : (
-                          <Button size="sm" variant="outline" className="w-full" onClick={() => handleConvert(l)}>
-                            Convert to Opportunity <ArrowRight className="h-4 w-4 ml-1" />
-                          </Button>
-                        )}
+                    <div key={l.id} className="border rounded-md p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium truncate">{l.contact_name}</div>
+                          <div className="text-sm text-muted-foreground truncate">{l.phone || '—'}</div>
+                          <div className="text-xs text-muted-foreground truncate mt-0.5">
+                            {l.created_by || '—'} · {new Date(l.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div className="shrink-0">
+                          {l.converted_to_opportunity_id ? (
+                            <Badge variant="secondary">Converted</Badge>
+                          ) : (
+                            <Button size="sm" variant="outline" onClick={() => handleConvert(l)}>
+                              Convert <ArrowRight className="h-4 w-4 ml-1" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
