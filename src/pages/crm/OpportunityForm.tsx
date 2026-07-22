@@ -12,6 +12,7 @@ import { ContactSearchCombobox } from '@/components/crm/ContactSearchCombobox';
 import { useContacts, useSaveOpportunity } from '@/hooks/crm/useCRMQueries';
 import { useToast } from '@/hooks/use-toast';
 import { useStudioConfig } from '@/hooks/useStudioConfig';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function OpportunityForm() {
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ export default function OpportunityForm() {
           contactId: parsed.contactId || '',
           expectedRevenue: parsed.expectedRevenue || 0,
           expectedCloseDate: parsed.expectedCloseDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          leadId: parsed.leadId || '',
         };
       } catch { /* fall through */ }
     }
@@ -39,6 +41,7 @@ export default function OpportunityForm() {
       contactId: '',
       expectedRevenue: 0,
       expectedCloseDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      leadId: '',
     };
   });
 
@@ -64,7 +67,13 @@ export default function OpportunityForm() {
       expectedRevenue: formData.expectedRevenue,
       expectedCloseDate: formData.expectedCloseDate,
     }, {
-      onSuccess: () => {
+      onSuccess: async (created: { id?: string } | undefined) => {
+        if (formData.leadId && created?.id) {
+          await supabase
+            .from('crm_leads')
+            .update({ converted_to_opportunity_id: created.id, status: 'converted' })
+            .eq('id', formData.leadId);
+        }
         toast({ title: 'Opportunity created' });
         navigate('/crm');
       },
