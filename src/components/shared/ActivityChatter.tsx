@@ -462,19 +462,5 @@ export function ActivityChatter({ recordType, recordId, className, recordLabel }
     </div>
   );
 }
-              <Share2 className="h-3.5 w-3.5 mr-1.5" /> Share via Chat
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <ShareImageToChatDialog
-        open={!!shareTarget}
-        onOpenChange={(o) => { if (!o) setShareTarget(null); }}
-        attachment={shareTarget}
-      />
-    </Card>
-  );
-}
 
 export default ActivityChatter;
