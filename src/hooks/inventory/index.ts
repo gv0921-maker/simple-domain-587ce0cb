@@ -125,12 +125,16 @@ export const useSerialsByProduct = (productId: string | undefined) =>
     queryKey: productId ? inventoryKeys.serialsByProduct(productId) : ['noop'],
     queryFn: () => inv.getSerialsByProductAsync(productId!),
     enabled: !!productId,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 export const useAvailableSerials = (productId: string | undefined) =>
   useQuery({
     queryKey: productId ? inventoryKeys.availableSerials(productId) : ['noop'],
     queryFn: () => inv.getAvailableSerialsAsync(productId!),
     enabled: !!productId,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 export function useSaveSerial() {
   const qc = useQueryClient();

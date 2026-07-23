@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useSerialsByProduct, useProduct } from '@/hooks/inventory';
+import { useAvailableSerials, useProduct } from '@/hooks/inventory';
 import { useCreateReservations, useReservationsBySalesOrder } from '@/hooks/inventory/reservations';
 import { useToast } from '@/hooks/use-toast';
 
@@ -27,7 +27,7 @@ export function ReserveStockDialog({
 }: Props) {
   const { toast } = useToast();
   const { data: product } = useProduct(productId);
-  const { data: serials = [] } = useSerialsByProduct(productId);
+  const { data: serials = [], refetch: refetchSerials } = useAvailableSerials(open ? productId : undefined);
   const { data: existing = [] } = useReservationsBySalesOrder(salesOrderId);
   const createMut = useCreateReservations();
 
@@ -50,6 +50,13 @@ export function ReserveStockDialog({
   // available serials exist we always use the serial-picking flow — regardless
   // of the `products.track_serials` flag (which is not consistently set).
   const usesSerials = availableSerials.length > 0 || (product?.trackSerials ?? false);
+
+  useEffect(() => {
+    if (!open) return;
+    setSelectedSerials([]);
+    setBulkQty(remaining);
+    refetchSerials();
+  }, [open, productId, remaining, refetchSerials]);
 
   const toggleSerial = (id: string) => {
     setSelectedSerials((prev) =>
@@ -86,10 +93,12 @@ export function ReserveStockDialog({
         }]);
       }
       toast({ title: 'Stock reserved successfully' });
+      await refetchSerials();
       onOpenChange(false);
       setSelectedSerials([]);
       setNotes('');
     } catch (e: any) {
+      await refetchSerials();
       toast({ title: 'Failed to reserve stock', description: e?.message, variant: 'destructive' });
     }
   };

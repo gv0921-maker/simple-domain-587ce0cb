@@ -32,11 +32,24 @@ function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: inventoryKeys.products() });
 }
 
+function invalidateAfterReservationAttempt(
+  qc: ReturnType<typeof useQueryClient>,
+  inputs?: svc.CreateReservationInput[],
+) {
+  invalidateAll(qc);
+  inputs?.forEach((input) => {
+    qc.invalidateQueries({ queryKey: inventoryKeys.serialsByProduct(input.productId) });
+    qc.invalidateQueries({ queryKey: inventoryKeys.availableSerials(input.productId) });
+    qc.invalidateQueries({ queryKey: reservationKeys.bySalesOrder(input.salesOrderId) });
+    qc.invalidateQueries({ queryKey: ['activity-log', 'sales_order', input.salesOrderId] });
+  });
+}
+
 export function useCreateReservations() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (inputs: svc.CreateReservationInput[]) => svc.createReservationsAsync(inputs),
-    onSuccess: () => invalidateAll(qc),
+    onSettled: (_data, _error, inputs) => invalidateAfterReservationAttempt(qc, inputs),
   });
 }
 
@@ -44,7 +57,7 @@ export function useReleaseReservation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => svc.releaseReservationAsync(id),
-    onSuccess: () => invalidateAll(qc),
+    onSettled: () => invalidateAll(qc),
   });
 }
 
@@ -52,7 +65,7 @@ export function useDeleteReservation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => svc.deleteReservationAsync(id),
-    onSuccess: () => invalidateAll(qc),
+    onSettled: () => invalidateAll(qc),
   });
 }
 
