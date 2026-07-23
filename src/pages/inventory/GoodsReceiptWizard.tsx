@@ -293,6 +293,7 @@ export default function GoodsReceiptWizard() {
             grId={gr.id}
             lines={lines}
             serials={serials}
+            isSubmitting={completeQC.isPending}
             onComplete={async (lineId, passed, failed, notes) => {
               try {
                 await completeQC.mutateAsync({ lineId, passedSerialIds: passed, failedSerialIds: failed, failedNotes: notes });
