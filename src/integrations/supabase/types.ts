@@ -1526,6 +1526,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "correction_order_items_goods_receipt_serial_id_fkey"
+            columns: ["goods_receipt_serial_id"]
+            isOneToOne: false
+            referencedRelation: "serial_reconciliation"
+            referencedColumns: ["serial_id"]
+          },
+          {
+            foreignKeyName: "correction_order_items_goods_receipt_serial_id_fkey"
+            columns: ["goods_receipt_serial_id"]
+            isOneToOne: false
+            referencedRelation: "serials_without_history"
+            referencedColumns: ["serial_id"]
+          },
+          {
             foreignKeyName: "correction_order_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -3339,6 +3353,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "exchanges_original_serial_id_fkey"
+            columns: ["original_serial_id"]
+            isOneToOne: false
+            referencedRelation: "serial_reconciliation"
+            referencedColumns: ["serial_id"]
+          },
+          {
+            foreignKeyName: "exchanges_original_serial_id_fkey"
+            columns: ["original_serial_id"]
+            isOneToOne: false
+            referencedRelation: "serials_without_history"
+            referencedColumns: ["serial_id"]
+          },
+          {
             foreignKeyName: "exchanges_payment_received_id_fkey"
             columns: ["payment_received_id"]
             isOneToOne: false
@@ -3358,6 +3386,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "goods_receipt_serials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exchanges_replacement_serial_id_fkey"
+            columns: ["replacement_serial_id"]
+            isOneToOne: false
+            referencedRelation: "serial_reconciliation"
+            referencedColumns: ["serial_id"]
+          },
+          {
+            foreignKeyName: "exchanges_replacement_serial_id_fkey"
+            columns: ["replacement_serial_id"]
+            isOneToOne: false
+            referencedRelation: "serials_without_history"
+            referencedColumns: ["serial_id"]
           },
           {
             foreignKeyName: "exchanges_return_request_item_id_fkey"
@@ -3881,6 +3923,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "goods_receipt_serials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_movement_items_goods_receipt_serial_id_fkey"
+            columns: ["goods_receipt_serial_id"]
+            isOneToOne: false
+            referencedRelation: "serial_reconciliation"
+            referencedColumns: ["serial_id"]
+          },
+          {
+            foreignKeyName: "internal_movement_items_goods_receipt_serial_id_fkey"
+            columns: ["goods_receipt_serial_id"]
+            isOneToOne: false
+            referencedRelation: "serials_without_history"
+            referencedColumns: ["serial_id"]
           },
           {
             foreignKeyName: "internal_movement_items_internal_movement_id_fkey"
@@ -6641,6 +6697,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "return_request_items_goods_receipt_serial_id_fkey"
+            columns: ["goods_receipt_serial_id"]
+            isOneToOne: false
+            referencedRelation: "serial_reconciliation"
+            referencedColumns: ["serial_id"]
+          },
+          {
+            foreignKeyName: "return_request_items_goods_receipt_serial_id_fkey"
+            columns: ["goods_receipt_serial_id"]
+            isOneToOne: false
+            referencedRelation: "serials_without_history"
+            referencedColumns: ["serial_id"]
+          },
+          {
             foreignKeyName: "return_request_items_invoice_line_id_fkey"
             columns: ["invoice_line_id"]
             isOneToOne: false
@@ -7649,6 +7719,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "goods_receipt_serials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_goods_receipt_serial_id_fkey"
+            columns: ["goods_receipt_serial_id"]
+            isOneToOne: false
+            referencedRelation: "serial_reconciliation"
+            referencedColumns: ["serial_id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_goods_receipt_serial_id_fkey"
+            columns: ["goods_receipt_serial_id"]
+            isOneToOne: false
+            referencedRelation: "serials_without_history"
+            referencedColumns: ["serial_id"]
           },
           {
             foreignKeyName: "stock_count_items_product_id_fkey"
@@ -9210,6 +9294,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "write_off_items_goods_receipt_serial_id_fkey"
+            columns: ["goods_receipt_serial_id"]
+            isOneToOne: false
+            referencedRelation: "serial_reconciliation"
+            referencedColumns: ["serial_id"]
+          },
+          {
+            foreignKeyName: "write_off_items_goods_receipt_serial_id_fkey"
+            columns: ["goods_receipt_serial_id"]
+            isOneToOne: false
+            referencedRelation: "serials_without_history"
+            referencedColumns: ["serial_id"]
+          },
+          {
             foreignKeyName: "write_off_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -9290,6 +9388,114 @@ export type Database = {
       }
     }
     Views: {
+      reservation_health: {
+        Row: {
+          issue: string | null
+          order_line_id: string | null
+          product_id: string | null
+          quantity: number | null
+          reservation_id: string | null
+          reservation_status: string | null
+          reserved_at: string | null
+          sales_order_id: string | null
+          serial_location: string | null
+          serial_number: string | null
+          serial_number_id: string | null
+          serial_stock_status: string | null
+          so_reference: string | null
+          so_status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_reservations_order_line_id_fkey"
+            columns: ["order_line_id"]
+            isOneToOne: false
+            referencedRelation: "order_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_serial_number_id_fkey"
+            columns: ["serial_number_id"]
+            isOneToOne: false
+            referencedRelation: "serial_numbers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      serial_reconciliation: {
+        Row: {
+          actual_location: string | null
+          actual_status: string | null
+          expected_location: string | null
+          expected_location_code: string | null
+          issue: string | null
+          last_doc_id: string | null
+          last_doc_type: string | null
+          last_move_at: string | null
+          last_move_ref: string | null
+          product_id: string | null
+          serial_id: string | null
+          serial_number: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_receipt_serials_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      serials_without_history: {
+        Row: {
+          actual_location: string | null
+          actual_status: string | null
+          created_at: string | null
+          product_id: string | null
+          serial_id: string | null
+          serial_number: string | null
+        }
+        Insert: {
+          actual_location?: string | null
+          actual_status?: string | null
+          created_at?: string | null
+          product_id?: string | null
+          serial_id?: string | null
+          serial_number?: string | null
+        }
+        Update: {
+          actual_location?: string | null
+          actual_status?: string | null
+          created_at?: string | null
+          product_id?: string | null
+          serial_id?: string | null
+          serial_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_receipt_serials_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_stock_summary: {
         Row: {
           product_id: string | null
