@@ -86,20 +86,18 @@ async function recordMovementAndAdjustStock(
   quantity: number,
   notes?: string | null,
 ): Promise<void> {
-  const me = await uid();
-  const { error } = await sb.from('factory_stock_movements').insert({
-    factory_inventory_item_id: itemId,
-    movement_type: type,
-    quantity,
-    notes: notes ?? null,
-    recorded_by: me,
+  // Atomic: `UPDATE ... SET current_stock = current_stock + $q` and the
+  // movement row insert happen in a single Postgres transaction. No
+  // read-then-write race between concurrent callers.
+  void uid;
+  const { error } = await sb.rpc('adjust_factory_stock', {
+    _item_id: itemId,
+    _movement_type: type,
+    _quantity: quantity,
+    _notes: notes ?? null,
+    _related_work_order_id: null,
   });
-  if (error) throw error;
-  // adjust running stock
-  const { data: cur } = await sb.from('factory_inventory_items').select('current_stock').eq('id', itemId).maybeSingle();
-  const next = Number(cur?.current_stock ?? 0) + Number(quantity);
-  const { error: upErr } = await sb.from('factory_inventory_items').update({ current_stock: next }).eq('id', itemId);
-  if (upErr) throw upErr;
+  if (error) throw new Error(error.message);
 }
 
 export async function recordInbound(itemId: string, quantity: number, notes?: string | null): Promise<void> {

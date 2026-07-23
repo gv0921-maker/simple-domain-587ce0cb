@@ -9310,6 +9310,16 @@ export type Database = {
     }
     Functions: {
       _can_see_all_sales: { Args: never; Returns: boolean }
+      adjust_factory_stock: {
+        Args: {
+          _item_id: string
+          _movement_type: string
+          _notes?: string
+          _quantity: number
+          _related_work_order_id?: string
+        }
+        Returns: number
+      }
       apply_stock_action: { Args: { p_item_id: string }; Returns: Json }
       appraisal_user_can_access: {
         Args: { _appraisal_id: string }
@@ -9591,6 +9601,11 @@ export type Database = {
         Args: { _adjustment_id: string; _approved_by: string }
         Returns: undefined
       }
+      inv_delete_stock_move: { Args: { _move_id: string }; Returns: undefined }
+      inv_save_stock_move: {
+        Args: { _header: Json; _lines: Json; _move_id: string }
+        Returns: string
+      }
       inv_validate_stock_move: {
         Args: { _move_id: string }
         Returns: undefined
@@ -9663,6 +9678,15 @@ export type Database = {
         Args: { p_count_id: string; p_item_reconciliations: Json }
         Returns: Json
       }
+      record_gr_item_qc: {
+        Args: {
+          _images?: Json
+          _notes?: string
+          _passed: boolean
+          _serial_id: string
+        }
+        Returns: undefined
+      }
       record_return_qc: {
         Args: {
           p_condition_grade: string
@@ -9689,6 +9713,41 @@ export type Database = {
         Args: { p_reason: string; p_wo_id: string }
         Returns: Json
       }
+      release_reservations: {
+        Args: { _document_id: string; _document_type: string }
+        Returns: Json
+      }
+      reserve_quantity: {
+        Args: {
+          _notes?: string
+          _order_line_id: string
+          _product_id: string
+          _quantity: number
+          _so_id: string
+        }
+        Returns: string
+      }
+      reserve_serials: {
+        Args: {
+          _notes?: string
+          _order_line_id: string
+          _product_id: string
+          _serial_ids: string[]
+          _so_id: string
+        }
+        Returns: Json
+      }
+      save_serial_number: {
+        Args: {
+          _id: string
+          _location_id?: string
+          _lot_id?: string
+          _name: string
+          _product_id: string
+          _status: string
+        }
+        Returns: string
+      }
       set_system_default_filter: {
         Args: { p_filter_id: string; p_module: string }
         Returns: undefined
@@ -9700,6 +9759,10 @@ export type Database = {
       start_polishing: { Args: { p_wo_id: string }; Returns: undefined }
       start_work: { Args: { p_wo_id: string }; Returns: undefined }
       suggest_ito_for_so: { Args: { p_so_id: string }; Returns: Json }
+      update_serial_status: {
+        Args: { _location_id?: string; _serial_id: string; _status: string }
+        Returns: undefined
+      }
       validate_invoice_type_against_so: {
         Args: { p_invoice_type: string; p_so_id: string }
         Returns: Json

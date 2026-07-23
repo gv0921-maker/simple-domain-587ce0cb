@@ -82,68 +82,77 @@ export async function createReservationsAsync(
   inputs: CreateReservationInput[],
 ): Promise<StockReservation[]> {
   if (inputs.length === 0) return [];
-  const { data: userRes } = await supabase.auth.getUser();
-  const userId = userRes.user?.id ?? null;
 
-  const rows = inputs.map((i) => ({
-    sales_order_id: i.salesOrderId,
-    order_line_id: i.orderLineId ?? null,
-    product_id: i.productId,
-    serial_number_id: i.serialNumberId ?? null,
-    lot_id: i.lotId ?? null,
-    quantity: i.quantity,
-    status: 'reserved' as const,
-    reserved_by: userId,
-    notes: i.notes ?? null,
-  }));
+  // Group serial-based inputs by (SO, orderLine, product) and route through
+  // reserve_serials RPC; route bulk-qty inputs through reserve_quantity.
+  // Each RPC runs in a single Postgres transaction with row locks.
+  const serialInputs = inputs.filter((i) => !!i.serialNumberId);
+  const qtyInputs = inputs.filter((i) => !i.serialNumberId);
+  const createdIds: string[] = [];
 
-  const { data, error } = await (supabase as any)
-    .from('stock_reservations').insert(rows).select();
-  if (error) throw error;
-
-  // Flip selected serial numbers to "reserved" status.
-  const serialIds = inputs.map((i) => i.serialNumberId).filter(Boolean) as string[];
-  if (serialIds.length > 0) {
-    const { error: serErr } = await supabase
-      .from('serial_numbers')
-      .update({ status: 'reserved' })
-      .in('id', serialIds);
-    if (serErr) throw serErr;
+  if (serialInputs.length > 0) {
+    const groups = new Map<string, { soId: string; olId: string | null; pid: string; notes?: string; serials: string[] }>();
+    for (const i of serialInputs) {
+      const key = `${i.salesOrderId}::${i.orderLineId ?? ''}::${i.productId}`;
+      const g = groups.get(key) ?? {
+        soId: i.salesOrderId, olId: i.orderLineId ?? null, pid: i.productId,
+        notes: i.notes, serials: [],
+      };
+      g.serials.push(i.serialNumberId as string);
+      groups.set(key, g);
+    }
+    for (const g of groups.values()) {
+      const { data, error } = await (supabase as any).rpc('reserve_serials', {
+        _so_id: g.soId,
+        _order_line_id: g.olId,
+        _product_id: g.pid,
+        _serial_ids: g.serials,
+        _notes: g.notes ?? null,
+      });
+      if (error) throw new Error(error.message);
+      const ids = ((data ?? {}).reservation_ids ?? []) as string[];
+      ids.forEach((x) => createdIds.push(x));
+    }
   }
 
-  return (data ?? []).map(mapRow);
+  for (const i of qtyInputs) {
+    const { data, error } = await (supabase as any).rpc('reserve_quantity', {
+      _so_id: i.salesOrderId,
+      _order_line_id: i.orderLineId ?? null,
+      _product_id: i.productId,
+      _quantity: i.quantity,
+      _notes: i.notes ?? null,
+    });
+    if (error) throw new Error(error.message);
+    if (data) createdIds.push(data as string);
+  }
+
+  if (createdIds.length === 0) return [];
+  const { data: rows, error: fetchErr } = await (supabase as any)
+    .from('stock_reservations').select('*').in('id', createdIds);
+  if (fetchErr) throw fetchErr;
+  return (rows ?? []).map(mapRow);
 }
 
 export async function releaseReservationAsync(id: string): Promise<void> {
-  // Fetch first to know the serial id (so we can flip it back to available).
-  const { data: row, error: fetchErr } = await (supabase as any)
-    .from('stock_reservations').select('*').eq('id', id).single();
-  if (fetchErr) throw fetchErr;
-
-  const { error } = await (supabase as any)
-    .from('stock_reservations')
-    .update({ status: 'released' })
-    .eq('id', id);
-  if (error) throw error;
-
-  if (row?.serial_number_id) {
-    await supabase.from('serial_numbers')
-      .update({ status: 'available' })
-      .eq('id', row.serial_number_id);
-  }
+  const { error } = await (supabase as any).rpc('release_reservations', {
+    _document_type: 'reservation',
+    _document_id: id,
+  });
+  if (error) throw new Error(error.message);
 }
 
 export async function deleteReservationAsync(id: string): Promise<void> {
-  const { data: row } = await (supabase as any)
-    .from('stock_reservations').select('*').eq('id', id).single();
+  // Delegates to the same atomic RPC — one transaction handles both the
+  // reservation row deletion and the serial flip back to 'available'.
+  await releaseReservationAsync(id);
+}
 
-  const { error } = await (supabase as any)
-    .from('stock_reservations').delete().eq('id', id);
-  if (error) throw error;
-
-  if (row?.serial_number_id && row.status === 'reserved') {
-    await supabase.from('serial_numbers')
-      .update({ status: 'available' })
-      .eq('id', row.serial_number_id);
-  }
+export async function releaseReservationsForSalesOrderAsync(salesOrderId: string): Promise<number> {
+  const { data, error } = await (supabase as any).rpc('release_reservations', {
+    _document_type: 'sales_order',
+    _document_id: salesOrderId,
+  });
+  if (error) throw new Error(error.message);
+  return Number((data ?? {}).released ?? 0);
 }
