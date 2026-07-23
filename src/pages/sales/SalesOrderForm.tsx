@@ -57,6 +57,7 @@ import { OrderStatusChevrons, canTransition } from '@/components/sales/OrderStat
 import { getContact, saveContact } from '@/lib/data/crm-supabase';
 import { processOrderDelivery, tierLabel } from '@/lib/sales/loyaltyService';
 import { ReservationsSection, useOrderReservationBadge } from '@/components/sales/ReservationsSection';
+import { releaseReservationsForSalesOrderAsync } from '@/lib/services/inventory/reservations';
 import { ActivityChatter } from '@/components/shared/ActivityChatter';
 import { logRecordCreated, logStatusChange } from '@/lib/services/activityLog';
 import { trackChanges } from '@/lib/services/activityLogHelpers';
