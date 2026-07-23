@@ -46,7 +46,10 @@ export function ReserveStockDialog({
   const [bulkQty, setBulkQty] = useState<number>(remaining);
   const [notes, setNotes] = useState('');
 
-  const usesSerials = product?.trackSerials ?? false;
+  // GR generates per-unit serials for every product in this app, so if any
+  // available serials exist we always use the serial-picking flow — regardless
+  // of the `products.track_serials` flag (which is not consistently set).
+  const usesSerials = availableSerials.length > 0 || (product?.trackSerials ?? false);
 
   const toggleSerial = (id: string) => {
     setSelectedSerials((prev) =>
