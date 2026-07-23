@@ -19,7 +19,7 @@ export type Database = {
           action_type: string
           attachments: Json
           changed_at: string
-          changed_by: string
+          changed_by: string | null
           deleted_at: string | null
           deleted_by: string | null
           field_name: string | null
@@ -35,7 +35,7 @@ export type Database = {
           action_type: string
           attachments?: Json
           changed_at?: string
-          changed_by: string
+          changed_by?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
           field_name?: string | null
@@ -51,7 +51,7 @@ export type Database = {
           action_type?: string
           attachments?: Json
           changed_at?: string
-          changed_by?: string
+          changed_by?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
           field_name?: string | null
@@ -9842,6 +9842,18 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _uid: string }; Returns: boolean }
+      log_activity: {
+        Args: {
+          _action_type: string
+          _field_name?: string
+          _new_value?: string
+          _note_text: string
+          _old_value?: string
+          _record_id: string
+          _record_type: string
+        }
+        Returns: undefined
+      }
       mark_all_notifications_read: { Args: never; Returns: number }
       mark_notification_read: { Args: { p_id: string }; Returns: undefined }
       payslip_self_view_enabled: { Args: never; Returns: boolean }

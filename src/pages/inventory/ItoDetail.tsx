@@ -10,6 +10,7 @@ import { INVENTORY_NAV } from '@/lib/navigation';
 import { useITODetail } from '@/hooks/inventory/internalTransfers';
 import { useItoExpectedLines, useCompleteItoWithQc } from '@/hooks/inventory/workflow1';
 import { ScanQCPanel } from '@/components/inventory/ScanQCPanel';
+import { DocumentChatter } from '@/components/shared/DocumentChatter';
 
 export default function ItoDetail() {
   const { id } = useParams<{ id: string }>();
@@ -132,6 +133,7 @@ export default function ItoDetail() {
             </CardContent>
           </Card>
         )}
+        {id && <DocumentChatter recordType="ito" recordId={id} />}
       </div>
     </AppLayout>
   );
