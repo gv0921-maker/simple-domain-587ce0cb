@@ -125,6 +125,7 @@ import { SuperAdminRoute } from "@/components/SuperAdminRoute";
 import { RouteGuard } from "@/components/auth/RouteGuard";
 import OrgChartPage from "@/pages/employees/OrgChart";
 import UnifiedCalendarPage from "@/pages/calendar/UnifiedCalendarPage";
+import DataHealth from "@/pages/admin/DataHealth";
 
 // Vendor Orders module
 import VendorOrdersList from "@/pages/vendor-orders/VendorOrdersList";
@@ -382,6 +383,7 @@ const App = () => (
             {/* Dashboards module */}
             <Route path="/dashboards" element={<ProtectedRoute><DashboardsHome /></ProtectedRoute>} />
             <Route path="/dashboards/admin" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin/data-health" element={<RouteGuard adminOrSuper denyMessage="Data Health requires Admin access."><DataHealth /></RouteGuard>} />
             <Route path="/dashboards/sales-manager" element={<ProtectedRoute><SalesManagerDashboard /></ProtectedRoute>} />
             <Route path="/dashboards/sales-rep" element={<ProtectedRoute><SalesRepDashboard /></ProtectedRoute>} />
             <Route path="/dashboards/warehouse" element={<ProtectedRoute><WarehouseDashboard /></ProtectedRoute>} />
