@@ -7847,6 +7847,8 @@ export type Database = {
           partner_id: string | null
           partner_name: string | null
           reference: string
+          reference_document_id: string | null
+          reference_document_type: string | null
           scheduled_date: string
           source_document: string | null
           source_location_id: string | null
@@ -7867,6 +7869,8 @@ export type Database = {
           partner_id?: string | null
           partner_name?: string | null
           reference: string
+          reference_document_id?: string | null
+          reference_document_type?: string | null
           scheduled_date?: string
           source_document?: string | null
           source_location_id?: string | null
@@ -7887,6 +7891,8 @@ export type Database = {
           partner_id?: string | null
           partner_name?: string | null
           reference?: string
+          reference_document_id?: string | null
+          reference_document_type?: string | null
           scheduled_date?: string
           source_document?: string | null
           source_location_id?: string | null
