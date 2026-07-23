@@ -341,6 +341,19 @@ export default function SalesOrderForm() {
     setSaving(true);
     try {
       const data = await persist(newStatus);
+      // If the SO is being cancelled, release any serial reservations
+      // so those units flip back to 'available' for other orders.
+      if (newStatus === 'cancelled' && !isNew && id) {
+        try {
+          await releaseReservationsForSalesOrderAsync(id);
+        } catch (e: any) {
+          toast({
+            title: 'Reservations not fully released',
+            description: e?.message ?? String(e),
+            variant: 'destructive',
+          });
+        }
+      }
       toast({ title: isNew ? 'Order Created' : 'Order Updated', description: `${data.reference} saved.` });
       navigate('/sales/orders');
     } catch (error: any) {
@@ -352,7 +365,7 @@ export default function SalesOrderForm() {
     } finally {
       setSaving(false);
     }
-  }, [validate, persist, isNew, toast, navigate]);
+  }, [validate, persist, isNew, id, toast, navigate]);
 
   const handleStatusStepClick = useCallback(async (next: SalesOrderStatus) => {
     const current = (formData.status || 'estimate') as SalesOrderStatus;
@@ -395,13 +408,24 @@ export default function SalesOrderForm() {
 
     try {
       await persist(next, note);
+      if (next === 'cancelled' && id) {
+        try {
+          await releaseReservationsForSalesOrderAsync(id);
+        } catch (e: any) {
+          toast({
+            title: 'Reservations not fully released',
+            description: e?.message ?? String(e),
+            variant: 'destructive',
+          });
+        }
+      }
       setFormData((prev) => ({ ...prev, status: next }));
       toast({ title: 'Status updated', description: note });
     } catch (e: any) {
       toast({ title: 'Status update failed', description: e?.message ?? String(e), variant: 'destructive' });
     }
     // Phase 4: stock reservation on confirmed wired next.
-  }, [formData, lines, userRoles, validate, persist, toast]);
+  }, [formData, lines, userRoles, validate, persist, toast, id]);
 
   const handleConfirmAction = useCallback(() => {
     if (confirmAction === 'cancel') handleSave('cancelled');
