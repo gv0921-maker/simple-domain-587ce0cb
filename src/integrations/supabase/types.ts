@@ -9387,6 +9387,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      complete_delivery_with_qc: {
+        Args: { _dn_id: string; _signature_received?: boolean }
+        Returns: Json
+      }
       complete_factory_work: { Args: { p_wo_id: string }; Returns: undefined }
       complete_gr_line_qc: {
         Args: {

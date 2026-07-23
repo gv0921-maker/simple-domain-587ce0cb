@@ -216,82 +216,23 @@ export async function generateDeliveryNoteFromInvoiceAsync(invoiceId: string): P
 }
 
 export async function markDeliveryNoteAsDeliveredAsync(id: string): Promise<DeliveryNote> {
-  // 1. Load DN
-  const { data: dn, error } = await sb.from('delivery_notes').select('*').eq('id', id).single();
-  if (error) throw error;
+  // Delegate to the atomic `complete_delivery_with_qc` RPC. That function
+  // locks serials, writes stock_moves + stock_move_lines (source → CUSTOMERS),
+  // marks serials as sold, clears reservations, updates the delivery note,
+  // and closes the sales order when all sibling DNs are delivered — all in
+  // a single transaction. On failure the whole transaction rolls back.
+  const { error: rpcErr } = await sb.rpc('complete_delivery_with_qc', {
+    _dn_id: id,
+    _signature_received: true,
+  });
+  if (rpcErr) throw new Error(rpcErr.message);
 
-  // 2. Resolve a destination "customer" location (or fall back to a virtual one)
-  //    For simplicity: any location of type 'customer' or 'internal' from any warehouse.
-  const { data: anyLoc } = await sb
-    .from('warehouse_locations').select('id,warehouse_id,type')
-    .or('type.eq.customer,type.eq.internal')
-    .limit(2);
-  const sourceLoc = (anyLoc ?? []).find((l: any) => l.warehouse_id === dn.warehouse_id && l.type === 'internal')
-    ?? (anyLoc ?? [])[0];
-  const destLoc = (anyLoc ?? []).find((l: any) => l.type === 'customer') ?? sourceLoc;
-
-  const products = (dn.products_json ?? []) as DeliveryNoteProduct[];
-
-  // 3. Insert a stock_move + lines, then validate (admin RPC will decrement stock_on_hand)
-  if (products.length > 0 && sourceLoc && destLoc) {
-    const moveRef = `DEL/${dn.reference}`;
-    const { data: moveRow, error: mErr } = await sb.from('stock_moves').insert({
-      reference: moveRef,
-      operation_type: 'delivery',
-      source_location_id: sourceLoc.id,
-      source_location_name: 'Stock',
-      destination_location_id: destLoc.id,
-      destination_location_name: 'Customer',
-      scheduled_date: new Date().toISOString(),
-      state: 'confirmed',
-      source_document: dn.reference,
-    }).select('id').single();
-    if (mErr) throw mErr;
-
-    const lineRows = products.map((p) => ({
-      stock_move_id: moveRow.id,
-      product_id: p.product_id,
-      product_name: p.product_name,
-      product_sku: '',
-      demand_qty: p.quantity,
-      reserved_qty: p.quantity,
-      done_qty: p.quantity,
-      unit_of_measure: p.unit ?? 'Unit',
-      source_location_id: sourceLoc.id,
-      destination_location_id: destLoc.id,
-      serial_numbers: p.serial_numbers,
-    }));
-    const { error: lErr } = await sb.from('stock_move_lines').insert(lineRows);
-    if (lErr) throw lErr;
-
-    const { error: vErr } = await supabase.rpc('inv_validate_stock_move' as any, { _move_id: moveRow.id });
-    if (vErr) throw vErr;
-  }
-
-  // 4. Update DN
-  const nowIso = new Date().toISOString();
-  const { data: updated, error: uErr } = await sb.from('delivery_notes').update({
-    status: 'delivered',
-    signature_collected: true,
-    delivery_date: nowIso,
-  }).eq('id', id).select().single();
-  if (uErr) throw uErr;
-
-  // 5. Update invoice + sales_order statuses
-  if (dn.invoice_id) {
+  // Best-effort: sync invoice status (not part of the delivery ledger)
+  const { data: dn } = await sb.from('delivery_notes').select('*').eq('id', id).single();
+  if (dn?.invoice_id) {
     await sb.from('invoices').update({ status: 'delivered' }).eq('id', dn.invoice_id);
   }
-  if (dn.sales_order_id) {
-    await sb.from('sales_orders').update({ status: 'delivered' }).eq('id', dn.sales_order_id);
-  }
-
-  // 6. Mark serial reservations as delivered
-  await sb.from('stock_reservations')
-    .update({ status: 'delivered' })
-    .eq('sales_order_id', dn.sales_order_id)
-    .eq('status', 'reserved');
-
-  return mapRow(updated);
+  return mapRow(dn);
 }
 
 export async function getUserNamesAsync(userIds: string[]): Promise<Record<string, string>> {
