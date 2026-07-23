@@ -33,9 +33,18 @@ export interface RichComposerValue {
 interface RichComposerProps {
   placeholder?: string;
   submitLabel?: string;
-  onSubmit: (value: RichComposerValue) => void;
+  onSubmit: (value: RichComposerValue) => void | Promise<void>;
   className?: string;
   compact?: boolean;
+  /** Optional directory used to power the @mention autocomplete. */
+  users?: { id: string; name: string; email: string }[];
+  /**
+   * Optional uploader that converts a picked file into a persistent
+   * attachment (e.g. Supabase Storage). When omitted, the composer
+   * falls back to embedding files as base64 data URLs.
+   */
+  uploadFile?: (file: File) => Promise<RichAttachment>;
+  submitting?: boolean;
 }
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5MB
@@ -46,20 +55,36 @@ export function RichComposer({
   onSubmit,
   className,
   compact = false,
+  users,
+  uploadFile,
+  submitting = false,
 }: RichComposerProps) {
   const { toast } = useToast();
   const [html, setHtml] = useState('');
   const [attachments, setAttachments] = useState<RichAttachment[]>([]);
   const [showMentionMenu, setShowMentionMenu] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFiles = useCallback(async (files: FileList) => {
     const next: RichAttachment[] = [];
+    setUploading(true);
+    try {
     for (const file of Array.from(files)) {
       if (file.size > MAX_FILE_BYTES) {
         toast({ title: `${file.name} exceeds 5MB`, variant: 'destructive' });
         continue;
+      }
+      if (uploadFile) {
+        try {
+          const att = await uploadFile(file);
+          next.push(att);
+          continue;
+        } catch (e: any) {
+          toast({ title: `Failed to upload ${file.name}`, description: e?.message, variant: 'destructive' });
+          continue;
+        }
       }
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -70,7 +95,8 @@ export function RichComposer({
       next.push({ name: file.name, type: file.type, size: file.size, dataUrl });
     }
     setAttachments(prev => [...prev, ...next]);
-  }, [toast]);
+    } finally { setUploading(false); }
+  }, [toast, uploadFile]);
 
   const removeAttachment = (idx: number) =>
     setAttachments(prev => prev.filter((_, i) => i !== idx));
@@ -87,8 +113,12 @@ export function RichComposer({
     }
   }, [html]);
 
-  // Mention autocomplete source — empty until a real user-directory hook is wired.
-  const filteredUsers: { id: string; name: string; email: string }[] = [];
+  // Mention autocomplete source — filtered against the caller-supplied directory.
+  const filteredUsers = (users ?? []).filter((u) =>
+    !mentionQuery ||
+    u.name?.toLowerCase().includes(mentionQuery) ||
+    u.email?.toLowerCase().includes(mentionQuery),
+  ).slice(0, 8);
 
   const insertMention = (user: { id: string; name: string }) => {
     // Replace trailing @query with mention chip
@@ -105,16 +135,20 @@ export function RichComposer({
     return Array.from(new Set(matches.map(m => m.replace(/data-user-id="|"/g, ''))));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const text = stripHtml(html).trim();
     if (!text && attachments.length === 0) return;
-    onSubmit({
-      html,
-      mentions: extractMentions(html),
-      attachments,
-    });
-    setHtml('');
-    setAttachments([]);
+    try {
+      await onSubmit({
+        html,
+        mentions: extractMentions(html),
+        attachments,
+      });
+      setHtml('');
+      setAttachments([]);
+    } catch {
+      /* keep draft so user can retry */
+    }
   };
 
   return (
@@ -184,9 +218,10 @@ export function RichComposer({
             size="sm"
             className="h-7 text-xs gap-1"
             onClick={() => fileInputRef.current?.click()}
+            disabled={uploading || submitting}
           >
             <Paperclip className="h-3.5 w-3.5" />
-            Attach
+            {uploading ? 'Uploading…' : 'Attach'}
           </Button>
           <span className="text-xs text-muted-foreground">Type @ to mention</span>
         </div>
@@ -195,9 +230,10 @@ export function RichComposer({
           size="sm"
           className="h-7 text-xs gap-1"
           onClick={handleSubmit}
+          disabled={submitting || uploading}
         >
           <Send className="h-3.5 w-3.5" />
-          {submitLabel}
+          {submitting ? 'Sending…' : submitLabel}
         </Button>
       </div>
     </div>
