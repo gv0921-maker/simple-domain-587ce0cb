@@ -229,91 +229,53 @@ export async function completeDeliveryWithQc(
   dnId: string,
   opts: { signatureReceived?: boolean } = {},
 ): Promise<CompleteDeliveryResult> {
-  // 1. Load DN
-  const { data: dn, error: dnErr } = await sb
-    .from('delivery_notes').select('*').eq('id', dnId).maybeSingle();
-  if (dnErr) throw dnErr;
-  if (!dn) throw new Error('Delivery note not found');
-  if (dn.status === 'delivered') throw new Error('Delivery note already delivered');
-  const salesOrderId: string | null = dn.sales_order_id;
-  if (!salesOrderId) throw new Error('Delivery note has no linked sales order');
-
-  // 2. Payment gate (defence-in-depth; UI already blocks the button)
-  const gate = await canCreateDeliveryForSO(salesOrderId);
-  if (!gate.allowed) throw new Error(gate.message);
-
-  // 3. Load inspections
-  const inspections = await getQCInspections('delivery_note', dnId);
-  const failed = inspections.filter(i => i.qcStatus === 'fail');
-  if (failed.length > 0) {
-    const serials = failed.map(f => f.serialNumber).join(', ');
-    throw new Error(`Cannot deliver: ${failed.length} unit(s) failed QC at handoff (${serials}). Resolve before completing.`);
-  }
-  const passed = inspections.filter(i => i.qcStatus === 'pass');
-
-  // 4. Move each passed serial from transit → sold
-  const serialsAtDelivery = passed
-    .map(i => i.serialNumber)
-    .filter((s): s is string => !!s);
-  const uid = await authUserId();
-
-  if (serialsAtDelivery.length > 0) {
-    const { error: upErr } = await sb
-      .from('goods_receipt_serials')
-      .update({
-        stock_status: 'sold',
-        current_location: null,
-        qc_status: 'passed',
-        qc_checked_by: uid,
-        qc_checked_at: new Date().toISOString(),
-      })
-      .eq('reserved_for_so_id', salesOrderId)
-      .in('serial_number', serialsAtDelivery);
-    if (upErr) throw upErr;
-  }
-
-  // 5. Update DN
-  const nowIso = new Date().toISOString();
-  const { error: dupErr } = await sb
-    .from('delivery_notes')
-    .update({
-      status: 'delivered',
-      delivered_at: nowIso,
-      delivery_date: nowIso,
-      signature_collected: !!opts.signatureReceived,
-      customer_signature_received: !!opts.signatureReceived,
-      customer_signature_date: opts.signatureReceived ? nowIso.slice(0, 10) : null,
-      qc_by: uid,
-    })
-    .eq('id', dnId);
-  if (dupErr) throw dupErr;
-
-  // 6. Close SO if all its DNs are delivered
-  const { data: siblingDNs } = await sb
-    .from('delivery_notes').select('id, status').eq('sales_order_id', salesOrderId);
-  const allDelivered = ((siblingDNs ?? []) as Array<{ status: string }>).every(d => d.status === 'delivered');
-  let soClosed = false;
-  if (allDelivered) {
-    await sb.from('sales_orders').update({ status: 'delivered' }).eq('id', salesOrderId);
-    soClosed = true;
-  }
-
-  // 7. Notifications
-  const [{ data: so }, adminIds] = await Promise.all([
-    sb.from('sales_orders').select('created_by, reference').eq('id', salesOrderId).maybeSingle(),
-    usersWithRoles(['super_admin']),
-  ]);
-  const recipients = new Set<string>(adminIds);
-  if (so?.created_by) recipients.add(so.created_by);
-  await notifyUsers(Array.from(recipients), {
-    title: `Delivery ${dn.reference} completed`,
-    body: `${passed.length} unit(s) handed to customer${soClosed ? '. Sales order closed.' : '.'}`,
-    category: 'fulfillment',
-    priority: 'normal',
-    relatedEntityType: 'delivery_note',
-    relatedEntityId: dnId,
-    linkUrl: `/inventory/delivery-notes/${dnId}`,
+  // Atomic completion: locks serials, writes stock_moves + stock_move_lines
+  // (current location → CUSTOMERS), marks serials as sold, clears the
+  // reservation, updates DN status, and closes the SO when all sibling DNs
+  // are delivered — all in a single Postgres transaction. On failure
+  // everything rolls back and the error surfaces to the caller.
+  const { data, error } = await sb.rpc('complete_delivery_with_qc', {
+    _dn_id: dnId,
+    _signature_received: !!opts.signatureReceived,
   });
+  if (error) throw new Error(error.message);
+  const result = (data ?? {}) as {
+    status?: string;
+    delivered?: number;
+    so_closed?: boolean;
+    dn_reference?: string;
+  };
+  const delivered = result.delivered ?? 0;
+  const soClosed = !!result.so_closed;
 
-  return { delivered: passed.length, soClosed };
+  // Non-transactional notifications
+  try {
+    const { data: dn } = await sb
+      .from('delivery_notes')
+      .select('reference, sales_order_id')
+      .eq('id', dnId)
+      .maybeSingle();
+    const salesOrderId: string | null = dn?.sales_order_id ?? null;
+    if (salesOrderId) {
+      const [{ data: so }, adminIds] = await Promise.all([
+        sb.from('sales_orders').select('created_by').eq('id', salesOrderId).maybeSingle(),
+        usersWithRoles(['super_admin']),
+      ]);
+      const recipients = new Set<string>(adminIds);
+      if (so?.created_by) recipients.add(so.created_by);
+      await notifyUsers(Array.from(recipients), {
+        title: `Delivery ${dn?.reference ?? result.dn_reference ?? ''} completed`,
+        body: `${delivered} unit(s) handed to customer${soClosed ? '. Sales order closed.' : '.'}`,
+        category: 'fulfillment',
+        priority: 'normal',
+        relatedEntityType: 'delivery_note',
+        relatedEntityId: dnId,
+        linkUrl: `/inventory/delivery-notes/${dnId}`,
+      });
+    }
+  } catch {
+    // best-effort — do not fail delivery on notification errors
+  }
+
+  return { delivered, soClosed };
 }
