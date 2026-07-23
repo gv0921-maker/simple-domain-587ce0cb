@@ -9401,6 +9401,7 @@ export type Database = {
         Args: { p_movement_id: string }
         Returns: undefined
       }
+      complete_ito_with_qc: { Args: { _ito_id: string }; Returns: Json }
       complete_return_request: { Args: { p_rt_id: string }; Returns: Json }
       complete_stock_count: { Args: { p_count_id: string }; Returns: undefined }
       confirm_delivery: {
