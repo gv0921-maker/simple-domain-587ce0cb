@@ -9561,22 +9561,6 @@ export type Database = {
           serial_id: string | null
           serial_number: string | null
         }
-        Insert: {
-          actual_location?: string | null
-          actual_status?: string | null
-          created_at?: string | null
-          product_id?: string | null
-          serial_id?: string | null
-          serial_number?: string | null
-        }
-        Update: {
-          actual_location?: string | null
-          actual_status?: string | null
-          created_at?: string | null
-          product_id?: string | null
-          serial_id?: string | null
-          serial_number?: string | null
-        }
         Relationships: [
           {
             foreignKeyName: "goods_receipt_serials_product_id_fkey"
