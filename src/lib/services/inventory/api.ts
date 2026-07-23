@@ -565,15 +565,26 @@ export async function getSerialNumbersAsync(): Promise<SerialNumber[]> {
   return (data ?? []).map(mapSerial);
 }
 export async function getSerialsByProductAsync(productId: string): Promise<SerialNumber[]> {
-  const { data, error } = await supabase.from('serial_numbers').select('*').eq('product_id', productId).order('name');
+  // Canonical serial state lives in goods_receipt_serials, surfaced via v_available_serials.
+  // Callers that pass through this function currently only need the "available" set
+  // (e.g. reservation dialog); return that set mapped to the SerialNumber shape.
+  const { data, error } = await (supabase as any)
+    .from('v_available_serials')
+    .select('id, product_id, serial_number, location_id, updated_at')
+    .eq('product_id', productId)
+    .order('serial_number');
   if (error) throw error;
-  return (data ?? []).map(mapSerial);
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    name: r.serial_number,
+    productId: r.product_id,
+    locationId: r.location_id ?? undefined,
+    status: 'available' as const,
+    createdAt: r.updated_at,
+  }));
 }
 export async function getAvailableSerialsAsync(productId: string): Promise<SerialNumber[]> {
-  const { data, error } = await supabase.from('serial_numbers')
-    .select('*').eq('product_id', productId).eq('status', 'available').order('name');
-  if (error) throw error;
-  return (data ?? []).map(mapSerial);
+  return getSerialsByProductAsync(productId);
 }
 export async function saveSerialNumberAsync(s: SerialNumber): Promise<SerialNumber> {
   const row = serialToRow(s);
