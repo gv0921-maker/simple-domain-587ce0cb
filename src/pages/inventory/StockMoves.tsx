@@ -84,7 +84,7 @@ export default function StockMoves() {
   const { user } = useAuth();
   const { canCreateMoves, canValidateReceipts, canValidateDeliveries } = useInventoryAccess();
   
-  const { data: moves = [] } = useStockMoves();
+  const { data: moves = [], isLoading, isError, error, refetch } = useStockMoves();
   const deleteMut = useDeleteStockMove();
   const validateMut = useValidateStockMove();
   const [search, setSearch] = useState('');
@@ -93,6 +93,8 @@ export default function StockMoves() {
   const [sortField, setSortField] = useState<'scheduledDate' | 'reference'>('scheduledDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [qcMove, setQcMove] = useState<StockMove | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 50;
 
   const filteredMoves = useMemo(() => {
     return moves
@@ -112,6 +114,14 @@ export default function StockMoves() {
         return aVal < bVal ? 1 : -1;
       });
   }, [moves, search, stateFilter, typeFilter, sortField, sortOrder]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredMoves.length / PAGE_SIZE));
+  const pageMoves = useMemo(
+    () => filteredMoves.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filteredMoves, page],
+  );
+  // Reset to first page when filters change
+  useMemo(() => { setPage(1); }, [search, stateFilter, typeFilter, sortField, sortOrder]);
 
   const stats = useMemo(() => ({
     total: moves.length,
@@ -285,7 +295,22 @@ export default function StockMoves() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredMoves.length === 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
+                    Loading stock moves…
+                  </TableCell>
+                </TableRow>
+              ) : isError ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-10">
+                    <div className="text-destructive text-sm mb-3">
+                      Failed to load stock moves: {(error as Error)?.message ?? 'Unknown error'}
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => refetch()}>Retry</Button>
+                  </TableCell>
+                </TableRow>
+              ) : filteredMoves.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -293,7 +318,7 @@ export default function StockMoves() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredMoves.map((move, index) => {
+                pageMoves.map((move, index) => {
                   const Icon = OPERATION_ICONS[move.operationType] || Package;
                   const colorClass = OPERATION_COLORS[move.operationType] || 'text-muted-foreground bg-muted';
                   const canValidate = 
@@ -366,6 +391,34 @@ export default function StockMoves() {
             </TableBody>
           </Table>
         </Card>
+
+        {filteredMoves.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <div>
+              Showing {(page - 1) * PAGE_SIZE + 1}–
+              {Math.min(page * PAGE_SIZE, filteredMoves.length)} of {filteredMoves.length}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </Button>
+              <span>Page {page} / {totalPages}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
       {qcMove && (
         <GoodsReceiptQCDialog
