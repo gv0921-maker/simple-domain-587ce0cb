@@ -25,6 +25,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChevronDown, ChevronRight, Printer, Send, CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
+import { DocumentPipeline } from '@/components/inventory/DocumentPipeline';
 import { useToast } from '@/hooks/use-toast';
 import { useIsSuperAdmin } from '@/hooks/useIsSuperAdmin';
 import { format, parseISO } from 'date-fns';
@@ -85,13 +86,13 @@ export default function CorrectionOrderDetail() {
 
   return (
     <AppLayout title={co.co_number} moduleNav={INVENTORY_NAV}>
-      <div className="p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold">{co.co_number}</h1>
+      <div className="p-4 sm:p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-semibold">{co.co_number}</h1>
             <Badge className={STATUS_STYLES[co.status] ?? ''}>{co.status.replace('_', ' ')}</Badge>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {isDraft && (
               <Button onClick={async () => { await sendCO.mutateAsync(); toast({ title: 'Correction order sent' }); }}>
                 <Send className="h-4 w-4 mr-2" /> Send
@@ -114,6 +115,8 @@ export default function CorrectionOrderDetail() {
             )}
           </div>
         </div>
+
+        <DocumentPipeline kind="correction_order" status={co.status} />
 
         <Card>
           <CardHeader><CardTitle>Header</CardTitle></CardHeader>

@@ -16,6 +16,7 @@ import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { ScanQCPanel } from '@/components/inventory/ScanQCPanel';
 import { useCanCreateDeliveryForSO, useCompleteDeliveryWithQc } from '@/hooks/inventory/workflow1';
+import { DocumentPipeline } from '@/components/inventory/DocumentPipeline';
 
 const statusVariant: Record<string, string> = {
   draft: 'bg-muted text-muted-foreground',
@@ -61,29 +62,40 @@ export default function DeliveryNoteDetail() {
 
   return (
     <AppLayout title="Delivery Notes" subtitle={note.reference} moduleNav={INVENTORY_NAV}>
-      <div className="p-6 max-w-5xl mx-auto space-y-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+      <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <Button variant="ghost" size="icon" onClick={() => navigate('/inventory/delivery-notes')}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-semibold">{note.reference}</h1>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-semibold truncate">{note.reference}</h1>
                 <Badge className={statusVariant[note.status] ?? ''}>{note.status}</Badge>
               </div>
               <p className="text-sm text-muted-foreground">
                 Created {format(parseISO(note.createdAt), 'MMM d, yyyy HH:mm')}
                 {note.deliveryDate && ` · Delivered ${format(parseISO(note.deliveryDate), 'MMM d, yyyy HH:mm')}`}
               </p>
+              {note.salesOrderId && (
+                <button
+                  type="button"
+                  className="text-xs text-primary hover:underline"
+                  onClick={() => navigate(`/sales/orders/${note.salesOrderId}`)}
+                >
+                  ← Sales Order
+                </button>
+              )}
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 shrink-0">
             <Button variant="outline" onClick={() => window.open(`/print/delivery_note/${note.id}`, '_blank')}>
               <Printer className="h-4 w-4 mr-2" /> Print
             </Button>
           </div>
         </div>
+
+        <DocumentPipeline kind="delivery_note" status={note.status} />
 
         {/* Payment gate */}
         {note.status !== 'delivered' && gate && !gate.allowed && (
