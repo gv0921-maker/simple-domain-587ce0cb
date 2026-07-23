@@ -28,6 +28,7 @@ import { useCorrectionOrderForGR } from '@/hooks/inventory/correctionOrders';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { recordLabelPrints, generateLabel } from '@/lib/services/barcode/api';
+import { DocumentChatter } from '@/components/shared/DocumentChatter';
 import type { GoodsReceiptSerial, GRSourceType } from '@/lib/services/inventory/goodsReceipt';
 
 type DraftLine = {
@@ -321,6 +322,7 @@ export default function GoodsReceiptWizard() {
             </CardContent>
           </Card>
         )}
+        {id && <DocumentChatter recordType="goods_receipt" recordId={id} />}
       </div>
     </AppLayout>
   );
