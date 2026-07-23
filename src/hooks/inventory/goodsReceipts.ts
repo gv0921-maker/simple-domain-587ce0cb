@@ -38,7 +38,10 @@ export function useApproveDiscrepancy(grId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (reason: string) => gr.approveDiscrepancy(grId, reason),
-    onSuccess: () => qc.invalidateQueries({ queryKey: goodsReceiptKeys.detail(grId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: goodsReceiptKeys.detail(grId) });
+      qc.invalidateQueries({ queryKey: ['activity-log', 'goods_receipt', grId] });
+    },
   });
 }
 
@@ -46,7 +49,10 @@ export function useAdvanceToLabels(grId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => gr.advanceToLabelsStep(grId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: goodsReceiptKeys.detail(grId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: goodsReceiptKeys.detail(grId) });
+      qc.invalidateQueries({ queryKey: ['activity-log', 'goods_receipt', grId] });
+    },
   });
 }
 
@@ -54,7 +60,10 @@ export function useGenerateSerialsForLine(grId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (lineId: string) => gr.generateSerialsForLine(lineId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: goodsReceiptKeys.detail(grId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: goodsReceiptKeys.detail(grId) });
+      qc.invalidateQueries({ queryKey: ['activity-log', 'goods_receipt', grId] });
+    },
   });
 }
 
@@ -62,7 +71,10 @@ export function useMarkLabelsGenerated(grId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => gr.markLabelsGenerated(grId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: goodsReceiptKeys.detail(grId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: goodsReceiptKeys.detail(grId) });
+      qc.invalidateQueries({ queryKey: ['activity-log', 'goods_receipt', grId] });
+    },
   });
 }
 
@@ -71,7 +83,10 @@ export function useRecordItemQC(grId: string) {
   return useMutation({
     mutationFn: (input: { serialId: string; passed: boolean; notes?: string; images?: string[] }) =>
       gr.recordItemQC(input.serialId, input.passed, input.notes, input.images),
-    onSuccess: () => qc.invalidateQueries({ queryKey: goodsReceiptKeys.detail(grId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: goodsReceiptKeys.detail(grId) });
+      qc.invalidateQueries({ queryKey: ['activity-log', 'goods_receipt', grId] });
+    },
   });
 }
 
@@ -80,6 +95,9 @@ export function useCompleteGRLineQC(grId: string) {
   return useMutation({
     mutationFn: (input: { lineId: string; passedSerialIds: string[]; failedSerialIds: string[]; failedNotes?: string }) =>
       gr.completeGRLineQC(input.lineId, input.passedSerialIds, input.failedSerialIds, input.failedNotes),
-    onSuccess: () => qc.invalidateQueries({ queryKey: goodsReceiptKeys.detail(grId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: goodsReceiptKeys.detail(grId) });
+      qc.invalidateQueries({ queryKey: ['activity-log', 'goods_receipt', grId] });
+    },
   });
 }
