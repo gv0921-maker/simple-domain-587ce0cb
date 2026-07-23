@@ -124,175 +124,67 @@ export interface CompleteItoResult {
 }
 
 export async function completeItoWithQc(itoId: string): Promise<CompleteItoResult> {
-  // 1. Load ITO
-  const { data: ito, error: ie } = await sb
-    .from('internal_transfer_orders')
-    .select('*')
-    .eq('id', itoId)
-    .maybeSingle();
-  if (ie) throw ie;
-  if (!ito) throw new Error('ITO not found');
-  if (ito.status === 'completed') throw new Error('ITO already completed');
-  const salesOrderId: string = ito.sales_order_id;
+  // Delegate the entire operation to the atomic `complete_ito_with_qc`
+  // Postgres function. That RPC locks the affected serials, applies stock
+  // moves + serial updates + ITO status change in a single transaction, and
+  // on QC failures atomically creates a Correction Order + moves failed
+  // serials to the CORRECTION virtual location before returning a
+  // 'blocked_by_failures' payload. If the transaction fails, everything
+  // rolls back and the error is surfaced to the caller.
+  const { data, error } = await sb.rpc('complete_ito_with_qc', { _ito_id: itoId });
+  if (error) throw new Error(error.message);
+  const result = (data ?? {}) as {
+    status?: 'completed' | 'blocked_by_failures';
+    moved?: number;
+    transit_location_id?: string;
+    transit_location_name?: string;
+    failed?: number;
+    failed_serials?: string[];
+    correction_order_id?: string | null;
+    ito_number?: string;
+  };
 
-  // 2. Load inspections + reserved serials
-  const [inspections, reserved] = await Promise.all([
-    getQCInspections('ito', itoId),
-    getReservedSerialsForSO(salesOrderId),
-  ]);
-
-  const bySerial = new Map(
-    reserved.map(r => [r.serial_number.toLowerCase(), r]),
-  );
-
-  const passed = inspections.filter(i => i.qcStatus === 'pass');
-  const failed = inspections.filter(i => i.qcStatus === 'fail');
-
-  // 3. Auto-create a Correction Order for failed units (if any) and block completion
-  let correctionOrderId: string | null = null;
-  if (failed.length > 0) {
-    correctionOrderId = await createCorrectionOrderForFailedUnits(itoId, ito.ito_number, failed, bySerial);
-    const serials = failed.map(f => f.serialNumber).join(', ');
+  if (result.status === 'blocked_by_failures') {
+    const failedCount = result.failed ?? (result.failed_serials?.length ?? 0);
+    const serials = (result.failed_serials ?? []).join(', ');
     throw new Error(
-      `ITO cannot complete: ${failed.length} unit${failed.length === 1 ? '' : 's'} failed QC (${serials}). ` +
+      `ITO cannot complete: ${failedCount} unit${failedCount === 1 ? '' : 's'} failed QC (${serials}). ` +
       `Correction Order created. Resolve or replace failed units before completing.`,
     );
   }
 
-  // 4. Resolve destination transit location from the serials being moved
-  const passedRows = passed
-    .map(i => bySerial.get((i.serialNumber ?? '').toLowerCase()))
-    .filter((r): r is NonNullable<typeof r> => !!r);
-  if (passedRows.length === 0) throw new Error('No passed units to move');
-
-  const warehouseId = passedRows[0].current_warehouse_id;
-  if (!warehouseId) {
-    throw new Error('Reserved serials are missing a warehouse — cannot resolve transit location.');
-  }
-  const transit = await getTransitLocationForWarehouse(warehouseId);
-  if (!transit) {
-    const { data: wh } = await sb
-      .from('warehouses').select('name, code').eq('id', warehouseId).maybeSingle();
-    const wLabel = wh?.name ?? wh?.code ?? warehouseId;
-    throw new Error(
-      `No transit location configured for warehouse "${wLabel}". ` +
-      `Create one in Setup → Locations with type = "transit".`,
-    );
-  }
-
-  // 5. Move each passed serial to transit
-  const uid = await authUserId();
-  const serialIds = passedRows.map(r => r.id);
-  const { error: upErr } = await sb
-    .from('goods_receipt_serials')
-    .update({
-      current_location: transit.id,
-      stock_status: 'reserved',
-      qc_status: 'passed',
-      qc_checked_by: uid,
-      qc_checked_at: new Date().toISOString(),
-    })
-    .in('id', serialIds);
-  if (upErr) throw upErr;
-
-  // 6. Mark ITO completed
-  const { error: itoErr } = await sb
+  // Success — fire off notifications (non-transactional side effect).
+  const { data: ito } = await sb
     .from('internal_transfer_orders')
-    .update({ status: 'completed' })
-    .eq('id', itoId);
-  if (itoErr) throw itoErr;
-
-  // Update line quantity_scanned + status best-effort
-  await sb
-    .from('internal_transfer_order_lines')
-    .update({ line_status: 'completed' })
-    .eq('internal_transfer_order_id', itoId);
-
-  // 7. Notifications: SO creator, sales_manager, super_admin
-  const [{ data: so }, mgrIds] = await Promise.all([
-    sb.from('sales_orders').select('created_by, reference').eq('id', salesOrderId).maybeSingle(),
-    usersWithRoles(['sales_manager', 'super_admin']),
-  ]);
-  const recipients = new Set<string>(mgrIds);
-  if (so?.created_by) recipients.add(so.created_by);
-  await notifyUsers(Array.from(recipients), {
-    title: `ITO ${ito.ito_number} completed — stock in transit`,
-    body: `${passedRows.length} units moved to ${transit.name}. Ready for packing.`,
-    category: 'fulfillment',
-    priority: 'normal',
-    relatedEntityType: 'internal_transfer_order',
-    relatedEntityId: itoId,
-    linkUrl: `/inventory/ito/${itoId}`,
-  });
+    .select('sales_order_id, ito_number')
+    .eq('id', itoId)
+    .maybeSingle();
+  const salesOrderId: string | null = ito?.sales_order_id ?? null;
+  const itoNumber: string = ito?.ito_number ?? result.ito_number ?? '';
+  if (salesOrderId) {
+    const [{ data: so }, mgrIds] = await Promise.all([
+      sb.from('sales_orders').select('created_by, reference').eq('id', salesOrderId).maybeSingle(),
+      usersWithRoles(['sales_manager', 'super_admin']),
+    ]);
+    const recipients = new Set<string>(mgrIds);
+    if (so?.created_by) recipients.add(so.created_by);
+    await notifyUsers(Array.from(recipients), {
+      title: `ITO ${itoNumber} completed — stock in transit`,
+      body: `${result.moved ?? 0} units moved to ${result.transit_location_name ?? 'transit'}. Ready for packing.`,
+      category: 'fulfillment',
+      priority: 'normal',
+      relatedEntityType: 'internal_transfer_order',
+      relatedEntityId: itoId,
+      linkUrl: `/inventory/ito/${itoId}`,
+    });
+  }
 
   return {
-    moved: passedRows.length,
+    moved: result.moved ?? 0,
     failed: 0,
-    correctionOrderId,
-    transitLocationId: transit.id,
+    correctionOrderId: result.correction_order_id ?? null,
+    transitLocationId: result.transit_location_id ?? '',
   };
-}
-
-async function createCorrectionOrderForFailedUnits(
-  itoId: string,
-  itoNumber: string,
-  failedInspections: Awaited<ReturnType<typeof getQCInspections>>,
-  bySerial: Map<string, {
-    id: string; product_id: string; goods_receipt_id: string; serial_number: string;
-  }>,
-): Promise<string | null> {
-  const uid = await authUserId();
-  const coNumber = `CO-ITO-${Date.now().toString(36).toUpperCase()}`;
-  const items = failedInspections
-    .map(i => {
-      const r = bySerial.get((i.serialNumber ?? '').toLowerCase());
-      if (!r) return null;
-      return {
-        goods_receipt_serial_id: r.id,
-        product_id: r.product_id,
-        serial_number: r.serial_number,
-        original_qc_notes: i.qcNotes,
-        original_qc_images: i.photoUrls,
-        latest_qc_status: 'failed' as const,
-        latest_qc_cycle: 1,
-        current_status: 'awaiting_correction' as const,
-        notes: `Failed QC during ITO ${itoNumber}`,
-      };
-    })
-    .filter((x): x is NonNullable<typeof x> => !!x);
-
-  if (items.length === 0) return null;
-
-  const { data: co, error } = await sb
-    .from('correction_orders')
-    .insert({
-      co_number: coNumber,
-      source_type: 'goods_receipt',
-      source_document_id: itoId,
-      source_document_reference: itoNumber,
-      addressed_to_type: 'vendor',
-      addressed_to_name: 'Vendor (to be assigned)',
-      correction_type: 'replace',
-      status: 'draft',
-      created_by: uid,
-      notes: `Auto-created from failed QC on ITO ${itoNumber}`,
-    })
-    .select('id')
-    .single();
-  if (error) return null;
-
-  const coId = co.id;
-  await sb
-    .from('correction_order_items')
-    .insert(items.map(i => ({ ...i, correction_order_id: coId })));
-
-  // Flag the serials so they're excluded from further reservations
-  await sb
-    .from('goods_receipt_serials')
-    .update({ stock_status: 'under_correction', qc_status: 'failed' })
-    .in('id', items.map(i => i.goods_receipt_serial_id));
-
-  return coId;
 }
 
 // ------------------------------------------------------------------
