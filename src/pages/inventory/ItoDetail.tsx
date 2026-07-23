@@ -11,6 +11,7 @@ import { useITODetail } from '@/hooks/inventory/internalTransfers';
 import { useItoExpectedLines, useCompleteItoWithQc } from '@/hooks/inventory/workflow1';
 import { ScanQCPanel } from '@/components/inventory/ScanQCPanel';
 import { DocumentChatter } from '@/components/shared/DocumentChatter';
+import { DocumentPipeline } from '@/components/inventory/DocumentPipeline';
 
 export default function ItoDetail() {
   const { id } = useParams<{ id: string }>();
@@ -53,15 +54,15 @@ export default function ItoDetail() {
 
   return (
     <AppLayout title="Internal Transfer Order" subtitle={ito.ito_number} moduleNav={INVENTORY_NAV}>
-      <div className="p-6 max-w-4xl mx-auto space-y-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+      <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-semibold">{ito.ito_number}</h1>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-semibold truncate">{ito.ito_number}</h1>
                 <Badge variant="outline" className="capitalize">{ito.status}</Badge>
               </div>
               <button
@@ -69,11 +70,13 @@ export default function ItoDetail() {
                 className="text-sm text-muted-foreground hover:underline"
                 onClick={() => navigate(`/sales/orders/${ito.sales_order_id}`)}
               >
-                Sales Order · view
+                ← Sales Order
               </button>
             </div>
           </div>
         </div>
+
+        <DocumentPipeline kind="ito" status={ito.status} />
 
         {isCompleted && (
           <Card className="border-emerald-200 bg-emerald-50">
