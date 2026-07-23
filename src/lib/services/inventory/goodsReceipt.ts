@@ -214,16 +214,17 @@ export async function recordItemQC(
   notes?: string,
   images?: string[],
 ): Promise<void> {
-  const me = await uid();
-  const { error } = await sb.from('goods_receipt_serials').update({
-    qc_status: passed ? 'passed' : 'failed',
-    qc_notes: notes ?? null,
-    qc_images: images ?? [],
-    qc_checked_by: me,
-    qc_checked_at: new Date().toISOString(),
-    stock_status: passed ? 'available' : 'under_correction',
-  }).eq('id', serialId);
-  if (error) throw error;
+  // Atomic: updates goods_receipt_serials AND writes a stock_moves row
+  // (VENDORS → receipt location, reference_document_type 'goods_receipt')
+  // in a single Postgres transaction.
+  const { error } = await sb.rpc('record_gr_item_qc', {
+    _serial_id: serialId,
+    _passed: passed,
+    _notes: notes ?? null,
+    _images: images ?? [],
+  });
+  if (error) throw new Error(error.message);
+  void uid; // keep import used elsewhere
 }
 
 export async function completeGRLineQC(
