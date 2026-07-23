@@ -8129,7 +8129,28 @@ export type Database = {
             foreignKeyName: "stock_reservations_serial_number_id_fkey"
             columns: ["serial_number_id"]
             isOneToOne: false
-            referencedRelation: "serial_numbers"
+            referencedRelation: "goods_receipt_serials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_serial_number_id_fkey"
+            columns: ["serial_number_id"]
+            isOneToOne: false
+            referencedRelation: "serial_reconciliation"
+            referencedColumns: ["serial_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_serial_number_id_fkey"
+            columns: ["serial_number_id"]
+            isOneToOne: false
+            referencedRelation: "serials_without_history"
+            referencedColumns: ["serial_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_serial_number_id_fkey"
+            columns: ["serial_number_id"]
+            isOneToOne: false
+            referencedRelation: "v_available_serials"
             referencedColumns: ["id"]
           },
         ]
@@ -9480,7 +9501,28 @@ export type Database = {
             foreignKeyName: "stock_reservations_serial_number_id_fkey"
             columns: ["serial_number_id"]
             isOneToOne: false
-            referencedRelation: "serial_numbers"
+            referencedRelation: "goods_receipt_serials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_serial_number_id_fkey"
+            columns: ["serial_number_id"]
+            isOneToOne: false
+            referencedRelation: "serial_reconciliation"
+            referencedColumns: ["serial_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_serial_number_id_fkey"
+            columns: ["serial_number_id"]
+            isOneToOne: false
+            referencedRelation: "serials_without_history"
+            referencedColumns: ["serial_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_serial_number_id_fkey"
+            columns: ["serial_number_id"]
+            isOneToOne: false
+            referencedRelation: "v_available_serials"
             referencedColumns: ["id"]
           },
         ]
