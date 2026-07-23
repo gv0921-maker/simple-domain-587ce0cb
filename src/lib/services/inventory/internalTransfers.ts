@@ -108,11 +108,34 @@ export async function getITOsForSO(salesOrderId: string): Promise<InternalTransf
 }
 
 export async function cancelITO(itoId: string, reason: string): Promise<void> {
+  // Look up the parent SO so we can release its serial reservations
+  // once the ITO is cancelled — the reserved units must return to
+  // 'available' or a re-created ITO can't pick them.
+  const { data: itoRow, error: fetchErr } = await supabase
+    .from('internal_transfer_orders' as any)
+    .select('sales_order_id, status')
+    .eq('id', itoId)
+    .maybeSingle();
+  if (fetchErr) throw fetchErr;
+  const soId = (itoRow as any)?.sales_order_id as string | undefined;
+
   const { error } = await supabase
     .from('internal_transfer_orders' as any)
     .update({ status: 'cancelled', notes: reason })
     .eq('id', itoId);
   if (error) throw error;
+
+  if (soId) {
+    try {
+      const { releaseReservationsForSalesOrderAsync } = await import('./reservations');
+      await releaseReservationsForSalesOrderAsync(soId);
+    } catch (e) {
+      // Non-fatal: surface but don't block the cancel from being visible.
+      // eslint-disable-next-line no-console
+      console.error('[cancelITO] release_reservations failed', e);
+      throw e;
+    }
+  }
 }
 
 export async function checkSOReadyToInvoice(salesOrderId: string): Promise<boolean> {
