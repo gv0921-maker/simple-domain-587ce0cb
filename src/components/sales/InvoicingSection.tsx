@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,8 +71,25 @@ export function InvoicingSection({ salesOrderId, salesOrderStatus }: Props) {
 
   const [open, setOpen] = useState(false);
 
+  // Allow FulfillmentSection (on the same SO page) to open the Create Invoice
+  // dialog without navigating away to a non-existent invoice route.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { salesOrderId?: string } | undefined;
+      if (!detail?.salesOrderId || detail.salesOrderId === salesOrderId) {
+        if (balance <= 0) {
+          toast.info('This sales order is already fully invoiced.');
+          return;
+        }
+        setOpen(true);
+      }
+    };
+    window.addEventListener('so:open-create-invoice', handler as EventListener);
+    return () => window.removeEventListener('so:open-create-invoice', handler as EventListener);
+  }, [salesOrderId, balance]);
+
   return (
-    <Card>
+    <Card id="so-invoicing-section">
       <CardHeader className="pb-3 p-4">
         <CardTitle className="flex items-center gap-2 text-base">
           <Receipt className="h-4 w-4" /> Invoicing
