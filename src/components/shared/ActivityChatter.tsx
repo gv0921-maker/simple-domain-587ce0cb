@@ -1,33 +1,37 @@
-// Canonical activity panel — chatter-style UI backed by activity_log.
-// Three tabs: Send message (stub), Log note, Activity (field/status changes).
-// Used across every detail page (CRM, Sales, Manufacturing, Returns, etc.).
-import { useMemo, useRef, useState } from 'react';
-import { format, parseISO } from 'date-fns';
+// Canonical chatter — mirrors the CRM Opportunity chatter design.
+// Three tabs (Send message / Log note / Activity), rich-text editor with
+// @mentions and attachments, day-grouped feed, avatar + name + timestamp.
+// System entries (RPC-written status/field changes) render inline as plain
+// lines. All persistence goes through activity_log.
+import { useMemo, useState } from 'react';
+import { format, parseISO, isToday, isYesterday } from 'date-fns';
 import {
-  MessageSquare, Edit3, Activity as ActivityIcon, Trash2, Send,
-  Paperclip, X as XIcon, Download, Share2, FileText, Image as ImageIcon,
+  Trash2, Search, ArrowRightLeft,
 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRoleCheck } from '@/hooks/auth/useRoleCheck';
+import { useAppUsers, displayNameFor } from '@/hooks/useAppUsers';
 import {
   useActivityLog, useAddManualNote, useSoftDeleteLogEntry,
 } from '@/hooks/useActivityLog';
-import type { ActivityAttachment, ActivityLogEntry, ActivityRecordType } from '@/lib/services/activityLog';
+import type {
+  ActivityAttachment, ActivityLogEntry, ActivityRecordType,
+} from '@/lib/services/activityLog';
 import { uploadActivityAttachment } from '@/lib/services/activityLog';
-import { ShareImageToChatDialog } from './ShareImageToChatDialog';
+import { RichComposer, RichContent, type RichAttachment } from '@/components/ui/rich-composer';
 import { cn } from '@/lib/utils';
 
 interface Props {
   recordType: ActivityRecordType;
   recordId: string | undefined;
   className?: string;
+  /** Optional human-readable label for the record (used in mention notifications). */
+  recordLabel?: string;
 }
 
 type TabKey = 'message' | 'note' | 'activity';
@@ -40,6 +44,21 @@ function initials(name?: string | null): string {
 
 function fmtStamp(iso: string): string {
   try { return format(parseISO(iso), 'dd-MM-yyyy h:mm a'); } catch { return iso; }
+}
+
+function fmtTime(iso: string): string {
+  try { return format(parseISO(iso), 'h:mm a'); } catch { return iso; }
+}
+
+function dayBucket(iso: string): string {
+  try {
+    const d = parseISO(iso);
+    if (isToday(d)) return 'Today';
+    if (isYesterday(d)) return 'Yesterday';
+    return format(d, 'MMM d, yyyy');
+  } catch {
+    return iso.slice(0, 10);
+  }
 }
 
 function friendlyField(name: string | null): string {
@@ -55,106 +74,68 @@ function displayValue(v: string | null): string {
   return v;
 }
 
-function humanSize(bytes: number): string {
-  if (!bytes) return '';
-  const units = ['B', 'KB', 'MB', 'GB'];
-  let i = 0; let n = bytes;
-  while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
-  return `${n.toFixed(n < 10 ? 1 : 0)} ${units[i]}`;
-}
-
-function AttachmentsGallery({
-  items,
-  onPreview,
-}: {
-  items: ActivityAttachment[];
-  onPreview: (a: ActivityAttachment) => void;
-}) {
-  if (!items?.length) return null;
-  const images = items.filter((a) => a.kind === 'image');
-  const files = items.filter((a) => a.kind !== 'image');
+// A small colored avatar bubble like the CRM opportunity chatter uses.
+function ChatterAvatar({ name }: { name: string }) {
+  const colors = [
+    'bg-[#875A7B]', 'bg-[#00A09D]', 'bg-[#F0AD4E]',
+    'bg-[#5CB85C]', 'bg-[#D9534F]', 'bg-[#337AB7]',
+  ];
+  const hash = Array.from(name).reduce((a, c) => a + c.charCodeAt(0), 0);
+  const color = colors[hash % colors.length];
   return (
-    <div className="mt-2 space-y-2">
-      {images.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {images.map((a, i) => (
-            <button
-              key={`${a.path}-${i}`}
-              type="button"
-              onClick={() => onPreview(a)}
-              className="group relative rounded-md border overflow-hidden bg-muted hover:opacity-90 transition"
-              aria-label={`Preview ${a.name}`}
-            >
-              <img
-                src={a.url}
-                alt={a.name}
-                className="h-32 w-32 object-cover"
-                loading="lazy"
-              />
-            </button>
-          ))}
-        </div>
-      )}
-      {files.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-          {files.map((a, i) => (
-            <a
-              key={`${a.path}-${i}`}
-              href={a.url}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-3 rounded border bg-card px-3 py-2 hover:bg-muted/60 transition text-sm max-w-md"
-            >
-              <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="truncate font-medium">{a.name}</div>
-                <div className="text-xs text-muted-foreground">{humanSize(a.size)}</div>
-              </div>
-              <Download className="h-4 w-4 text-muted-foreground" />
-            </a>
-          ))}
-        </div>
-      )}
+    <div className={cn(
+      'h-8 w-8 shrink-0 rounded-full text-white flex items-center justify-center text-[11px] font-bold',
+      color,
+    )}>
+      {initials(name)}
     </div>
   );
 }
 
-function EntryRow({
-  entry, canDelete, onDelete, currentUserId, currentUserName, onPreviewAttachment,
-}: {
+// Convert a RichComposer attachment (uploaded via our uploader) back to the
+// ActivityAttachment shape stored on the log row.
+function toActivityAttachment(a: RichAttachment): ActivityAttachment {
+  return {
+    path: (a as any).path ?? a.name,
+    url: a.url ?? a.dataUrl ?? '',
+    name: a.name,
+    size: a.size ?? 0,
+    mime: a.type || 'application/octet-stream',
+    kind: (a.type && a.type.startsWith('image/')) ? 'image' : 'file',
+  };
+}
+
+// Detect whether the stored note_text is HTML (rich composer output).
+function looksLikeHtml(s: string | null): boolean {
+  return !!s && /<[a-z][\s\S]*>/i.test(s);
+}
+
+// System entry — rendered as a plain inline line (like CRM "Stage changed").
+function SystemLine({ entry, currentUserId, currentUserName }: {
   entry: ActivityLogEntry;
-  canDelete: boolean;
-  onDelete: (id: string) => void;
   currentUserId?: string;
   currentUserName?: string;
-  onPreviewAttachment: (a: ActivityAttachment) => void;
 }) {
   const isSelf = entry.changed_by === currentUserId;
-  const who = isSelf
-    ? (currentUserName ?? 'You')
-    : (entry.changed_by_name ?? 'A user');
-
-  const isNote = entry.action_type === 'manual_note';
+  const who = isSelf ? (currentUserName ?? 'You') : (entry.changed_by_name ?? 'System');
 
   const body = (() => {
     switch (entry.action_type) {
       case 'created':
-        return <span className="text-muted-foreground">created this record</span>;
+        return <span>{who} <span className="text-muted-foreground">created this record</span></span>;
       case 'deleted':
-        return <span className="text-muted-foreground">deleted this record</span>;
+        return <span>{who} <span className="text-muted-foreground">deleted this record</span></span>;
       case 'status_change': {
         const label = entry.field_name === 'stage_id' ? 'Stage changed' : 'Status changed';
-        // System-authored transitions log a descriptive note_text with no
-        // old/new values — render that verbatim so it isn't shown as "— → —".
         if (!entry.old_value && !entry.new_value && entry.note_text) {
           return <span className="whitespace-pre-wrap">{entry.note_text}</span>;
         }
         return (
           <span>
-            <span className="text-muted-foreground">{label}: </span>
-            <span className="font-medium">{displayValue(entry.old_value)}</span>
+            <span className="font-medium">{label}: </span>
+            <span>{displayValue(entry.old_value)}</span>
             <span className="text-muted-foreground"> → </span>
-            <span className="font-medium">{displayValue(entry.new_value)}</span>
+            <span className="font-medium text-foreground">{displayValue(entry.new_value)}</span>
           </span>
         );
       }
@@ -164,40 +145,62 @@ function EntryRow({
         }
         return (
           <span>
-            <span className="font-medium">{friendlyField(entry.field_name)}</span>
-            <span className="text-muted-foreground">: </span>
+            <span className="font-medium">{friendlyField(entry.field_name)}: </span>
             <span>{displayValue(entry.old_value)}</span>
             <span className="text-muted-foreground"> → </span>
-            <span>{displayValue(entry.new_value)}</span>
+            <span className="font-medium text-foreground">{displayValue(entry.new_value)}</span>
           </span>
         );
-      case 'manual_note':
-        return <span className="whitespace-pre-wrap">{entry.note_text}</span>;
       default:
         return null;
     }
   })();
 
   return (
-    <div
-      className={cn(
-        'flex gap-3 p-3 rounded-md border',
-        isNote ? 'bg-accent/40 border-accent' : 'bg-card border-border',
-      )}
-    >
-      <Avatar className="h-8 w-8 mt-0.5 shrink-0">
-        <AvatarFallback className="text-xs">{initials(who)}</AvatarFallback>
-      </Avatar>
-      <div className="flex-1 min-w-0 space-y-1">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="font-medium">{who}</span>
-            <span className="text-xs text-muted-foreground">{fmtStamp(entry.changed_at)}</span>
-          </div>
-          {isNote && canDelete && (
+    <div className="flex items-start gap-2 py-1.5 text-xs text-muted-foreground">
+      <ArrowRightLeft className="h-3 w-3 mt-0.5 shrink-0" />
+      <div className="flex-1 min-w-0">{body}</div>
+      <span className="shrink-0 text-[11px]" title={fmtStamp(entry.changed_at)}>
+        {fmtTime(entry.changed_at)}
+      </span>
+    </div>
+  );
+}
+
+// Manual note — rendered like CRM Opportunity chatter items.
+function NoteRow({
+  entry, canDelete, onDelete, currentUserId, currentUserName,
+}: {
+  entry: ActivityLogEntry;
+  canDelete: boolean;
+  onDelete: (id: string) => void;
+  currentUserId?: string;
+  currentUserName?: string;
+}) {
+  const isSelf = entry.changed_by === currentUserId;
+  const who = isSelf
+    ? (currentUserName ?? 'You')
+    : (entry.changed_by_name ?? 'A user');
+
+  const html = looksLikeHtml(entry.note_text)
+    ? (entry.note_text as string)
+    : entry.note_text
+      ? `<p>${(entry.note_text as string).replace(/\n/g, '<br/>')}</p>`
+      : '';
+
+  return (
+    <div className="flex gap-2.5 mb-3 group">
+      <ChatterAvatar name={who} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="font-bold text-foreground">{who}</span>
+          <span className="text-xs text-muted-foreground" title={fmtStamp(entry.changed_at)}>
+            {fmtTime(entry.changed_at)}
+          </span>
+          {canDelete && (
             <Button
               variant="ghost" size="sm"
-              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+              className="ml-auto h-6 w-6 p-0 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100"
               onClick={() => onDelete(entry.id)}
               aria-label="Delete note"
             >
@@ -205,29 +208,32 @@ function EntryRow({
             </Button>
           )}
         </div>
-        <div className="text-sm">{body}</div>
-        {isNote && entry.attachments?.length > 0 && (
-          <AttachmentsGallery items={entry.attachments} onPreview={onPreviewAttachment} />
-        )}
+        <div className="mt-0.5">
+          <RichContent
+            html={html}
+            attachments={(entry.attachments ?? []).map((a) => ({
+              name: a.name,
+              type: a.mime,
+              size: a.size,
+              url: a.url,
+            }))}
+          />
+        </div>
       </div>
     </div>
   );
 }
 
-export function ActivityChatter({ recordType, recordId, className }: Props) {
+export function ActivityChatter({ recordType, recordId, className, recordLabel }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [tab, setTab] = useState<TabKey>('note');
   const [limit, setLimit] = useState(20);
-  const [draft, setDraft] = useState('');
-  const [pending, setPending] = useState<ActivityAttachment[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  const [preview, setPreview] = useState<ActivityAttachment | null>(null);
-  const [shareTarget, setShareTarget] = useState<ActivityAttachment | null>(null);
+  const [showSearch, setShowSearch] = useState(false);
+  const [search, setSearch] = useState('');
 
   const { isSuperAdmin } = useRoleCheck();
+  const { data: appUsers = [] } = useAppUsers();
 
   const q = useActivityLog(recordType, recordId, limit);
   const addNote = useAddManualNote(recordType, recordId ?? '');
@@ -237,46 +243,62 @@ export function ActivityChatter({ recordType, recordId, className }: Props) {
   const total = q.data?.total ?? 0;
 
   const filtered = useMemo(() => {
-    if (tab === 'note') return entries;
-    if (tab === 'activity') return entries.filter(e => e.action_type !== 'manual_note');
-    return [];
-  }, [entries, tab]);
+    const base = tab === 'note'
+      ? entries // show notes + inline system entries
+      : tab === 'activity'
+        ? entries.filter((e) => e.action_type !== 'manual_note')
+        : []; // 'message' — future stub
+    const q2 = search.trim().toLowerCase();
+    if (!q2) return base;
+    return base.filter((e) => {
+      const t = (e.note_text ?? '') + ' ' + (e.new_value ?? '') + ' ' + (e.old_value ?? '') + ' ' + (e.changed_by_name ?? '');
+      return t.toLowerCase().includes(q2);
+    });
+  }, [entries, tab, search]);
 
-  const handleFilesPicked = async (files: FileList | null) => {
-    if (!files || files.length === 0 || !recordId) return;
-    setUploading(true);
-    try {
-      const uploaded: ActivityAttachment[] = [];
-      for (const f of Array.from(files)) {
-        const att = await uploadActivityAttachment(f, recordType, recordId);
-        uploaded.push(att);
-      }
-      setPending((p) => [...p, ...uploaded]);
-    } catch (e: any) {
-      toast({ title: 'Upload failed', description: e?.message, variant: 'destructive' });
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+  // Day grouping — newest day first, entries within a day newest-first.
+  const grouped = useMemo(() => {
+    const map = new Map<string, ActivityLogEntry[]>();
+    for (const e of filtered) {
+      const key = dayBucket(e.changed_at);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(e);
     }
+    return Array.from(map.entries()); // preserves insertion (which matches sort)
+  }, [filtered]);
+
+  const uploaderForRecord = async (file: File): Promise<RichAttachment> => {
+    if (!recordId) throw new Error('No record id');
+    const att = await uploadActivityAttachment(file, recordType, recordId);
+    return {
+      name: att.name,
+      type: att.mime,
+      size: att.size,
+      url: att.url,
+      // stash the storage path on the object so we can persist it later
+      ...( { path: att.path } as any ),
+    };
   };
 
-  const removePending = (path: string) => {
-    setPending((p) => p.filter((a) => a.path !== path));
-  };
-
-  const handleSubmit = async () => {
-    const t = draft.trim();
-    if ((!t && pending.length === 0) || !recordId) return;
+  const handleSubmit = async (value: { html: string; mentions: string[]; attachments: RichAttachment[] }) => {
+    if (!recordId) return;
     if (tab === 'message') {
       toast({ title: 'Messaging not yet enabled', description: 'This will send to the customer/team once configured.' });
       return;
     }
     try {
-      await addNote.mutateAsync({ note: t, attachments: pending });
-      setDraft('');
-      setPending([]);
+      await addNote.mutateAsync({
+        note: value.html,
+        attachments: value.attachments.map(toActivityAttachment),
+        mentions: value.mentions,
+        recordLabel,
+      });
+      if (value.mentions?.length) {
+        toast({ title: 'Note logged', description: `Notified ${value.mentions.length} user${value.mentions.length === 1 ? '' : 's'}.` });
+      }
     } catch (e: any) {
       toast({ title: 'Failed to add note', description: e?.message, variant: 'destructive' });
+      throw e;
     }
   };
 
@@ -289,133 +311,139 @@ export function ActivityChatter({ recordType, recordId, className }: Props) {
 
   if (!recordId) return null;
 
-  const tabBtn = (key: TabKey, label: string, Icon: any) => (
-    <button
-      type="button"
-      onClick={() => setTab(key)}
-      className={cn(
-        'flex items-center gap-1.5 px-3 py-2 text-sm border-b-2 -mb-px transition-colors',
-        tab === key
-          ? 'border-primary text-foreground font-medium'
-          : 'border-transparent text-muted-foreground hover:text-foreground',
-      )}
-    >
-      <Icon className="h-3.5 w-3.5" />
-      {label}
-    </button>
-  );
+  const mentionUsers = appUsers.map((u) => ({
+    id: u.user_id,
+    name: displayNameFor(u) || u.email,
+    email: u.email,
+  }));
 
   return (
-    <Card className={cn('p-0 overflow-hidden', className)}>
-      {/* Tabs */}
-      <div className="flex items-center border-b px-2 pt-1">
-        {tabBtn('message', 'Send message', Send)}
-        {tabBtn('note', 'Log note', MessageSquare)}
-        {tabBtn('activity', 'Activity', ActivityIcon)}
-        <span className="ml-auto pr-2 text-xs text-muted-foreground">{total}</span>
+    <div className={cn('flex flex-col bg-card border border-border rounded-lg overflow-hidden', className)}>
+      {/* Tabs — pill style matching CRM Opportunity chatter */}
+      <div className="flex items-center border-b border-border px-3 py-2 gap-1 flex-wrap sm:flex-nowrap">
+        <Button
+          variant={tab === 'message' ? 'default' : 'outline'}
+          size="sm"
+          className={cn(
+            'h-8 px-3 text-xs font-medium',
+            tab === 'message' && 'bg-[#875A7B] hover:bg-[#6e4a64] text-white',
+          )}
+          onClick={() => setTab('message')}
+        >
+          Send message
+        </Button>
+        <Button
+          variant={tab === 'note' ? 'default' : 'outline'}
+          size="sm"
+          className={cn(
+            'h-8 px-3 text-xs font-medium',
+            tab === 'note' && 'bg-foreground text-background hover:bg-foreground/90',
+          )}
+          onClick={() => setTab('note')}
+        >
+          Log note
+        </Button>
+        <Button
+          variant={tab === 'activity' ? 'default' : 'outline'}
+          size="sm"
+          className="h-8 px-3 text-xs font-medium"
+          onClick={() => setTab('activity')}
+        >
+          Activity
+        </Button>
+        <div className="flex-1" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="text-muted-foreground hover:text-foreground p-1"
+              onClick={() => { setShowSearch((s) => !s); setSearch(''); }}
+              aria-label="Search"
+            >
+              <Search className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs">Search notes and activity</TooltipContent>
+        </Tooltip>
+        <span className="pr-1 text-xs text-muted-foreground tabular-nums">{total}</span>
       </div>
 
       {/* Composer */}
-      {tab !== 'activity' && (
-        <div className="p-3 border-b space-y-2">
-          <div className="flex gap-2">
-            <Avatar className="h-8 w-8 shrink-0">
-              <AvatarFallback className="text-xs">{initials(user?.name)}</AvatarFallback>
-            </Avatar>
-            <Textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder={tab === 'message' ? 'Send a message…' : 'Log an internal note…'}
-              rows={2}
-              className="resize-none flex-1"
-            />
-          </div>
-
-          {/* Pending attachments preview */}
-          {pending.length > 0 && (
-            <div className="flex flex-wrap gap-2 pl-10">
-              {pending.map((a) => (
-                <div key={a.path} className="relative group">
-                  {a.kind === 'image' ? (
-                    <img
-                      src={a.url}
-                      alt={a.name}
-                      className="h-20 w-20 object-cover rounded-md border"
-                    />
-                  ) : (
-                    <div className="h-20 w-20 rounded-md border bg-muted flex flex-col items-center justify-center px-1 text-center">
-                      <FileText className="h-6 w-6 text-muted-foreground" />
-                      <span className="text-[10px] truncate max-w-full mt-1">{a.name}</span>
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => removePending(a.path)}
-                    className="absolute -top-2 -right-2 bg-background border rounded-full p-0.5 shadow-sm hover:bg-muted"
-                    aria-label="Remove attachment"
-                  >
-                    <XIcon className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between pl-10">
-            <div className="flex items-center gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
-                className="hidden"
-                onChange={(e) => handleFilesPicked(e.target.files)}
+      {(tab === 'note' || tab === 'message') && (
+        <div className="p-3 border-b border-border">
+          <div className="flex gap-2.5">
+            <ChatterAvatar name={user?.name || user?.email?.split('@')[0] || 'User'} />
+            <div className="flex-1 min-w-0">
+              <RichComposer
+                compact
+                placeholder={
+                  tab === 'note'
+                    ? 'Log an internal note… type @ to mention'
+                    : 'Send a message… type @ to mention'
+                }
+                submitLabel={tab === 'note' ? 'Log' : 'Send'}
+                users={mentionUsers}
+                uploadFile={uploaderForRecord}
+                onSubmit={handleSubmit}
+                submitting={addNote.isPending}
               />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading || tab === 'message'}
-              >
-                <Paperclip className="h-3.5 w-3.5 mr-1.5" />
-                {uploading ? 'Uploading…' : 'Attach'}
-              </Button>
             </div>
-            <Button
-              size="sm"
-              onClick={handleSubmit}
-              disabled={(!draft.trim() && pending.length === 0) || addNote.isPending || uploading}
-            >
-              {tab === 'message' ? <Send className="h-3.5 w-3.5 mr-1.5" /> : <Edit3 className="h-3.5 w-3.5 mr-1.5" />}
-              {tab === 'message' ? 'Send' : addNote.isPending ? 'Logging…' : 'Log'}
-            </Button>
           </div>
         </div>
       )}
 
+      {/* Search */}
+      {showSearch && (
+        <div className="px-3 py-2 border-b border-border">
+          <Input
+            autoFocus
+            className="h-7 text-xs"
+            placeholder="Search…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+      )}
+
       {/* Timeline */}
-      <div className="p-3 space-y-2 max-h-[640px] overflow-y-auto">
+      <div className="flex-1 overflow-y-auto px-3 py-3 max-h-[640px]">
         {q.isLoading ? (
-          <>
+          <div className="space-y-2">
             <Skeleton className="h-14 w-full" />
             <Skeleton className="h-14 w-full" />
-          </>
+          </div>
         ) : filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">
-            {tab === 'activity' ? 'No activity yet.' : 'No notes yet.'}
+            {tab === 'activity' ? 'No activity yet.' : tab === 'message' ? 'No messages yet.' : 'No notes yet.'}
           </p>
         ) : (
-          filtered.map((e) => (
-            <EntryRow
-              key={e.id}
-              entry={e}
-              canDelete={isSuperAdmin}
-              onDelete={handleDelete}
-              currentUserId={user?.id}
-              currentUserName={user?.name}
-              onPreviewAttachment={setPreview}
-            />
+          grouped.map(([label, items]) => (
+            <div key={label}>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground">{label}</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+              {items.map((e) =>
+                e.action_type === 'manual_note' ? (
+                  <NoteRow
+                    key={e.id}
+                    entry={e}
+                    canDelete={isSuperAdmin || e.changed_by === user?.id}
+                    onDelete={handleDelete}
+                    currentUserId={user?.id}
+                    currentUserName={user?.name}
+                  />
+                ) : (
+                  <SystemLine
+                    key={e.id}
+                    entry={e}
+                    currentUserId={user?.id}
+                    currentUserName={user?.name}
+                  />
+                ),
+              )}
+            </div>
           ))
         )}
 
@@ -431,61 +459,7 @@ export function ActivityChatter({ recordType, recordId, className }: Props) {
           </div>
         )}
       </div>
-
-      {/* Image preview lightbox */}
-      <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
-        <DialogContent className="max-w-5xl w-[calc(100vw-2rem)] p-3 bg-background">
-          <DialogTitle className="truncate text-sm">
-            {preview?.name ?? 'Preview'}
-          </DialogTitle>
-          {preview && preview.kind === 'image' && (
-            <div className="flex items-center justify-center bg-muted rounded-md overflow-hidden">
-              <img
-                src={preview.url}
-                alt={preview.name}
-                className="w-full max-h-[75vh] object-contain"
-              />
-            </div>
-          )}
-          {preview && preview.kind !== 'image' && (
-            <div className="flex items-center gap-3 p-6 border rounded-md">
-              <FileText className="h-8 w-8 text-muted-foreground" />
-              <div className="flex-1 min-w-0">
-                <div className="truncate font-medium">{preview.name}</div>
-                <div className="text-xs text-muted-foreground">{humanSize(preview.size)}</div>
-              </div>
-            </div>
-          )}
-          <div className="flex items-center justify-end gap-2 pt-2">
-            {preview && (
-              <a
-                href={preview.url}
-                target="_blank"
-                rel="noreferrer"
-                download={preview.name}
-              >
-                <Button variant="outline" size="sm">
-                  <Download className="h-3.5 w-3.5 mr-1.5" /> Download
-                </Button>
-              </a>
-            )}
-            <Button
-              size="sm"
-              onClick={() => { if (preview) { setShareTarget(preview); } }}
-              disabled={!preview}
-            >
-              <Share2 className="h-3.5 w-3.5 mr-1.5" /> Share via Chat
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <ShareImageToChatDialog
-        open={!!shareTarget}
-        onOpenChange={(o) => { if (!o) setShareTarget(null); }}
-        attachment={shareTarget}
-      />
-    </Card>
+    </div>
   );
 }
 

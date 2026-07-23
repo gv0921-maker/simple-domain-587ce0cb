@@ -27,9 +27,21 @@ export function useAddManualNote(
 ) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (opts: string | { note: string; attachments?: ActivityAttachment[] }) => {
+    mutationFn: (opts:
+      | string
+      | {
+          note: string;
+          attachments?: ActivityAttachment[];
+          mentions?: string[];
+          recordLabel?: string;
+          linkUrl?: string;
+        }) => {
       if (typeof opts === 'string') return addManualNote(recordType, recordId, opts);
-      return addManualNote(recordType, recordId, opts.note, opts.attachments ?? []);
+      return addManualNote(recordType, recordId, opts.note, opts.attachments ?? [], {
+        mentions: opts.mentions,
+        recordLabel: opts.recordLabel,
+        linkUrl: opts.linkUrl,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['activity-log', recordType, recordId] });

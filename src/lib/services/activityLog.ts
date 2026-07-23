@@ -101,6 +101,7 @@ async function insertEntry(row: Record<string, unknown>) {
 export async function addManualNote(
   recordType: ActivityRecordType, recordId: string, noteText: string,
   attachments: ActivityAttachment[] = [],
+  opts: { mentions?: string[]; recordLabel?: string; linkUrl?: string } = {},
 ) {
   const t = noteText.trim();
   if (!t && attachments.length === 0) return;
@@ -109,6 +110,32 @@ export async function addManualNote(
     action_type: 'manual_note', note_text: t,
     attachments: attachments as unknown as Record<string, unknown>,
   });
+  const mentions = Array.from(new Set(opts.mentions ?? [])).filter(Boolean);
+  if (mentions.length > 0) {
+    const uid = await currentUid();
+    const title = opts.recordLabel
+      ? `You were mentioned on ${opts.recordLabel}`
+      : 'You were mentioned in a note';
+    // Strip HTML from body preview.
+    const plain = t.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 240);
+    const rows = mentions
+      .filter((m) => m !== uid) // don't notify yourself
+      .map((recipient) => ({
+        recipient_user_id: recipient,
+        title,
+        body: plain || 'You were mentioned.',
+        category: 'mention',
+        notification_type: 'mention',
+        priority: 'normal',
+        related_entity_type: recordType,
+        related_entity_id: recordId,
+        link_url: opts.linkUrl ?? null,
+      }));
+    if (rows.length > 0) {
+      // Fire-and-forget: mention notifications should not block note creation.
+      await supabase.from('notifications' as any).insert(rows as any);
+    }
+  }
 }
 
 export async function uploadActivityAttachment(
