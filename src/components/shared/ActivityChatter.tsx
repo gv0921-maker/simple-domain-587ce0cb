@@ -144,6 +144,11 @@ function EntryRow({
         return <span className="text-muted-foreground">deleted this record</span>;
       case 'status_change': {
         const label = entry.field_name === 'stage_id' ? 'Stage changed' : 'Status changed';
+        // System-authored transitions log a descriptive note_text with no
+        // old/new values — render that verbatim so it isn't shown as "— → —".
+        if (!entry.old_value && !entry.new_value && entry.note_text) {
+          return <span className="whitespace-pre-wrap">{entry.note_text}</span>;
+        }
         return (
           <span>
             <span className="text-muted-foreground">{label}: </span>
@@ -154,6 +159,9 @@ function EntryRow({
         );
       }
       case 'field_change':
+        if (!entry.old_value && !entry.new_value && entry.note_text) {
+          return <span className="whitespace-pre-wrap">{entry.note_text}</span>;
+        }
         return (
           <span>
             <span className="font-medium">{friendlyField(entry.field_name)}</span>
