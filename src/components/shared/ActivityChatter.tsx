@@ -244,10 +244,10 @@ export function ActivityChatter({ recordType, recordId, className, recordLabel }
 
   const filtered = useMemo(() => {
     const base = tab === 'note'
-      ? entries.filter((e) => e.action_type === 'manual_note' || e.action_type !== 'manual_note') // show all, notes + system inline
+      ? entries // show notes + inline system entries
       : tab === 'activity'
         ? entries.filter((e) => e.action_type !== 'manual_note')
-        : []; // 'message' — future stub, show nothing until enabled
+        : []; // 'message' — future stub
     const q2 = search.trim().toLowerCase();
     if (!q2) return base;
     return base.filter((e) => {
