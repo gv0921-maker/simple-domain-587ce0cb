@@ -577,24 +577,31 @@ export async function getAvailableSerialsAsync(productId: string): Promise<Seria
 }
 export async function saveSerialNumberAsync(s: SerialNumber): Promise<SerialNumber> {
   const row = serialToRow(s);
-  if (s.id && !s.id.startsWith('new-')) {
-    const { data, error } = await supabase.from('serial_numbers').update(row).eq('id', s.id).select().single();
-    if (error) throw error;
-    return mapSerial(data);
-  }
-  const { data, error } = await supabase.from('serial_numbers').insert(row).select().single();
-  if (error) throw error;
-  return mapSerial(data);
+  const isNew = !s.id || s.id.startsWith('new-');
+  const { data: id, error } = await (supabase as any).rpc('save_serial_number', {
+    _id: isNew ? null : s.id,
+    _product_id: row.product_id,
+    _name: row.name,
+    _status: row.status,
+    _lot_id: row.lot_id ?? null,
+    _location_id: row.location_id ?? null,
+  });
+  if (error) throw new Error(error.message);
+  const { data: fresh, error: fErr } = await supabase.from('serial_numbers').select('*').eq('id', id).single();
+  if (fErr) throw fErr;
+  return mapSerial(fresh);
 }
 export async function updateSerialStatusAsync(
   serialId: string,
   status: SerialNumber['status'],
   locationId?: string,
 ): Promise<void> {
-  const row: any = { status };
-  if (locationId !== undefined) row.location_id = locationId || null;
-  const { error } = await supabase.from('serial_numbers').update(row).eq('id', serialId);
-  if (error) throw error;
+  const { error } = await (supabase as any).rpc('update_serial_status', {
+    _serial_id: serialId,
+    _status: status,
+    _location_id: locationId ?? null,
+  });
+  if (error) throw new Error(error.message);
 }
 
 // ----------------------------------------------------------------------------
@@ -628,29 +635,19 @@ export async function getStockMovesByStateAsync(state: StockMoveState): Promise<
 }
 export async function saveStockMoveAsync(move: StockMove): Promise<StockMove> {
   const headerRow = stockMoveToRow(move);
-  let id = move.id;
-  if (id && !id.startsWith('new-')) {
-    const { error } = await supabase.from('stock_moves').update(headerRow).eq('id', id);
-    if (error) throw error;
-    // Replace lines: simple strategy — delete and reinsert
-    const del = await supabase.from('stock_move_lines').delete().eq('stock_move_id', id);
-    if (del.error) throw del.error;
-  } else {
-    const { data, error } = await supabase.from('stock_moves').insert(headerRow).select('id').single();
-    if (error) throw error;
-    id = data.id;
-  }
-  if (move.lines.length) {
-    const { error: linesErr } = await supabase
-      .from('stock_move_lines')
-      .insert(move.lines.map((l) => stockMoveLineToRow(id!, l)));
-    if (linesErr) throw linesErr;
-  }
-  return (await getStockMoveAsync(id!))!;
+  const isNew = !move.id || move.id.startsWith('new-');
+  const lines = move.lines.map((l) => stockMoveLineToRow('__placeholder__', l));
+  const { data: id, error } = await (supabase as any).rpc('inv_save_stock_move', {
+    _move_id: isNew ? null : move.id,
+    _header: headerRow as any,
+    _lines: lines as any,
+  });
+  if (error) throw new Error(error.message);
+  return (await getStockMoveAsync(id as string))!;
 }
 export async function deleteStockMoveAsync(id: string): Promise<void> {
-  const { error } = await supabase.from('stock_moves').delete().eq('id', id);
-  if (error) throw error;
+  const { error } = await (supabase as any).rpc('inv_delete_stock_move', { _move_id: id });
+  if (error) throw new Error(error.message);
 }
 export async function validateStockMoveAsync(moveId: string): Promise<void> {
   const { error } = await supabase.rpc('inv_validate_stock_move' as any, { _move_id: moveId });
