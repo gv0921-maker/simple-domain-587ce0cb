@@ -293,9 +293,16 @@ export default function GoodsReceiptWizard() {
             grId={gr.id}
             lines={lines}
             serials={serials}
+            isSubmitting={completeQC.isPending}
             onComplete={async (lineId, passed, failed, notes) => {
-              await completeQC.mutateAsync({ lineId, passedSerialIds: passed, failedSerialIds: failed, failedNotes: notes });
-              toast.success('QC completed for line');
+              try {
+                await completeQC.mutateAsync({ lineId, passedSerialIds: passed, failedSerialIds: failed, failedNotes: notes });
+                toast.success('QC completed for line');
+              } catch (e: any) {
+                console.error('[GR QC] complete_gr_line_qc failed', e);
+                toast.error(e?.message || 'Failed to complete QC for line');
+                throw e;
+              }
             }}
           />
         )}
@@ -500,28 +507,30 @@ function Step3Labels({
 }
 
 function Step4QC({
-  grId, lines, serials, onComplete,
+  grId, lines, serials, onComplete, isSubmitting,
 }: {
   grId: string;
   lines: any[];
   serials: GoodsReceiptSerial[];
   onComplete: (lineId: string, passed: string[], failed: string[], notes: string) => Promise<void>;
+  isSubmitting?: boolean;
 }) {
   return (
     <div className="space-y-6">
       {lines.map(l => (
-        <LineQCSection key={l.id} line={l} serials={serials.filter(s => s.goods_receipt_line_id === l.id)} onComplete={onComplete} />
+        <LineQCSection key={l.id} line={l} serials={serials.filter(s => s.goods_receipt_line_id === l.id)} onComplete={onComplete} isSubmitting={isSubmitting} />
       ))}
     </div>
   );
 }
 
 function LineQCSection({
-  line, serials, onComplete,
+  line, serials, onComplete, isSubmitting,
 }: {
   line: any;
   serials: GoodsReceiptSerial[];
   onComplete: (lineId: string, passed: string[], failed: string[], notes: string) => Promise<void>;
+  isSubmitting?: boolean;
 }) {
   // qc decisions: serial id -> 'pass' | 'fail' | undefined
   const [decisions, setDecisions] = useState<Record<string, 'pass' | 'fail'>>({});
@@ -576,8 +585,11 @@ function LineQCSection({
             )}
 
             <div className="flex justify-end">
-              <Button onClick={() => onComplete(line.id, decidedPass, decidedFail, notes)} disabled={!allDecided}>
-                Complete QC for Line
+              <Button
+                onClick={() => { onComplete(line.id, decidedPass, decidedFail, notes).catch(() => { /* toast handled upstream */ }); }}
+                disabled={!allDecided || !!isSubmitting}
+              >
+                {isSubmitting ? 'Submitting…' : 'Complete QC for Line'}
               </Button>
             </div>
           </>
