@@ -294,8 +294,14 @@ export default function GoodsReceiptWizard() {
             lines={lines}
             serials={serials}
             onComplete={async (lineId, passed, failed, notes) => {
-              await completeQC.mutateAsync({ lineId, passedSerialIds: passed, failedSerialIds: failed, failedNotes: notes });
-              toast.success('QC completed for line');
+              try {
+                await completeQC.mutateAsync({ lineId, passedSerialIds: passed, failedSerialIds: failed, failedNotes: notes });
+                toast.success('QC completed for line');
+              } catch (e: any) {
+                console.error('[GR QC] complete_gr_line_qc failed', e);
+                toast.error(e?.message || 'Failed to complete QC for line');
+                throw e;
+              }
             }}
           />
         )}
