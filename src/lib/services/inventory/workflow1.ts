@@ -1,16 +1,11 @@
 import { supabase } from '@/integrations/supabase/client';
-import { getQCInspections, type QCExpectedLine } from '@/lib/services/inventory/qcEngine';
+import type { QCExpectedLine } from '@/lib/services/inventory/qcEngine';
 
 const sb = supabase as any;
 
 // ------------------------------------------------------------------
 // Helpers
 // ------------------------------------------------------------------
-
-async function authUserId(): Promise<string | null> {
-  const { data } = await supabase.auth.getUser();
-  return data.user?.id ?? null;
-}
 
 async function usersWithRoles(roles: string[]): Promise<string[]> {
   if (roles.length === 0) return [];
