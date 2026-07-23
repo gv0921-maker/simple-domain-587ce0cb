@@ -1540,6 +1540,13 @@ export type Database = {
             referencedColumns: ["serial_id"]
           },
           {
+            foreignKeyName: "correction_order_items_goods_receipt_serial_id_fkey"
+            columns: ["goods_receipt_serial_id"]
+            isOneToOne: false
+            referencedRelation: "v_available_serials"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "correction_order_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -3367,6 +3374,13 @@ export type Database = {
             referencedColumns: ["serial_id"]
           },
           {
+            foreignKeyName: "exchanges_original_serial_id_fkey"
+            columns: ["original_serial_id"]
+            isOneToOne: false
+            referencedRelation: "v_available_serials"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "exchanges_payment_received_id_fkey"
             columns: ["payment_received_id"]
             isOneToOne: false
@@ -3400,6 +3414,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "serials_without_history"
             referencedColumns: ["serial_id"]
+          },
+          {
+            foreignKeyName: "exchanges_replacement_serial_id_fkey"
+            columns: ["replacement_serial_id"]
+            isOneToOne: false
+            referencedRelation: "v_available_serials"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "exchanges_return_request_item_id_fkey"
@@ -3937,6 +3958,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "serials_without_history"
             referencedColumns: ["serial_id"]
+          },
+          {
+            foreignKeyName: "internal_movement_items_goods_receipt_serial_id_fkey"
+            columns: ["goods_receipt_serial_id"]
+            isOneToOne: false
+            referencedRelation: "v_available_serials"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "internal_movement_items_internal_movement_id_fkey"
@@ -6711,6 +6739,13 @@ export type Database = {
             referencedColumns: ["serial_id"]
           },
           {
+            foreignKeyName: "return_request_items_goods_receipt_serial_id_fkey"
+            columns: ["goods_receipt_serial_id"]
+            isOneToOne: false
+            referencedRelation: "v_available_serials"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "return_request_items_invoice_line_id_fkey"
             columns: ["invoice_line_id"]
             isOneToOne: false
@@ -7733,6 +7768,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "serials_without_history"
             referencedColumns: ["serial_id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_goods_receipt_serial_id_fkey"
+            columns: ["goods_receipt_serial_id"]
+            isOneToOne: false
+            referencedRelation: "v_available_serials"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "stock_count_items_product_id_fkey"
@@ -9308,6 +9350,13 @@ export type Database = {
             referencedColumns: ["serial_id"]
           },
           {
+            foreignKeyName: "write_off_items_goods_receipt_serial_id_fkey"
+            columns: ["goods_receipt_serial_id"]
+            isOneToOne: false
+            referencedRelation: "v_available_serials"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "write_off_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -9487,6 +9536,93 @@ export type Database = {
           serial_number?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "goods_receipt_serials_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_available_serials: {
+        Row: {
+          barcode_value: string | null
+          current_warehouse_id: string | null
+          goods_receipt_id: string | null
+          id: string | null
+          location_id: string | null
+          location_name: string | null
+          product_id: string | null
+          serial_number: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_receipt_serials_current_warehouse_id_fkey"
+            columns: ["current_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_serials_goods_receipt_id_fkey"
+            columns: ["goods_receipt_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_serials_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_product_stock: {
+        Row: {
+          available: number | null
+          delivered: number | null
+          in_transit: number | null
+          lost: number | null
+          on_hand: number | null
+          product_id: string | null
+          reserved: number | null
+          scrapped: number | null
+          under_correction: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_receipt_serials_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_product_stock_by_location: {
+        Row: {
+          available: number | null
+          current_warehouse_id: string | null
+          in_transit: number | null
+          location_id: string | null
+          location_name: string | null
+          on_hand: number | null
+          product_id: string | null
+          reserved: number | null
+          under_correction: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_receipt_serials_current_warehouse_id_fkey"
+            columns: ["current_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "goods_receipt_serials_product_id_fkey"
             columns: ["product_id"]
