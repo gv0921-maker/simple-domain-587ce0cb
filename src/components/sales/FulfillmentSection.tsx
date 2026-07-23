@@ -348,7 +348,20 @@ export function FulfillmentSection({ salesOrderId, salesOrderStatus, salesOrderC
                 </Button>
               )}
               {readyToInvoice && (
-                <Button size="sm" onClick={() => navigate(`/invoicing/invoices/new?sales_order=${salesOrderId}`)}>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    // Trigger the InvoicingSection's Create Invoice dialog on this same page.
+                    // Never navigate to a non-existent invoice — creation happens via the
+                    // create_partial_invoice RPC and only then do we route to the invoice.
+                    window.dispatchEvent(
+                      new CustomEvent('so:open-create-invoice', { detail: { salesOrderId } }),
+                    );
+                    document
+                      .getElementById('so-invoicing-section')
+                      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                >
                   <Receipt className="h-4 w-4 mr-2" /> Generate Invoice
                 </Button>
               )}
