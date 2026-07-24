@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { generateDocumentNumber } from '@/lib/services/numbering/api';
 
 export type InvoiceType = 'regular' | 'warranty' | 'factory';
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
@@ -264,7 +265,6 @@ export async function generateInvoiceFromOrder(orderId: string): Promise<{ invoi
   if (linesErr) throw linesErr;
 
   // 2. FY-based reference (e.g. INV-2526-0001)
-  const { generateDocumentNumber } = await import('@/lib/services/numbering/api');
   const reference = await generateDocumentNumber('invoice');
 
   const today = new Date().toISOString().slice(0, 10);

@@ -7,6 +7,7 @@
 // these directly.
 
 import { supabase } from '@/integrations/supabase/client';
+import { generateDocumentNumber } from '@/lib/services/numbering/api';
 import type {
   Product, Warehouse, Location, Lot, SerialNumber,
   StockMove, StockMoveLine, InventoryTransfer, LegacyStockMove,
@@ -691,7 +692,6 @@ export async function saveTransferAsync(t: InventoryTransfer): Promise<Inventory
   // Auto-assign FY-based internal_transfer reference on first save when missing or legacy TRF/...
   const isNewSave = !t.id || t.id.startsWith('new-');
   if (isNewSave && (!t.reference || /^TRF\//.test(t.reference))) {
-    const { generateDocumentNumber } = await import('@/lib/services/numbering/api');
     headerRow.reference = await generateDocumentNumber('internal_transfer');
   }
   let id = t.id;
@@ -787,7 +787,6 @@ export async function saveAdjustmentAsync(a: InventoryAdjustment): Promise<Inven
   const headerRow = adjustmentToRow(a);
   // Auto-assign FY-based stock_count reference on first save
   if ((!a.reference || a.reference === '') && (!a.id || a.id.startsWith('new-'))) {
-    const { generateDocumentNumber } = await import('@/lib/services/numbering/api');
     headerRow.reference = await generateDocumentNumber('stock_count');
   }
   let id = a.id;
