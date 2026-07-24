@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CustomizationProvider } from "@/contexts/CustomizationContext";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Auth pages
 import LoginPage from "@/pages/auth/LoginPage";
@@ -258,6 +259,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
+          <ErrorBoundary label="App">
           <Routes>
             {/* Auth routes */}
             <Route path="/login" element={<LoginPage />} />
@@ -531,6 +533,7 @@ const App = () => (
             <Route path="/settings/notifications" element={<ProtectedRoute><NotificationSettings /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </ErrorBoundary>
         </BrowserRouter>
         </TooltipProvider>
       </AccessibilityProvider>

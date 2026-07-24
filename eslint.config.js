@@ -19,6 +19,11 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // Pinned explicitly rather than inherited: conditional hooks previously
+      // crashed several pages at runtime ("Rendered more hooks than during the
+      // previous render"), so this must not silently soften if the recommended
+      // preset changes.
+      "react-hooks/rules-of-hooks": "error",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
     },
