@@ -15,9 +15,7 @@ import HomePage from "@/pages/HomePage";
 
 // Inventory pages
 import InventoryOverview from "@/pages/inventory/InventoryOverview";
-import TransferDetail from "@/pages/inventory/TransferDetail";
 import ItoDetail from "@/pages/inventory/ItoDetail";
-import TransferForm from "@/pages/inventory/TransferForm";
 import ProductsList from "@/pages/inventory/ProductsList";
 import ProductDetail from "@/pages/inventory/ProductDetail";
 import WarehousesList from "@/pages/inventory/WarehousesList";
@@ -76,11 +74,6 @@ import ManufacturingOverview from "@/pages/manufacturing/ManufacturingOverview";
 import WorkOrdersList from "@/pages/manufacturing/WorkOrdersList";
 import WorkOrderForm from "@/pages/manufacturing/WorkOrderForm";
 import WorkOrderDetail from "@/pages/manufacturing/WorkOrderDetail";
-import BOMList from "@/pages/manufacturing/BOMList";
-import WorkCenters from "@/pages/manufacturing/WorkCenters";
-import WorkCenterForm from "@/pages/manufacturing/WorkCenterForm";
-import ProductionPlanning from "@/pages/manufacturing/ProductionPlanning";
-import ShopFloor from "@/pages/manufacturing/ShopFloor";
 import ShopFloorHome from "@/pages/shopfloor/ShopFloorHome";
 import ShopFloorWorkOrderDetail from "@/pages/shopfloor/ShopFloorWorkOrderDetail";
 import FactoryInventoryPage from "@/pages/shopfloor/FactoryInventory";
@@ -271,9 +264,6 @@ const App = () => (
             <Route path="/inventory" element={<ProtectedRoute><InventoryOverview /></ProtectedRoute>} />
             <Route path="/inventory/products" element={<ProtectedRoute><ProductsList /></ProtectedRoute>} />
             <Route path="/inventory/products/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
-            <Route path="/inventory/transfers/:id" element={<ProtectedRoute><TransferDetail /></ProtectedRoute>} />
-            <Route path="/inventory/transfers/new" element={<ProtectedRoute><TransferForm /></ProtectedRoute>} />
-            <Route path="/inventory/transfers/:id/edit" element={<ProtectedRoute><TransferForm /></ProtectedRoute>} />
             <Route path="/inventory/ito/:id" element={<ProtectedRoute><ItoDetail /></ProtectedRoute>} />
             <Route path="/inventory/warehouses" element={<ProtectedRoute><WarehousesList /></ProtectedRoute>} />
             <Route path="/inventory/locations" element={<ProtectedRoute><WarehouseLocations /></ProtectedRoute>} />
@@ -487,15 +477,9 @@ const App = () => (
             <Route path="/manufacturing/work-orders/new" element={<ProtectedRoute><WorkOrderForm /></ProtectedRoute>} />
             <Route path="/manufacturing/work-orders/:id/edit" element={<ProtectedRoute><WorkOrderForm /></ProtectedRoute>} />
             <Route path="/manufacturing/work-orders/:id" element={<ProtectedRoute><WorkOrderDetail /></ProtectedRoute>} />
-            <Route path="/manufacturing/bom" element={<ProtectedRoute><BOMList /></ProtectedRoute>} />
-            <Route path="/manufacturing/work-centers" element={<ProtectedRoute><WorkCenters /></ProtectedRoute>} />
-            <Route path="/manufacturing/work-centers/new" element={<ProtectedRoute><WorkCenterForm /></ProtectedRoute>} />
-            <Route path="/manufacturing/work-centers/:id/edit" element={<ProtectedRoute><WorkCenterForm /></ProtectedRoute>} />
-            <Route path="/manufacturing/planning" element={<ProtectedRoute><ProductionPlanning /></ProtectedRoute>} />
             <Route path="/shop-floor" element={<RouteGuard requiredRoles={["factory_incharge","admin","super_admin"]} denyMessage="Shop Floor requires Factory Incharge or Admin."><ShopFloorHome /></RouteGuard>} />
             <Route path="/shop-floor/work-orders/:id" element={<RouteGuard requiredRoles={["factory_incharge","admin","super_admin"]} denyMessage="Shop Floor requires Factory Incharge or Admin."><ShopFloorWorkOrderDetail /></RouteGuard>} />
             <Route path="/shop-floor/factory-inventory" element={<RouteGuard requiredRoles={["factory_incharge","admin","super_admin"]} denyMessage="Shop Floor requires Factory Incharge or Admin."><FactoryInventoryPage /></RouteGuard>} />
-            <Route path="/manufacturing/shop-floor" element={<ProtectedRoute><ShopFloor /></ProtectedRoute>} />
 
             {/* Invoices module */}
             <Route path="/invoicing" element={<ProtectedRoute><BillsList /></ProtectedRoute>} />

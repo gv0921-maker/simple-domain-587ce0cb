@@ -11,33 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Search, Filter } from 'lucide-react';
 import { useWorkOrdersV2, useAssignableUsers } from '@/hooks/manufacturing/workOrders';
 import { useIsSuperAdmin } from '@/hooks/useIsSuperAdmin';
-import type { WorkOrderStage } from '@/lib/services/manufacturing/workOrders';
-
-const STAGE_LABELS: Record<WorkOrderStage, string> = {
-  draft: 'Draft',
-  pending_approval: 'Pending Approval',
-  approved: 'Approved',
-  placed: 'Placed at Factory',
-  work_start: 'Work Started',
-  polishing: 'Polishing',
-  completed: 'Completed (Factory)',
-  received_at_store: 'Received at Store',
-  cancelled: 'Cancelled',
-  rejected: 'Rejected',
-};
-
-const STAGE_VARIANT: Record<WorkOrderStage, string> = {
-  draft: 'bg-muted text-muted-foreground',
-  pending_approval: 'bg-amber-50 text-amber-700 border border-amber-200',
-  approved: 'bg-blue-50 text-blue-700 border border-blue-200',
-  placed: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
-  work_start: 'bg-purple-50 text-purple-700 border border-purple-200',
-  polishing: 'bg-purple-50 text-purple-700 border border-purple-200',
-  completed: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-  received_at_store: 'bg-emerald-100 text-emerald-800 border border-emerald-300',
-  cancelled: 'bg-red-50 text-red-700 border border-red-200',
-  rejected: 'bg-red-50 text-red-700 border border-red-200',
-};
+import { STAGE_LABELS, STAGE_VARIANT, type WorkOrderStage } from '@/lib/services/manufacturing/workOrders';
 
 export default function WorkOrdersList() {
   const navigate = useNavigate();

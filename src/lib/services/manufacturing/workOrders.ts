@@ -8,6 +8,40 @@ export type WorkOrderStage =
   | 'work_start' | 'polishing' | 'completed' | 'received_at_store'
   | 'cancelled' | 'rejected';
 
+/** Display vocabulary for the stage machine. Single source of truth so the
+ *  list, the overview and any future screen cannot drift apart. */
+export const STAGE_LABELS: Record<WorkOrderStage, string> = {
+  draft: 'Draft',
+  pending_approval: 'Pending Approval',
+  approved: 'Approved',
+  placed: 'Placed at Factory',
+  work_start: 'Work Started',
+  polishing: 'Polishing',
+  completed: 'Completed (Factory)',
+  received_at_store: 'Received at Store',
+  cancelled: 'Cancelled',
+  rejected: 'Rejected',
+};
+
+export const STAGE_VARIANT: Record<WorkOrderStage, string> = {
+  draft: 'bg-muted text-muted-foreground',
+  pending_approval: 'bg-amber-50 text-amber-700 border border-amber-200',
+  approved: 'bg-blue-50 text-blue-700 border border-blue-200',
+  placed: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
+  work_start: 'bg-purple-50 text-purple-700 border border-purple-200',
+  polishing: 'bg-purple-50 text-purple-700 border border-purple-200',
+  completed: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  received_at_store: 'bg-emerald-100 text-emerald-800 border border-emerald-300',
+  cancelled: 'bg-red-50 text-red-700 border border-red-200',
+  rejected: 'bg-red-50 text-red-700 border border-red-200',
+};
+
+/** Stages where the unit is physically being worked on at the factory. */
+export const IN_PRODUCTION_STAGES: WorkOrderStage[] = ['placed', 'work_start', 'polishing'];
+
+/** Stages where the work order is finished or abandoned — no longer pipeline. */
+export const CLOSED_STAGES: WorkOrderStage[] = ['received_at_store', 'cancelled', 'rejected'];
+
 export interface WorkOrderRow {
   id: string;
   wo_number: string;

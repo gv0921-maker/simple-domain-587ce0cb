@@ -134,7 +134,7 @@ function getTabFromPath(moduleId: string, pathname: string): string | null {
   const normalized = normalizePathname(pathname);
 
   // Route aliases for pages that map to an existing tab but do not share its base href
-  if (moduleId === 'inventory' && (normalized.startsWith('/inventory/transfers') || normalized.startsWith('/barcode'))) {
+  if (moduleId === 'inventory' && normalized.startsWith('/barcode')) {
     return 'operations';
   }
 
