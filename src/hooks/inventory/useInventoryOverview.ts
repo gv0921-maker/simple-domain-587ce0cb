@@ -33,18 +33,29 @@ async function fetchOverview(): Promise<InventoryOverviewMetrics> {
     imTotal,
     productsValueRes,
   ] = await Promise.all([
+    // Every status list below is constrained by a CHECK on its table. Invented
+    // values silently match nothing, so a card reads zero forever rather than
+    // failing — which is how most of these were wrong. If you change one,
+    // check the constraint in the migration named beside it.
     count(supabase.from('products')).eq('is_active', true),
     count(supabase.from('warehouses')).eq('is_active', true),
-    count(supabase.from('internal_transfer_orders')).in('status', ['draft', 'partly_completed', 'in_transit', 'pending']),
+    // internal_transfer_orders: draft|confirmed|partial|completed|cancelled (20260613051453)
+    count(supabase.from('internal_transfer_orders')).in('status', ['draft', 'confirmed', 'partial']),
+    // goods_receipts: draft|quantity_pending|labels_pending|qc_pending|completed|cancelled (20260613053609)
     count(supabase.from('goods_receipts')).eq('status', 'draft'),
-    count(supabase.from('goods_receipts')).in('status', ['pending', 'pending_qc', 'in_progress', 'receiving']),
+    count(supabase.from('goods_receipts')).in('status', ['quantity_pending', 'labels_pending', 'qc_pending']),
     count(supabase.from('goods_receipts')).eq('status', 'completed'),
-    count(supabase.from('correction_orders')).in('status', ['draft', 'open', 'pending', 'in_progress']),
-    count(supabase.from('delivery_notes')).in('status', ['draft', 'waiting', 'pending', 'ready']),
+    // correction_orders: draft|sent|in_progress|completed|closed|cancelled (20260613054744)
+    count(supabase.from('correction_orders')).in('status', ['draft', 'sent', 'in_progress']),
+    // delivery_notes: draft|confirmed|delivered (20260609115823)
+    count(supabase.from('delivery_notes')).in('status', ['draft', 'confirmed']),
     count(supabase.from('delivery_notes')).eq('status', 'delivered'),
-    count(supabase.from('stock_counts')).in('status', ['draft', 'in_progress', 'pending']),
-    count(supabase.from('write_off_records')).in('status', ['draft', 'pending', 'pending_approval']),
-    count(supabase.from('internal_movements')).in('status', ['draft', 'pending', 'in_progress']),
+    // stock_counts: no CHECK; service uses draft|in_progress|completed|skipped
+    count(supabase.from('stock_counts')).in('status', ['draft', 'in_progress']),
+    // write_off_records: draft|approved|cancelled (20260613063355) — no pending state
+    count(supabase.from('write_off_records')).eq('status', 'draft'),
+    // internal_movements: draft|in_progress|completed|cancelled (20260613061141)
+    count(supabase.from('internal_movements')).in('status', ['draft', 'in_progress']),
     count(supabase.from('internal_movements')),
     supabase.from('products').select('stock_on_hand, cost_price').eq('is_active', true),
   ]);
