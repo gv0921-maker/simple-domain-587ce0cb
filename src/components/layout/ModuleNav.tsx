@@ -41,20 +41,21 @@ export function ModuleNav({ items: rawItems }: ModuleNavProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  if (!rawItems || rawItems.length === 0) return null;
+  // Every hook below runs unconditionally. `items` can legitimately be empty
+  // (an empty module nav, or a settings section with no visible entries), so
+  // the empty-state bail-out happens after the hooks, not before them.
 
   // Grouped (settings sections): render only the items in the section that
   // contains the active route. Falls back to the first section's items.
-  let items: NavItem[];
-  if (isGrouped(rawItems)) {
-    const section =
-      findSectionForPath(rawItems, location.pathname) ?? rawItems[0];
-    items = section.items.map(({ label, href }) => ({ label, href }));
-  } else {
-    items = rawItems;
-  }
-
-  if (items.length === 0) return null;
+  const items = useMemo<NavItem[]>(() => {
+    if (!rawItems || rawItems.length === 0) return [];
+    if (isGrouped(rawItems)) {
+      const section =
+        findSectionForPath(rawItems, location.pathname) ?? rawItems[0];
+      return section.items.map(({ label, href }) => ({ label, href }));
+    }
+    return rawItems;
+  }, [rawItems, location.pathname]);
 
   // Module root is the first path segment of the first tab. The index tab
   // (usually the module overview/default sub-path) should only match exactly,
@@ -63,46 +64,6 @@ export function ModuleNav({ items: rawItems }: ModuleNavProps) {
     const firstHref = items[0]?.href ?? '';
     return '/' + firstHref.split('/').filter(Boolean)[0];
   }, [items]);
-
-  const indexHref = items[0]?.href ?? '';
-  const isIndexTab = (item: NavItem): boolean => item.href === indexHref;
-
-  // Flatten children for active detection & mobile select
-  const flatItems: NavItem[] = items.flatMap((i) =>
-    i.children && i.children.length > 0 ? [i, ...i.children] : [i],
-  ).filter((i) => !i.heading && !!i.href);
-
-  const isItemActive = (item: NavItem): boolean => {
-    if (item.heading || !item.href) return false;
-    if (isIndexTab(item)) {
-      return (
-        location.pathname === moduleRoot || location.pathname === item.href
-      );
-    }
-    if (
-      location.pathname === item.href ||
-      location.pathname.startsWith(item.href + '/')
-    )
-      return true;
-    return (item.children ?? []).some(isItemActive);
-  };
-
-  // Pick the longest matching href so nested routes win over parent index.
-  const activeItem =
-    [...flatItems]
-      .sort((a, b) => b.href.length - a.href.length)
-      .find((i) => {
-        if (i.heading || !i.href) return false;
-        if (isIndexTab(i)) {
-          return (
-            location.pathname === moduleRoot || location.pathname === i.href
-          );
-        }
-        return (
-          location.pathname === i.href ||
-          location.pathname.startsWith(i.href + '/')
-        );
-      }) ?? items[0];
 
   // Scroll arrows
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -151,6 +112,48 @@ export function ModuleNav({ items: rawItems }: ModuleNavProps) {
       });
     }
   }, [location.pathname, items.length]);
+
+  if (items.length === 0) return null;
+
+  const indexHref = items[0]?.href ?? '';
+  const isIndexTab = (item: NavItem): boolean => item.href === indexHref;
+
+  // Flatten children for active detection & mobile select
+  const flatItems: NavItem[] = items.flatMap((i) =>
+    i.children && i.children.length > 0 ? [i, ...i.children] : [i],
+  ).filter((i) => !i.heading && !!i.href);
+
+  const isItemActive = (item: NavItem): boolean => {
+    if (item.heading || !item.href) return false;
+    if (isIndexTab(item)) {
+      return (
+        location.pathname === moduleRoot || location.pathname === item.href
+      );
+    }
+    if (
+      location.pathname === item.href ||
+      location.pathname.startsWith(item.href + '/')
+    )
+      return true;
+    return (item.children ?? []).some(isItemActive);
+  };
+
+  // Pick the longest matching href so nested routes win over parent index.
+  const activeItem =
+    [...flatItems]
+      .sort((a, b) => b.href.length - a.href.length)
+      .find((i) => {
+        if (i.heading || !i.href) return false;
+        if (isIndexTab(i)) {
+          return (
+            location.pathname === moduleRoot || location.pathname === i.href
+          );
+        }
+        return (
+          location.pathname === i.href ||
+          location.pathname.startsWith(i.href + '/')
+        );
+      }) ?? items[0];
 
   const scrollBy = (dx: number) => {
     scrollRef.current?.scrollBy({ left: dx, behavior: 'smooth' });

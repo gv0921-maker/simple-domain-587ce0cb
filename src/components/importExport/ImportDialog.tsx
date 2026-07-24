@@ -59,12 +59,14 @@ export function ImportDialog({ open, onOpenChange, schemaKey, onImported }: Prop
     }
   }, [open]);
 
-  if (!schema) return null;
-
+  // `schema` is resolved from a registry that populates asynchronously, so the
+  // unknown-schema bail-out has to come after every hook.
   const mappedRows = useMemo(
-    () => mapRowsToSchema(rawRows, headerMap, schema),
+    () => (schema ? mapRowsToSchema(rawRows, headerMap, schema) : []),
     [rawRows, headerMap, schema],
   );
+
+  if (!schema) return null;
 
   const handleFile = async (f: File) => {
     setFile(f); setBusy(true);

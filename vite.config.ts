@@ -112,4 +112,29 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Routes are lazy-loaded, but the heavy libraries below would
+        // otherwise be pulled into whichever route chunk happens to reach
+        // them first and re-downloaded elsewhere. Splitting them by hand
+        // keeps them in stable, cacheable chunks.
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-charts": ["recharts"],
+          "vendor-editor": [
+            "@tiptap/react",
+            "@tiptap/starter-kit",
+            "@tiptap/extension-table",
+            "@tiptap/extension-link",
+            "@tiptap/extension-text-align",
+          ],
+          "vendor-pdf": ["jspdf", "jspdf-autotable", "html2canvas"],
+          "vendor-sheets": ["xlsx"],
+          "vendor-scanner": ["html5-qrcode", "jsbarcode", "qrcode.react"],
+          "vendor-supabase": ["@supabase/supabase-js"],
+        },
+      },
+    },
+  },
 }));

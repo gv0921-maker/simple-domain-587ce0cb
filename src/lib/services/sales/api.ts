@@ -6,6 +6,7 @@
 // legacy exports until every consumer is moved over.
 
 import { supabase } from '@/integrations/supabase/client';
+import { generateDocumentNumber } from '@/lib/services/numbering/api';
 import type {
   Quotation, QuotationLine, QuotationVersion,
   SalesOrder, SalesOrderLine, OrderActivity,
@@ -1392,11 +1393,9 @@ export async function deleteSubscriptionRich(id: string): Promise<void> {
 
 // Reference generators (server-side count to avoid collisions).
 export async function generateQuotationReferenceRich(): Promise<string> {
-  const { generateDocumentNumber } = await import('@/lib/services/numbering/api');
   return generateDocumentNumber('quotation');
 }
 export async function generateOrderReferenceRich(): Promise<string> {
-  const { generateDocumentNumber } = await import('@/lib/services/numbering/api');
   return generateDocumentNumber('sales_order');
 }
 export async function generateSubscriptionReferenceRich(): Promise<string> {

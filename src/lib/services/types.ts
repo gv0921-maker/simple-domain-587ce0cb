@@ -128,11 +128,12 @@ export interface HRService {
 }
 
 // ============ Manufacturing ============
+// Work centres, BOMs and ECOs were part of the pre-stage-machine model and
+// have been removed. Manufacturing is now the staged work-order flow in
+// services/manufacturing/workOrders.ts; the factory-side BOM lives in
+// work_order_bom_entries.
 export interface ManufacturingService {
-  getWorkOrders: () => Maybe<unknown[]>;
-  getWorkCenters: () => Maybe<unknown[]>;
-  getBOMs: () => Maybe<unknown[]>;
-  getECOs?: () => Maybe<unknown[]>;
+  fetchWorkOrders: () => Maybe<unknown[]>;
 }
 
 // ============ Settings ============

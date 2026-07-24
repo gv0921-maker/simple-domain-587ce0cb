@@ -45,7 +45,7 @@ export default function WarehouseDashboard() {
         <h3 className="text-sm font-semibold mb-3">Quick Actions</h3>
         <QuickActionGrid actions={[
           { label: 'Goods Receipt', href: '/inventory/operations', icon: Plus, variant: 'primary' },
-          { label: 'Stock Transfer', href: '/inventory/transfers/new', icon: ArrowRightLeft },
+          { label: 'Stock Transfer', href: '/inventory/internal-movements/new', icon: ArrowRightLeft },
           { label: 'Adjustment', href: '/inventory/adjustments', icon: Plus },
         ]} />
       </div>

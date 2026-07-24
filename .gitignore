@@ -24,3 +24,9 @@ dist-ssr
 *.sw?
 
 tmp/
+
+# Lovable editor scratch files
+.lovable/
+
+# Superseded binary bun lockfile; bun.lock (text) is authoritative
+bun.lockb

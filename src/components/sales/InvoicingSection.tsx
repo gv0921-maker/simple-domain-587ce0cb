@@ -61,15 +61,16 @@ export function InvoicingSection({ salesOrderId, salesOrderStatus }: Props) {
   const { data: summary } = useSOInvoiceSummary(salesOrderId);
   const { data: invoices = [] } = useInvoicesForSO(salesOrderId);
 
-  const eligible = ['ready_to_invoice', 'invoicing', 'invoiced', 'fulfilling'].includes(salesOrderStatus);
-  if (!eligible) return null;
-
   const total = summary?.total_order_value ?? 0;
   const invoiced = summary?.total_invoiced_value ?? 0;
   const balance = summary?.balance_to_invoice ?? 0;
   const pct = total > 0 ? Math.min(100, Math.round((invoiced / total) * 100)) : 0;
 
   const [open, setOpen] = useState(false);
+
+  // `salesOrderStatus` changes as the order advances while this page stays
+  // mounted, so the eligibility bail-out has to come after every hook.
+  const eligible = ['ready_to_invoice', 'invoicing', 'invoiced', 'fulfilling'].includes(salesOrderStatus);
 
   // Allow FulfillmentSection (on the same SO page) to open the Create Invoice
   // dialog without navigating away to a non-existent invoice route.
@@ -87,6 +88,8 @@ export function InvoicingSection({ salesOrderId, salesOrderStatus }: Props) {
     window.addEventListener('so:open-create-invoice', handler as EventListener);
     return () => window.removeEventListener('so:open-create-invoice', handler as EventListener);
   }, [salesOrderId, balance]);
+
+  if (!eligible) return null;
 
   return (
     <Card id="so-invoicing-section">

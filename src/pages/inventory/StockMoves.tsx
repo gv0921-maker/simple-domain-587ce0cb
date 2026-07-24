@@ -252,7 +252,7 @@ export default function StockMoves() {
             </Select>
           </div>
           {canCreateMoves && (
-            <Button onClick={() => navigate('/inventory/transfers/new')} className="gap-2">
+            <Button onClick={() => navigate('/inventory/internal-movements/new')} className="gap-2">
               <Plus className="h-4 w-4" />
               New Stock Move
             </Button>
@@ -329,9 +329,8 @@ export default function StockMoves() {
                   return (
                     <TableRow
                       key={move.id}
-                      className="cursor-pointer hover:bg-muted/50 animate-fade-in"
+                      className="hover:bg-muted/50 animate-fade-in"
                       style={{ animationDelay: `${index * 30}ms` }}
-                      onClick={() => navigate(`/inventory/transfers/${move.id}`)}
                     >
                       <TableCell>
                         <div className={cn('h-9 w-9 rounded-lg flex items-center justify-center', colorClass)}>
@@ -362,10 +361,6 @@ export default function StockMoves() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => navigate(`/inventory/transfers/${move.id}`)}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
                             {canValidate && ['confirmed', 'assigned'].includes(move.state) && (
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleValidate(move.id); }}>
                                 <Check className="h-4 w-4 mr-2" />

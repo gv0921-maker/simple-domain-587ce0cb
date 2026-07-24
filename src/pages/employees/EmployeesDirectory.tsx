@@ -23,11 +23,26 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function EmployeesDirectory() {
+  const { isAdmin, loading } = useIsSuperAdmin();
+
+  // The role check resolves asynchronously. Rendering a variant before it
+  // settles would swap which component is mounted mid-flight, so hold here
+  // until we know — this component must not call any other hook.
+  if (loading) {
+    return (
+      <AppLayout title="Employees" subtitle="Directory" moduleNav={EMPLOYEES_NAV}>
+        <div className="p-4 md:p-6 max-w-7xl mx-auto">
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  return isAdmin ? <FullDirectory /> : <RestrictedDirectory />;
+}
+
+function FullDirectory() {
   const navigate = useNavigate();
-  const { isAdmin } = useIsSuperAdmin();
-
-  if (!isAdmin) return <RestrictedDirectory />;
-
   const { data: employees = [], isLoading } = useEmployees();
   const { data: departments = [] } = useDepartments();
   const [search, setSearch] = useState('');
