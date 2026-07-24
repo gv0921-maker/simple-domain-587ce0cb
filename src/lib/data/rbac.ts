@@ -208,9 +208,15 @@ const DEFAULT_ROLES: Role[] = [
   {
     id: 'admin',
     name: 'Admin',
-    description: 'Administrative access to most modules',
+    description: 'Administrative access to all modules',
     isSystem: true,
-    permissions: MODULES.filter((m) => m !== 'settings').map((m) => ({ module: m, level: 'admin' as PermissionLevel, scope: 'all' as RecordScope, canImport: true, canExport: true, canPrint: true })),
+    // `settings` used to be filtered out here, which locked admins out of
+    // every /settings/* route guarded by ProtectedRoute -> canAccessRoute.
+    // That contradicted useRoleCheck's own `canManageSettings: isAdminOrSuper`.
+    // The genuinely super-admin-only pages (company, payroll, numbering,
+    // holidays, work schedules, payment accounts, audit logs) are separately
+    // protected by RouteGuard superAdmin / SuperAdminRoute and stay closed.
+    permissions: MODULES.map((m) => ({ module: m, level: 'admin' as PermissionLevel, scope: 'all' as RecordScope, canImport: true, canExport: true, canPrint: true })),
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
   },
