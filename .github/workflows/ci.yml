@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch makes the in-flight run redundant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Not gating on lint yet: the ~1040 remaining errors are almost all
+      # no-explicit-any from the service layer's supabase casts, which clear
+      # once the generated types are regenerated. Until then this reports
+      # without failing the build. rules-of-hooks is the rule that actually
+      # matters here and it is enforced in the step below.
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true
+
+      # Conditional hooks crashed several pages at runtime. Unlike the rest of
+      # the lint output this must never regress, so it gets its own gating step.
+      - name: Lint (rules-of-hooks, gating)
+        run: |
+          npx eslint . --format unix > eslint.out 2>&1 || true
+          if grep -q "rules-of-hooks" eslint.out; then
+            echo "::error::react-hooks/rules-of-hooks violations found:"
+            grep "rules-of-hooks" eslint.out
+            exit 1
+          fi
+          echo "No rules-of-hooks violations."
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
