@@ -57,7 +57,7 @@ import { OrderStatusChevrons, canTransition } from '@/components/sales/OrderStat
 import { getContact, saveContact } from '@/lib/data/crm-supabase';
 import { processOrderDelivery, tierLabel } from '@/lib/sales/loyaltyService';
 import { ReservationsSection, useOrderReservationBadge } from '@/components/sales/ReservationsSection';
-import { releaseReservationsForSalesOrderAsync } from '@/lib/services/inventory/reservations';
+import { applySalesOrderCancellationEffects } from '@/lib/services/sales/cancellation';
 import { ActivityChatter } from '@/components/shared/ActivityChatter';
 import { logRecordCreated, logStatusChange } from '@/lib/services/activityLog';
 import { trackChanges } from '@/lib/services/activityLogHelpers';
@@ -345,7 +345,7 @@ export default function SalesOrderForm() {
       // so those units flip back to 'available' for other orders.
       if (newStatus === 'cancelled' && !isNew && id) {
         try {
-          await releaseReservationsForSalesOrderAsync(id);
+          await applySalesOrderCancellationEffects(id);
         } catch (e: any) {
           toast({
             title: 'Reservations not fully released',
@@ -410,7 +410,7 @@ export default function SalesOrderForm() {
       await persist(next, note);
       if (next === 'cancelled' && id) {
         try {
-          await releaseReservationsForSalesOrderAsync(id);
+          await applySalesOrderCancellationEffects(id);
         } catch (e: any) {
           toast({
             title: 'Reservations not fully released',

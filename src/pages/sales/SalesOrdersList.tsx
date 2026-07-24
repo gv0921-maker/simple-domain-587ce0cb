@@ -49,6 +49,7 @@ import {
   useSalesOrdersRich, useSaveSalesOrderRich, useDeleteSalesOrderRich,
 } from '@/hooks/sales';
 import type { SalesOrder, SalesOrderStatus } from '@/lib/services/sales/types';
+import { applySalesOrderCancellationEffects } from '@/lib/services/sales/cancellation';
 import { SALES_NAV } from '@/lib/navigation/sales';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -157,6 +158,19 @@ export default function SalesOrdersList() {
 
     try {
       await saveOrderMut.mutateAsync({ ...order, ...updates });
+      // Cancelling has to return reserved serials to the pool. The confirm
+      // dialog has always promised this; only the detail form actually did it.
+      if (status === 'cancelled') {
+        try {
+          await applySalesOrderCancellationEffects(orderId);
+        } catch (e: any) {
+          toast({
+            title: 'Reservations not fully released',
+            description: e?.message ?? String(e),
+            variant: 'destructive',
+          });
+        }
+      }
       toast({ title: `Order ${status}` });
     } catch (e: any) {
       toast({ title: 'Update failed', description: e?.message ?? String(e), variant: 'destructive' });

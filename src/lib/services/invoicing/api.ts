@@ -283,12 +283,16 @@ export async function generateInvoiceFromOrder(orderId: string): Promise<{ invoi
       type: 'regular',
       issue_date: today,
       due_date: today,
-      status: 'paid',
+      // Issued, not settled. This used to be created as 'paid' with
+      // paid_amount = total regardless of whether a rupee had been received,
+      // which made receivables unreconcilable. Settlement happens through the
+      // payment ledger / "Mark Paid".
+      status: 'sent',
       subtotal,
       tax_amount,
       discount_amount,
       total,
-      paid_amount: total,
+      paid_amount: 0,
       currency: order.currency ?? 'INR',
       price_approval_status: 'not_required',
     })

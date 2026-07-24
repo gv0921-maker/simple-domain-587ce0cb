@@ -132,6 +132,7 @@ export default function InvoicesList({ variant = 'bills', title }: InvoicesListP
                 <TabsList className="h-12">
                   <TabsTrigger value="all">All</TabsTrigger>
                   <TabsTrigger value="draft">Draft</TabsTrigger>
+                  <TabsTrigger value="sent">Sent</TabsTrigger>
                   <TabsTrigger value="paid">Paid</TabsTrigger>
                   <TabsTrigger value="overdue">Overdue</TabsTrigger>
                 </TabsList>
