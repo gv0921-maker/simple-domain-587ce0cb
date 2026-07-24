@@ -182,6 +182,14 @@ export const AppraisalsIcon = () => (
   </svg>
 );
 
+export const ReturnsIcon = () => (
+  <svg viewBox="0 0 48 48" className="w-full h-full">
+    <path d="M10 18L24 8L38 18V38H10V18Z" fill="#0f766e" />
+    <path d="M24 8L38 18V38H24V8Z" fill="#14b8a6" />
+    <path d="M32 28H22V24L14 30L22 36V32H32C33.1 32 34 31.1 34 30V26C34 24.9 33.1 24 32 24V28Z" fill="#ccfbf1" />
+  </svg>
+);
+
 
 // Icon map for easy lookup
 export const MODULE_ICONS: Record<string, React.FC> = {
@@ -205,4 +213,5 @@ export const MODULE_ICONS: Record<string, React.FC> = {
   leave: LeaveIcon,
   payroll: PayrollIcon,
   appraisals: AppraisalsIcon,
+  returns: ReturnsIcon,
 };
