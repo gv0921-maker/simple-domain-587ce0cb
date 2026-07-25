@@ -102,7 +102,7 @@ export async function getCorrectionOrderById(id: string) {
   if (items.error) throw items.error;
   const itemIds = (items.data ?? []).map((i) => i.id);
   let cycles: CorrectionQCCycle[] = [];
-  let refunds: any[] = [];
+  let refunds: unknown[] = [];
   if (itemIds.length) {
     const [{ data: cy, error: ce }, { data: rf, error: re }] = await Promise.all([
       sb.from('correction_qc_cycles').select('*').in('correction_order_item_id', itemIds).order('cycle_number'),
@@ -154,7 +154,7 @@ export async function updateCorrectionOrderHeader(
   coId: string,
   patch: { addressedToName?: string; addressedToType?: COAddressedToType; correctionType?: COCorrectionType; notes?: string | null },
 ) {
-  const update: Record<string, any> = {};
+  const update: Record<string, unknown> = {};
   if (patch.addressedToName !== undefined) update.addressed_to_name = patch.addressedToName;
   if (patch.addressedToType !== undefined) update.addressed_to_type = patch.addressedToType;
   if (patch.correctionType !== undefined) update.correction_type = patch.correctionType;

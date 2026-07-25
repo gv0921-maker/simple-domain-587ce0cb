@@ -38,7 +38,7 @@ export async function saveProductCustomizationOption(
     optionValue: string;
   },
 ): Promise<ProductCustomizationOption> {
-  const payload: any = {
+  const payload = {
     product_id: input.productId,
     option_type: input.optionType,
     option_value: input.optionValue,

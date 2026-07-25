@@ -230,11 +230,11 @@ export function CRMImportDialog({ open, onOpenChange, onImportComplete, defaultR
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const jsonData: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        const jsonData: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
         if (jsonData.length > 1) {
           const fileHeaders = (jsonData[0] as string[]).map(h => String(h || '').trim());
-          const fileRows = jsonData.slice(1).filter((row: any[]) =>
+          const fileRows = jsonData.slice(1).filter((row: unknown[]) =>
             row.some(cell => cell !== null && cell !== undefined && cell !== '')
           );
           setHeaders(fileHeaders);
@@ -295,7 +295,7 @@ export function CRMImportDialog({ open, onOpenChange, onImportComplete, defaultR
 
     // Build records from mapped fields
     const records = rows.map((row) => {
-      const record: Record<string, any> = {};
+      const record: Record<string, unknown> = {};
       fieldMappings.forEach((mapping, index) => {
         if (mapping.crmField !== 'skip' && row[index] != null && row[index] !== '') {
           const val = row[index];
@@ -571,7 +571,7 @@ export function CRMExportButton({ type, variant = 'outline', format = 'xlsx' }: 
   const isExporting = exportContactsMut.isPending || exportOpportunitiesMut.isPending;
 
   const handleExport = async () => {
-    let exportData: Record<string, any>[];
+    let exportData: Record<string, unknown>[];
     let filename: string;
 
     switch (type) {

@@ -297,7 +297,7 @@ export default function StockDashboard() {
                 </TableHeader>
                 <TableBody>
                   {reservations.filter((r) => r.status === 'reserved').map((r) => {
-                    const so: any = (salesOrders as any[]).find((o) => o.id === r.salesOrderId);
+                    const so = (salesOrders as any[]).find((o) => o.id === r.salesOrderId);
                     const product = products.find((p) => p.id === r.productId);
                     return (
                       <TableRow

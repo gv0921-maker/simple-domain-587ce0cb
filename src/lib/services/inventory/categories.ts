@@ -33,7 +33,7 @@ export async function listCategories(): Promise<ProductCategory[]> {
 }
 
 export async function saveCategory(input: Partial<ProductCategory> & { name: string }): Promise<ProductCategory> {
-  const payload: any = {
+  const payload = {
     name: input.name,
     parent_category_id: input.parentCategoryId ?? null,
     description: input.description ?? null,

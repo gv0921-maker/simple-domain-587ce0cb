@@ -253,7 +253,7 @@ export default function OpportunityDetail() {
   const originalSnapshot = useRef<Partial<Opportunity>>({});
 
   const takeSnapshot = (opp: Opportunity) => {
-    const snap: any = {};
+    const snap = {};
     for (const key of Object.keys(FIELD_LABELS)) {
       snap[key] = (opp as any)[key];
     }

@@ -181,7 +181,7 @@ export default function SalesOrderForm() {
   const restoredRef = useRef(false);
   useEffect(() => {
     if (restoredRef.current) return;
-    const state: any = location.state;
+    const state = location.state;
     if (state?.restoredFormData) {
       setFormData(state.restoredFormData);
       restoredRef.current = true;
@@ -195,7 +195,7 @@ export default function SalesOrderForm() {
       (location.state as any)?.newCustomerId ||
       (location.state as any)?.newContactId;
     if (newCustomerId && customers.length > 0) {
-      const c: any = customers.find((x) => x.id === newCustomerId);
+      const c = customers.find((x) => x.id === newCustomerId);
       if (c) populateFromCustomer(c);
     }
   }, [customers, location.state, populateFromCustomer]);

@@ -27,7 +27,7 @@ export async function listUnitsOfMeasure(): Promise<UnitOfMeasure[]> {
 }
 
 export async function saveUnitOfMeasure(input: Partial<UnitOfMeasure> & { name: string; abbreviation: string }): Promise<UnitOfMeasure> {
-  const payload: any = {
+  const payload = {
     name: input.name,
     abbreviation: input.abbreviation,
     uom_type: input.uomType ?? 'unit',

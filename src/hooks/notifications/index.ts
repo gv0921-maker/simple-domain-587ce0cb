@@ -126,7 +126,7 @@ export function useNotificationsRealtime(enabled = true) {
             qc.invalidateQueries({ queryKey: ['notifications'] });
 
             // Load prefs to decide sound + push
-            let prefs: any = null;
+            let prefs = null;
             try { prefs = await getMyPreferences(); } catch { /* ignore */ }
 
             const cat = n.category;

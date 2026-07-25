@@ -4,7 +4,7 @@ import { useCompanySettings } from '@/hooks/companySettings';
 
 interface Props {
   order: any;
-  lines?: any[];
+  lines?: unknown[];
   isDraft?: boolean;
 }
 

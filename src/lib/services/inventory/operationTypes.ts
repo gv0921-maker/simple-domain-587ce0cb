@@ -52,7 +52,7 @@ export async function listOperationTypes(): Promise<OperationType[]> {
 }
 
 export async function saveOperationType(input: Partial<OperationType> & { name: string; operationKind: OperationKind }): Promise<OperationType> {
-  const payload: any = {
+  const payload = {
     name: input.name,
     operation_kind: input.operationKind,
     sequence_prefix: input.sequencePrefix ?? null,

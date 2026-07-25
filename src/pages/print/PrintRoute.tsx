@@ -202,7 +202,7 @@ export default function PrintRoute() {
     docNumber = r.refund_number ?? docNumber;
     body = <RefundVoucherPrint refund={r} />;
   } else if (type === 'exchange' && exchange.data) {
-    const e: any = exchange.data;
+    const e = exchange.data;
     docNumber = e.exchange_number ?? docNumber;
     const enriched = {
       ...e,
@@ -212,7 +212,7 @@ export default function PrintRoute() {
     };
     body = <ExchangePrint exchange={enriched} />;
   } else if (type === 'payslip' && payslip.data) {
-    const p: any = payslip.data;
+    const p = payslip.data;
     docNumber = p.payslip_number ?? docNumber;
     body = <PayslipPrint payslip={p} />;
   }

@@ -5,8 +5,8 @@ import { Label } from '@/components/ui/label';
 import { AddressBlock, pickBilling, pickDelivery, applyDelivery } from './AddressBlock';
 
 interface Props {
-  value: Record<string, any>;
-  onChange: (next: Record<string, any>) => void;
+  value: Record<string, unknown>;
+  onChange: (next: Record<string, unknown>) => void;
   disabled?: boolean;
 }
 

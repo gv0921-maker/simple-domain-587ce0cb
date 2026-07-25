@@ -5,7 +5,7 @@ import { format, parseISO } from 'date-fns';
 
 interface Props {
   quotation: any;
-  lines?: any[];
+  lines?: unknown[];
   isDraft?: boolean;
 }
 

@@ -60,7 +60,7 @@ export async function listAttributes(): Promise<ProductAttribute[]> {
 }
 
 export async function saveAttribute(input: Partial<ProductAttribute> & { name: string }): Promise<ProductAttribute> {
-  const payload: any = {
+  const payload = {
     name: input.name,
     display_type: input.displayType ?? 'radio',
     is_active: input.isActive ?? true,
@@ -82,7 +82,7 @@ export async function deleteAttribute(id: string): Promise<void> {
 }
 
 export async function saveAttributeValue(input: Partial<ProductAttributeValue> & { attributeId: string; value: string }): Promise<ProductAttributeValue> {
-  const payload: any = {
+  const payload = {
     attribute_id: input.attributeId,
     value: input.value,
     extra_price: input.extraPrice ?? 0,
