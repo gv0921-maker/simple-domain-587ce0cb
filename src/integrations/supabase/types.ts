@@ -7640,6 +7640,24 @@ export type Database = {
           },
         ]
       }
+      serial_counters: {
+        Row: {
+          last_number: number
+          prefix: string
+          updated_at: string
+        }
+        Insert: {
+          last_number?: number
+          prefix: string
+          updated_at?: string
+        }
+        Update: {
+          last_number?: number
+          prefix?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       serial_numbers: {
         Row: {
           created_at: string
@@ -9688,6 +9706,10 @@ export type Database = {
         }
         Returns: number
       }
+      allocate_serial_numbers: {
+        Args: { p_count: number; p_prefix: string }
+        Returns: string[]
+      }
       apply_stock_action: { Args: { p_item_id: string }; Returns: Json }
       appraisal_user_can_access: {
         Args: { _appraisal_id: string }
@@ -9789,6 +9811,29 @@ export type Database = {
         Returns: Json
       }
       complete_return_request: { Args: { p_rt_id: string }; Returns: Json }
+      complete_scan_queue: {
+        Args: { p_force?: boolean; p_queue_id: string; p_reason?: string }
+        Returns: {
+          assigned_to: string | null
+          created_at: string
+          document_id: string
+          document_reference: string
+          document_type: string
+          expected_items_count: number
+          id: string
+          notes: string | null
+          priority: string
+          scan_status: string
+          scanned_items_count: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "scan_queue"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       complete_stock_count: { Args: { p_count_id: string }; Returns: undefined }
       confirm_delivery: {
         Args: { p_dn_id: string; p_signature_received?: boolean }
@@ -10079,6 +10124,33 @@ export type Database = {
           p_notes: string
         }
         Returns: undefined
+      }
+      record_scan: {
+        Args: {
+          p_already_scanned?: string[]
+          p_barcode: string
+          p_expected?: string[]
+          p_product_id?: string
+          p_queue_id: string
+          p_serial?: string
+        }
+        Returns: {
+          barcode: string
+          id: string
+          notes: string | null
+          product_id: string | null
+          scan_queue_id: string
+          scan_result: string
+          scanned_at: string
+          scanned_by: string | null
+          serial_number: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "scan_records"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       redeem_credit_note: {
         Args: {
