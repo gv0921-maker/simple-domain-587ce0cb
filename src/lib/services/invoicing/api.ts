@@ -247,94 +247,11 @@ export async function deletePayment(id: string): Promise<void> {
 }
 
 // -------- Generate Invoice from Sales Order --------
-export async function generateInvoiceFromOrder(orderId: string): Promise<{ invoiceId: string }> {
-  // 1. Load order + lines
-  const { data: order, error: orderErr } = await supabase
-    .from('sales_orders')
-    .select('*')
-    .eq('id', orderId)
-    .single();
-  if (orderErr) throw orderErr;
-  if (!order) throw new Error('Sales order not found');
-
-  const { data: orderLines, error: linesErr } = await supabase
-    .from('order_lines')
-    .select('*')
-    .eq('order_id', orderId)
-    .order('created_at', { ascending: true });
-  if (linesErr) throw linesErr;
-
-  // 2. FY-based reference (e.g. INV-2526-0001)
-  const reference = await generateDocumentNumber('invoice');
-
-  const today = new Date().toISOString().slice(0, 10);
-  const subtotal = Number(order.subtotal ?? 0);
-  const tax_amount = Number(order.tax_amount ?? 0);
-  const discount_amount = Number(order.discount_amount ?? 0);
-  const total = Number(order.total ?? 0);
-
-  // 3. Insert invoice
-  const { data: invoiceRow, error: invErr } = await supabase
-    .from('invoices')
-    .insert({
-      reference,
-      customer_id: order.customer_id,
-      sales_order_id: order.id,
-      type: 'regular',
-      issue_date: today,
-      due_date: today,
-      // Issued, not settled. This used to be created as 'paid' with
-      // paid_amount = total regardless of whether a rupee had been received,
-      // which made receivables unreconcilable. Settlement happens through the
-      // payment ledger / "Mark Paid".
-      status: 'sent',
-      subtotal,
-      tax_amount,
-      discount_amount,
-      total,
-      paid_amount: 0,
-      currency: order.currency ?? 'INR',
-      price_approval_status: 'not_required',
-    })
-    .select('id')
-    .single();
-  if (invErr) throw invErr;
-  const invoiceId = invoiceRow.id as string;
-
-  // 4. Copy order_lines → invoice_lines
-  if (orderLines && orderLines.length > 0) {
-    const lineRows = orderLines.map((l) => ({
-      invoice_id: invoiceId,
-      product_id: l.product_id,
-      description: l.description ?? l.product_name ?? '',
-      quantity: Number(l.quantity ?? 0),
-      unit_price: Number(l.unit_price ?? 0),
-      discount: Number(l.discount ?? 0),
-      tax_rate: Number(l.tax_rate ?? l.gst_rate ?? 0),
-      subtotal: Number(l.subtotal ?? 0),
-      cgst_amount: Number(l.cgst_amount ?? 0),
-      sgst_amount: Number(l.sgst_amount ?? 0),
-      igst_amount: Number(l.igst_amount ?? 0),
-      final_amount: Number(l.final_amount ?? l.total ?? 0),
-    }));
-    const { error: insLinesErr } = await supabase.from('invoice_lines').insert(lineRows);
-    if (insLinesErr) throw insLinesErr;
-  }
-
-  // 5. Update sales order
-  const { error: updErr } = await supabase
-    .from('sales_orders')
-    .update({
-      invoice_id: invoiceId,
-      status: 'invoiced',
-      invoice_status: 'invoiced',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', orderId);
-  if (updErr) throw updErr;
-
-  return { invoiceId };
-}
+// Removed: the ad-hoc SO -> invoice inserter that bypassed
+// create_partial_invoice, ignored SO-line linkage, and produced orphan
+// invoices. All SO -> invoice creation now goes through the
+// `create_partial_invoice` RPC via useCreatePartialInvoice /
+// <InvoicingSection/>.
 
 // -------- Price approvals --------
 export async function fetchPendingPriceApprovals(): Promise<Invoice[]> {

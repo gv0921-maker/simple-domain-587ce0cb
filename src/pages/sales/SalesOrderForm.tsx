@@ -22,7 +22,6 @@ import { Workflow1Tracker } from '@/components/sales/Workflow1Tracker';
 import { InvoicingSection } from '@/components/sales/InvoicingSection';
 import { usePaymentSummary } from '@/hooks/sales/payments';
 import { confirmSalesOrder, overrideAdvanceGate } from '@/lib/services/sales/api';
-import { useGenerateInvoiceFromOrder } from '@/hooks/invoicing';
 import { useDeliveryQC } from '@/hooks/qc';
 import { PreDeliveryQCSection } from '@/components/sales/PreDeliveryQCSection';
 import {
@@ -116,7 +115,6 @@ export default function SalesOrderForm() {
   const [confirmAction, setConfirmAction] = useState<'cancel' | null>(null);
   const [overrideOpen, setOverrideOpen] = useState(false);
   const [overrideReason, setOverrideReason] = useState('');
-  const generateInvoiceMut = useGenerateInvoiceFromOrder();
   const { data: deliveryQC } = useDeliveryQC(!isNew ? id : undefined);
   const qcPassed = deliveryQC?.status === 'passed';
   const billingRef = useRef<HTMLDivElement | null>(null);

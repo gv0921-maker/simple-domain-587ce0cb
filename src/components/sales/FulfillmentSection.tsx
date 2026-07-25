@@ -19,6 +19,7 @@ import { db } from '@/integrations/supabase/db';
 import {
   useITOsForSO, useITODetail, useSuggestITO, useCreateITO, useSOReadyToInvoice,
 } from '@/hooks/inventory/internalTransfers';
+import { useInvoicesForSO } from '@/hooks/sales/invoices';
 import type { ITOSuggestionLine, ProductSource, ITOLineStatus } from '@/lib/services/inventory/internalTransfers';
 import { logFieldChange } from '@/lib/services/activityLog';
 import { useFactoryProgressForSO } from '@/hooks/shopfloor';
@@ -141,6 +142,14 @@ export function FulfillmentSection({ salesOrderId, salesOrderStatus, salesOrderC
   const { data: readyToInvoice } = useSOReadyToInvoice(salesOrderId);
   const { data: factoryWOs = [] } = useFactoryProgressForSO(salesOrderId);
   const { data: vendorOrders = [] } = useVendorOrdersForSO(salesOrderId);
+  // Duplicate-invoice guard: if any invoice already exists for this SO, the
+  // "Generate Invoice" convenience button on this page opens the most recent
+  // one instead of firing another create dialog. Partial invoicing is still
+  // reachable via the "Create Invoice" button inside <InvoicingSection/>.
+  const { data: existingInvoices = [] } = useInvoicesForSO(salesOrderId);
+  const latestInvoice = existingInvoices.length > 0
+    ? existingInvoices[existingInvoices.length - 1]
+    : null;
 
   const suggestMut = useSuggestITO();
   const createMut = useCreateITO();
@@ -352,9 +361,16 @@ export function FulfillmentSection({ salesOrderId, salesOrderStatus, salesOrderC
                 <Button
                   size="sm"
                   onClick={() => {
-                    // Trigger the InvoicingSection's Create Invoice dialog on this same page.
-                    // Never navigate to a non-existent invoice — creation happens via the
-                    // create_partial_invoice RPC and only then do we route to the invoice.
+                    // Dedup: if an invoice already exists for this SO, open it
+                    // instead of creating another. Otherwise trigger the
+                    // InvoicingSection's Create Invoice dialog on this same
+                    // page — creation only happens through the
+                    // create_partial_invoice RPC and we route to the invoice
+                    // only after it returns a real id.
+                    if (latestInvoice) {
+                      navigate(`/invoicing/invoices/${latestInvoice.id}`);
+                      return;
+                    }
                     window.dispatchEvent(
                       new CustomEvent('so:open-create-invoice', { detail: { salesOrderId } }),
                     );
@@ -363,7 +379,8 @@ export function FulfillmentSection({ salesOrderId, salesOrderStatus, salesOrderC
                       ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }}
                 >
-                  <Receipt className="h-4 w-4 mr-2" /> Generate Invoice
+                  <Receipt className="h-4 w-4 mr-2" />
+                  {latestInvoice ? 'View Invoice' : 'Generate Invoice'}
                 </Button>
               )}
             </div>
