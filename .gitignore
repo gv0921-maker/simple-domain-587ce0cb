@@ -30,3 +30,6 @@ tmp/
 
 # Superseded binary bun lockfile; bun.lock (text) is authoritative
 bun.lockb
+
+# Supabase CLI link state (local only)
+supabase/.temp/
