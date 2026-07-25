@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Trash2, ArrowLeft } from 'lucide-react';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useCreateInternalMovement } from '@/hooks/inventory/internalMovements';
-import { MOVEMENT_TYPE_LABEL, type MovementType, type LocationType, type CreateMovementItemInput } from '@/lib/services/inventory/internalMovements';
+import { MOVEMENT_TYPE_LABEL, GENERAL_MOVEMENT_TYPES, type MovementType, type LocationType, type CreateMovementItemInput } from '@/lib/services/inventory/internalMovements';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -99,8 +99,8 @@ export default function InternalMovementForm() {
                 <Select value={movementType} onValueChange={(v) => setMovementType(v as MovementType)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {Object.entries(MOVEMENT_TYPE_LABEL).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    {GENERAL_MOVEMENT_TYPES.map((k) => (
+                      <SelectItem key={k} value={k}>{MOVEMENT_TYPE_LABEL[k]}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

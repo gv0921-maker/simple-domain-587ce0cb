@@ -51,6 +51,7 @@ const CorrectionOrderDetail = lazy(() => import("@/pages/inventory/CorrectionOrd
 const InternalMovementsList = lazy(() => import("@/pages/inventory/InternalMovementsList"));
 const InternalMovementDetail = lazy(() => import("@/pages/inventory/InternalMovementDetail"));
 const InternalMovementForm = lazy(() => import("@/pages/inventory/InternalMovementForm"));
+const PickToTransitForm = lazy(() => import("@/pages/inventory/PickToTransitForm"));
 const StockCountsList = lazy(() => import("@/pages/inventory/StockCountsList"));
 const StockCountDetail = lazy(() => import("@/pages/inventory/StockCountDetail"));
 const WriteOffsList = lazy(() => import("@/pages/inventory/WriteOffsList"));
@@ -303,6 +304,7 @@ const App = () => (
             <Route path="/inventory/correction-orders/:id" element={<ProtectedRoute><CorrectionOrderDetail /></ProtectedRoute>} />
             <Route path="/inventory/internal-movements" element={<ProtectedRoute><InternalMovementsList /></ProtectedRoute>} />
             <Route path="/inventory/internal-movements/new" element={<ProtectedRoute><InternalMovementForm /></ProtectedRoute>} />
+            <Route path="/inventory/pick-to-transit/new" element={<ProtectedRoute><PickToTransitForm /></ProtectedRoute>} />
             <Route path="/inventory/internal-movements/:id" element={<ProtectedRoute><InternalMovementDetail /></ProtectedRoute>} />
             <Route path="/inventory/stock-counts" element={<ProtectedRoute><StockCountsList /></ProtectedRoute>} />
             <Route path="/inventory/stock-counts/:id" element={<ProtectedRoute><StockCountDetail /></ProtectedRoute>} />

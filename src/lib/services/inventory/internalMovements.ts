@@ -3,7 +3,15 @@ import { addToScanQueue } from '@/lib/services/barcode/api';
 
 export type MovementType =
   | 'rearrangement' | 'display_sold' | 'damage_quarantine'
-  | 'return_to_vendor' | 'cycle_count_reconciliation' | 'location_change';
+  | 'return_to_vendor' | 'cycle_count_reconciliation' | 'location_change'
+  | 'pick_to_transit';
+
+/** Movement types offered by the general free-serial movement form. Pick-to-
+ *  transit is excluded — it has its own product+quantity create flow. */
+export const GENERAL_MOVEMENT_TYPES: MovementType[] = [
+  'rearrangement', 'display_sold', 'damage_quarantine',
+  'return_to_vendor', 'cycle_count_reconciliation', 'location_change',
+];
 
 export type MovementStatus = 'draft' | 'in_progress' | 'completed' | 'cancelled';
 
@@ -205,4 +213,115 @@ export const MOVEMENT_TYPE_LABEL: Record<MovementType, string> = {
   return_to_vendor: 'Return to Vendor',
   cycle_count_reconciliation: 'Cycle Count Reconciliation',
   location_change: 'Location Change',
+  pick_to_transit: 'Pick to Transit',
 };
+
+// ---------------------------------------------------------------------------
+// Pick-to-transit (§4.2): move chosen serials of a product to the warehouse's
+// transit location, gated by per-unit QC. Standalone — no sales order.
+// ---------------------------------------------------------------------------
+
+export interface AvailableSerialSuggestion {
+  goods_receipt_serial_id: string;
+  serial_number: string;
+  product_id: string;
+  current_location: string | null;
+  current_warehouse_id: string | null;
+}
+
+/**
+ * FIFO-suggest Available serials of a product, oldest first (§4.2 removal
+ * strategy). Scoped to a warehouse when given.
+ */
+export async function suggestAvailableSerials(
+  productId: string,
+  quantity: number,
+  warehouseId?: string | null,
+): Promise<AvailableSerialSuggestion[]> {
+  let q = (supabase as any)
+    .from('goods_receipt_serials')
+    .select('id, serial_number, product_id, current_location, current_warehouse_id')
+    .eq('product_id', productId)
+    .eq('stock_status', 'available')
+    .is('reserved_for_so_id', null)
+    .order('created_at', { ascending: true })
+    .limit(Math.max(1, quantity));
+  if (warehouseId) q = q.eq('current_warehouse_id', warehouseId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return ((data ?? []) as any[]).map((r) => ({
+    goods_receipt_serial_id: r.id,
+    serial_number: r.serial_number,
+    product_id: r.product_id,
+    current_location: r.current_location,
+    current_warehouse_id: r.current_warehouse_id,
+  }));
+}
+
+/** Resolve the active transit location for a warehouse. Hard error if none — no
+ *  silent fallback (§4.2). */
+export async function getTransitLocationForWarehouse(
+  warehouseId: string,
+): Promise<{ id: string; name: string }> {
+  const { data, error } = await (supabase as any)
+    .from('warehouse_locations')
+    .select('id, name')
+    .eq('warehouse_id', warehouseId)
+    .eq('type', 'transit')
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) {
+    throw new Error(
+      'No transit location configured for this warehouse. Create one in Setup → Locations with type = "transit".',
+    );
+  }
+  return { id: data.id, name: data.name };
+}
+
+export async function createPickToTransit(args: {
+  warehouseId: string;
+  fromLocationId: string;
+  toLocationId: string;
+  items: CreateMovementItemInput[];
+  notes?: string;
+}): Promise<string> {
+  const id = await createInternalMovement({
+    movementType: 'pick_to_transit',
+    fromLocationId: args.fromLocationId,
+    toLocationId: args.toLocationId,
+    items: args.items,
+    notes: args.notes,
+  });
+  // Move straight to in_progress: the operator scans + QCs from here.
+  await startMovement(id);
+  return id;
+}
+
+export interface CompletePickToTransitResult {
+  status: 'completed' | 'blocked_by_failures';
+  moved?: number;
+  failed?: number;
+  failed_serials?: string[];
+  correction_order_id?: string | null;
+  transit_location_name?: string;
+  movement_number?: string;
+}
+
+export async function completePickToTransit(
+  movementId: string,
+): Promise<CompletePickToTransitResult> {
+  const { data, error } = await (supabase as any)
+    .rpc('complete_pick_to_transit', { p_movement_id: movementId });
+  if (error) throw new Error(error.message);
+  const res = (data ?? {}) as CompletePickToTransitResult;
+  if (res.status === 'blocked_by_failures') {
+    const serials = (res.failed_serials ?? []).join(', ');
+    throw new Error(
+      `${res.failed} unit(s) failed QC (${serials}). A correction order was created; ` +
+      `resolve or remove the failed unit before completing.`,
+    );
+  }
+  return res;
+}

@@ -7,10 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Printer, ScanLine, Play, CheckCircle2, XCircle, ArrowLeft } from 'lucide-react';
 import { INVENTORY_NAV } from '@/lib/navigation';
-import { useInternalMovement, useStartMovement, useCompleteMovement, useCancelMovement, useMovementQueueId } from '@/hooks/inventory/internalMovements';
+import { useInternalMovement, useStartMovement, useCompleteMovement, useCancelMovement, useMovementQueueId, useCompletePickToTransit } from '@/hooks/inventory/internalMovements';
 import { MOVEMENT_TYPE_LABEL } from '@/lib/services/inventory/internalMovements';
 import { useLocationsQuery } from '@/hooks/inventory/useLocations';
+import { ScanQCPanel } from '@/components/inventory/ScanQCPanel';
+import type { QCExpectedLine } from '@/lib/services/inventory/qcEngine';
 import { toast } from '@/hooks/use-toast';
+import { toast as sonner } from 'sonner';
 import { format, parseISO } from 'date-fns';
 
 export default function InternalMovementDetail() {
@@ -22,6 +25,7 @@ export default function InternalMovementDetail() {
   const startMut = useStartMovement();
   const completeMut = useCompleteMovement();
   const cancelMut = useCancelMovement();
+  const completePttMut = useCompletePickToTransit();
 
   if (isLoading) return <AppLayout title="Inventory" moduleNav={INVENTORY_NAV}><div className="p-6">Loading…</div></AppLayout>;
   if (!data) return <AppLayout title="Inventory" moduleNav={INVENTORY_NAV}><div className="p-6">Not found</div></AppLayout>;
@@ -36,12 +40,44 @@ export default function InternalMovementDetail() {
   const toName = (movement.to_location_id && byId.get(movement.to_location_id))
     || movement.to_location_type || '—';
 
+  const isPickToTransit = movement.movement_type === 'pick_to_transit';
+
+  // Pick-to-transit is QC-gated: one expected line per product, its serials
+  // being the movement's items. The shared engine records against
+  // document_type='internal_transfer', document_id = the movement id.
+  const pttExpectedLines: QCExpectedLine[] = (() => {
+    const byProduct = new Map<string, QCExpectedLine>();
+    for (const it of items) {
+      const key = it.product_id;
+      const line = byProduct.get(key) ?? {
+        lineId: key,
+        productId: it.product_id,
+        productName: it.product?.name ?? it.product_id,
+        expectedQty: 0,
+        serials: [] as string[],
+      };
+      line.expectedQty += 1;
+      line.serials!.push(it.serial_number);
+      byProduct.set(key, line);
+    }
+    return Array.from(byProduct.values());
+  })();
+
   const handleComplete = async () => {
     try {
       await completeMut.mutateAsync(movement.id);
       toast({ title: 'Movement completed' });
     } catch (e: any) {
       toast({ title: 'Could not complete', description: e.message, variant: 'destructive' });
+    }
+  };
+
+  const handleCompletePtt = async () => {
+    try {
+      const res = await completePttMut.mutateAsync(movement.id);
+      sonner.success(`Pick-to-transit complete — ${res.moved} unit(s) moved to ${res.transit_location_name ?? 'transit'}.`);
+    } catch (e: any) {
+      sonner.error(e?.message ?? 'Could not complete pick-to-transit');
     }
   };
 
@@ -112,6 +148,25 @@ export default function InternalMovementDetail() {
           </CardContent>
         </Card>
 
+        {/* Pick-to-transit: scan + QC each unit through the shared engine. */}
+        {isPickToTransit && movement.status === 'in_progress' && (
+          <Card>
+            <CardHeader><CardTitle className="text-base">Scan &amp; QC — pick to transit</CardTitle></CardHeader>
+            <CardContent>
+              <ScanQCPanel
+                documentType={'internal_transfer' as any}
+                documentId={movement.id}
+                expectedLines={pttExpectedLines}
+                requireQC={true}
+                requirePhotos={false}
+                onComplete={handleCompletePtt}
+                completing={completePttMut.isPending}
+                completeButtonLabel="Complete Pick to Transit"
+              />
+            </CardContent>
+          </Card>
+        )}
+
         <div className="flex items-center gap-2">
           {movement.status === 'draft' && (
             <>
@@ -123,7 +178,9 @@ export default function InternalMovementDetail() {
               </Button>
             </>
           )}
-          {movement.status === 'in_progress' && (
+          {/* Generic completion is only for the non-QC movement flavours;
+              pick-to-transit completes through the QC panel above. */}
+          {movement.status === 'in_progress' && !isPickToTransit && (
             <Button onClick={handleComplete} className="gap-2">
               <CheckCircle2 className="h-4 w-4" />Complete Movement
             </Button>

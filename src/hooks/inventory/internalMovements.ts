@@ -65,3 +65,23 @@ export function useMovementQueueId(id: string | undefined) {
     enabled: !!id,
   });
 }
+
+// ---------- Pick-to-transit ----------
+export function useCreatePickToTransit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.createPickToTransit,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['internal-movements'] });
+      qc.invalidateQueries({ queryKey: ['barcode', 'queue'] });
+    },
+  });
+}
+
+export function useCompletePickToTransit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.completePickToTransit,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['internal-movements'] }),
+  });
+}

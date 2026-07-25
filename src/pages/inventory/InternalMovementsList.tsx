@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, Truck } from 'lucide-react';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useInternalMovements } from '@/hooks/inventory/internalMovements';
 import { MOVEMENT_TYPE_LABEL, type MovementType, type MovementStatus } from '@/lib/services/inventory/internalMovements';
@@ -84,9 +84,14 @@ export default function InternalMovementsList() {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={() => navigate('/inventory/internal-movements/new')} className="gap-2">
-            <Plus className="h-4 w-4" />New Movement
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate('/inventory/pick-to-transit/new')} className="gap-2">
+              <Truck className="h-4 w-4" />Pick to Transit
+            </Button>
+            <Button onClick={() => navigate('/inventory/internal-movements/new')} className="gap-2">
+              <Plus className="h-4 w-4" />New Movement
+            </Button>
+          </div>
         </div>
 
         <Card>
