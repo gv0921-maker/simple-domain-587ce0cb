@@ -2,7 +2,8 @@ import { supabase } from '@/integrations/supabase/client';
 
 export type ScanDocumentType =
   | 'goods_receipt' | 'internal_transfer' | 'pre_delivery_qc'
-  | 'return_receipt' | 'stock_count' | 'correction_order' | 'write_off';
+  | 'return_receipt' | 'stock_count' | 'correction_order' | 'write_off'
+  | 'delivery_note' | 'internal_movement';
 
 export type ScanStatus = 'pending' | 'in_progress' | 'completed';
 export type ScanPriority = 'urgent' | 'normal' | 'low';

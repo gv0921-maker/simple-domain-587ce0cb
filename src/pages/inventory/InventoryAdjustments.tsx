@@ -108,7 +108,10 @@ export default function InventoryAdjustments() {
             <h1 className="text-2xl font-semibold text-foreground">Inventory Adjustments</h1>
             <p className="text-muted-foreground">Manage stock counts and adjustments</p>
           </div>
-          <Button onClick={() => navigate('/inventory/barcode')} className="gap-2">
+          {/* Adjustments are raised from stock-count reconciliation; the
+              dedicated create flow is added in a later batch. This routes to
+              the count workflow rather than the old dead /inventory/barcode. */}
+          <Button onClick={() => navigate('/inventory/stock-counts')} className="gap-2">
             <Plus className="h-4 w-4" />
             New Adjustment
           </Button>

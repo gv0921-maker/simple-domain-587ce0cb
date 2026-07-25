@@ -24,12 +24,31 @@ import { cn } from '@/lib/utils';
 const TYPE_META: Record<ScanDocumentType, { label: string; short: string; icon: any; color: string }> = {
   goods_receipt:    { label: 'Goods Receipt',     short: 'GR',  icon: PackageOpen,    color: 'bg-info/15 text-info border-info/30' },
   internal_transfer:{ label: 'Internal Transfer', short: 'ITO', icon: PackageCheck,   color: 'bg-primary/15 text-primary border-primary/30' },
+  internal_movement:{ label: 'Internal Movement', short: 'IM',  icon: PackageCheck,   color: 'bg-primary/15 text-primary border-primary/30' },
+  delivery_note:    { label: 'Delivery',          short: 'DN',  icon: PackageCheck,   color: 'bg-primary/15 text-primary border-primary/30' },
   pre_delivery_qc:  { label: 'Pre-delivery QC',   short: 'QC',  icon: ClipboardCheck, color: 'bg-warning/15 text-warning border-warning/30' },
   return_receipt:   { label: 'Return Receipt',    short: 'RR',  icon: Undo2,          color: 'bg-secondary/40 text-foreground border-border' },
   stock_count:      { label: 'Stock Count',       short: 'SC',  icon: ListChecks,     color: 'bg-accent/40 text-foreground border-border' },
   correction_order: { label: 'Correction',        short: 'CO',  icon: Wrench,         color: 'bg-secondary/40 text-foreground border-border' },
   write_off:        { label: 'Write-off',         short: 'WO',  icon: AlertTriangle,  color: 'bg-destructive/15 text-destructive border-destructive/30' },
 };
+
+// Where opening a queue item goes. QC-bearing operations deep-link to their own
+// detail page, which embeds the single canonical ScanQCPanel — the queue is a
+// second entry point to that one surface, not a duplicate of it (§5.1/§5.3).
+// Stock counts keep the count-scan workspace (counting, not QC).
+function queueItemHref(documentType: ScanDocumentType, documentId: string, queueId: string): string {
+  switch (documentType) {
+    case 'goods_receipt':     return `/inventory/goods-receipts/${documentId}`;
+    case 'internal_transfer': return `/inventory/ito/${documentId}`;
+    case 'internal_movement': return `/inventory/internal-movements/${documentId}`;
+    case 'delivery_note':     return `/inventory/delivery-notes/${documentId}`;
+    case 'correction_order':  return `/inventory/correction-orders/${documentId}`;
+    case 'write_off':         return `/inventory/write-offs/${documentId}`;
+    case 'stock_count':       return `/barcode/scan/${queueId}`;
+    default:                  return `/barcode/scan/${queueId}`;
+  }
+}
 
 const STATUS_META: Record<ScanStatus, { label: string; cls: string }> = {
   pending:     { label: 'Pending',     cls: 'bg-muted text-muted-foreground' },
@@ -170,7 +189,7 @@ export default function ScanQueueDashboard() {
                         <Card
                           key={it.id}
                           className="cursor-pointer hover:shadow-md transition"
-                          onClick={() => navigate(`/barcode/scan/${it.id}`)}
+                          onClick={() => navigate(queueItemHref(it.document_type, it.document_id, it.id))}
                         >
                           <CardContent className="p-4 space-y-2">
                             <div className="flex items-start justify-between gap-2">

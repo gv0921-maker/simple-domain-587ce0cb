@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useProducts, useStockMoves } from '@/hooks/inventory';
 import type { Product, StockMove } from '@/lib/services/inventory';
-import { BARCODE_NAV } from '@/lib/navigation';
+import { BARCODE_NAV } from '@/lib/navigation/barcode';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -269,7 +269,7 @@ export default function ProductScanLookup() {
                     <Package className="h-4 w-4" />
                     Edit Product
                   </Button>
-                  <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate('/inventory/barcode-labels')}>
+                  <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate('/barcode/labels')}>
                     <ScanLine className="h-4 w-4" />
                     Print Label
                   </Button>
