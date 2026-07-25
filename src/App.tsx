@@ -42,6 +42,7 @@ const LabelsPage = lazy(() => import("@/pages/barcode/LabelsPage"));
 const ScanHistoryPage = lazy(() => import("@/pages/barcode/ScanHistoryPage"));
 const StockDashboard = lazy(() => import("@/pages/inventory/StockDashboard"));
 const DeliveryNotesList = lazy(() => import("@/pages/inventory/DeliveryNotesList"));
+const StandaloneDeliveryForm = lazy(() => import("@/pages/inventory/StandaloneDeliveryForm"));
 const DeliveryNoteDetail = lazy(() => import("@/pages/inventory/DeliveryNoteDetail"));
 const DeliveryNotePrint = lazy(() => import("@/pages/inventory/DeliveryNotePrint"));
 const GoodsReceiptsList = lazy(() => import("@/pages/inventory/GoodsReceiptsList"));
@@ -294,6 +295,7 @@ const App = () => (
             <Route path="/inventory/reorder-rules/:id/edit" element={<ProtectedRoute><ReorderRuleForm /></ProtectedRoute>} />
             <Route path="/inventory/stock-dashboard" element={<ProtectedRoute><StockDashboard /></ProtectedRoute>} />
             <Route path="/inventory/delivery-notes" element={<ProtectedRoute><DeliveryNotesList /></ProtectedRoute>} />
+            <Route path="/inventory/delivery-notes/new" element={<ProtectedRoute><StandaloneDeliveryForm /></ProtectedRoute>} />
             <Route path="/inventory/operations" element={<ProtectedRoute><InventoryOperationsOverview /></ProtectedRoute>} />
             <Route path="/inventory/delivery-notes/:id" element={<ProtectedRoute><DeliveryNoteDetail /></ProtectedRoute>} />
             <Route path="/inventory/delivery-notes/:id/print" element={<ProtectedRoute><DeliveryNotePrint /></ProtectedRoute>} />

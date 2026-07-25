@@ -241,3 +241,86 @@ export async function getUserNamesAsync(userIds: string[]): Promise<Record<strin
   void userIds;
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// Standalone delivery (§4.3): hand off serials sitting at transit, no sales
+// order. The pool is the serials currently at the warehouse's transit location.
+// ---------------------------------------------------------------------------
+
+export interface TransitSerialSuggestion {
+  goods_receipt_serial_id: string;
+  serial_number: string;
+  product_id: string;
+  product_name: string;
+  current_location: string | null;
+}
+
+/** Serials of a product currently sitting at the warehouse's transit location,
+ *  ready to be handed off. */
+export async function suggestSerialsAtTransit(
+  warehouseId: string,
+  productId: string,
+): Promise<TransitSerialSuggestion[]> {
+  const { data: transit, error: locErr } = await sb
+    .from('warehouse_locations')
+    .select('id')
+    .eq('warehouse_id', warehouseId)
+    .eq('type', 'transit')
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle();
+  if (locErr) throw locErr;
+  if (!transit) {
+    throw new Error(
+      'No transit location configured for this warehouse. Create one in Setup → Locations with type = "transit".',
+    );
+  }
+  const { data, error } = await sb
+    .from('goods_receipt_serials')
+    .select('id, serial_number, product_id, current_location, products(name)')
+    .eq('product_id', productId)
+    .eq('current_location', transit.id)
+    .in('stock_status', ['available', 'reserved'])
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return ((data ?? []) as any[]).map((r) => ({
+    goods_receipt_serial_id: r.id,
+    serial_number: r.serial_number,
+    product_id: r.product_id,
+    product_name: r.products?.name ?? 'Product',
+    current_location: r.current_location,
+  }));
+}
+
+export async function createStandaloneDeliveryAsync(args: {
+  warehouseId: string;
+  customerName?: string;
+  externalReference?: string;
+  notes?: string;
+  products: DeliveryNoteProduct[];
+}): Promise<DeliveryNote> {
+  const { data: userRes } = await supabase.auth.getUser();
+  const userId = userRes.user?.id ?? null;
+  const reference = await generateDocumentNumber('delivery_note');
+
+  const insertRow = {
+    reference,
+    sales_order_id: null,
+    invoice_id: null,
+    warehouse_id: args.warehouseId,
+    customer_id: null,
+    delivery_date: null,
+    // 'confirmed' so it is immediately deliverable — a standalone delivery has
+    // no advance/draft stage.
+    status: 'confirmed' as const,
+    created_by: userId,
+    products_json: args.products,
+    customer_delivery_name: args.customerName ?? null,
+    notes: args.externalReference
+      ? `Ref: ${args.externalReference}${args.notes ? ` — ${args.notes}` : ''}`
+      : args.notes ?? null,
+  };
+  const { data, error } = await sb.from('delivery_notes').insert(insertRow).select().single();
+  if (error) throw error;
+  return mapRow(data);
+}

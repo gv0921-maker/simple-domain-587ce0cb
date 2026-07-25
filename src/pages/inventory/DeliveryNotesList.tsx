@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { Printer, Eye } from 'lucide-react';
+import { Printer, Eye, Plus } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 const statusVariant: Record<string, string> = {
@@ -25,6 +25,9 @@ export default function DeliveryNotesList() {
       <div className="p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">Delivery Notes</h1>
+          <Button onClick={() => navigate('/inventory/delivery-notes/new')} className="gap-2">
+            <Plus className="h-4 w-4" /> New Delivery
+          </Button>
         </div>
 
         <div className="rounded border bg-card">

@@ -37,4 +37,12 @@ export function useMarkDeliveryNoteDelivered() {
   });
 }
 
+export function useCreateStandaloneDelivery() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: svc.createStandaloneDeliveryAsync,
+    onSuccess: () => qc.invalidateQueries({ queryKey: deliveryNoteKeys.all }),
+  });
+}
+
 export type { DeliveryNote, DeliveryNoteStatus, DeliveryNoteProduct } from '@/lib/services/inventory/deliveryNotes';

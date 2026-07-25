@@ -97,8 +97,9 @@ export default function DeliveryNoteDetail() {
 
         <DocumentPipeline kind="delivery_note" status={note.status} />
 
-        {/* Payment gate */}
-        {note.status !== 'delivered' && gate && !gate.allowed && (
+        {/* Payment gate — only applies to sales-order-linked deliveries. A
+            standalone delivery (no SO) passes trivially (§8 stub). */}
+        {note.status !== 'delivered' && note.salesOrderId && gate && !gate.allowed && (
           <Card className="border-amber-300 bg-amber-50">
             <CardContent className="p-4 flex items-start gap-3 text-sm text-amber-900">
               <Lock className="h-4 w-4 mt-0.5" />
@@ -111,7 +112,7 @@ export default function DeliveryNoteDetail() {
         )}
 
         {/* Scan + QC engine */}
-        {note.status !== 'delivered' && gate?.allowed && (
+        {note.status !== 'delivered' && (!note.salesOrderId || gate?.allowed) && (
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Scan &amp; QC — handoff to customer</CardTitle>
