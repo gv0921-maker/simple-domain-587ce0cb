@@ -50,10 +50,3 @@ export const INVENTORY_NAV = [
     ],
   },
 ];
-
-// Shared navigation items for the Barcode module
-export const BARCODE_NAV = [
-  { label: 'Overview', href: '/barcode' },
-  { label: 'Scan & Lookup', href: '/barcode/scan-lookup' },
-  { label: 'Labels', href: '/barcode/labels' },
-];

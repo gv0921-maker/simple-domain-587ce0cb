@@ -31,6 +31,7 @@ const InventorySetupOperationTypes = lazy(() => import("@/pages/inventory/setup/
 const InventoryOperationsOverview = lazy(() => import("@/pages/inventory/InventoryOperationsOverview"));
 const InventoryReporting = lazy(() => import("@/pages/inventory/InventoryReporting"));
 const InventoryAdjustments = lazy(() => import("@/pages/inventory/InventoryAdjustments"));
+const AdjustmentForm = lazy(() => import("@/pages/inventory/AdjustmentForm"));
 const ReorderRules = lazy(() => import("@/pages/inventory/ReorderRules"));
 const ReorderRuleForm = lazy(() => import("@/pages/inventory/ReorderRuleForm"));
 const ProductScanLookup = lazy(() => import("@/pages/inventory/ProductScanLookup"));
@@ -290,6 +291,7 @@ const App = () => (
             <Route path="/inventory/setup/units" element={<ProtectedRoute><InventorySetupUnits /></ProtectedRoute>} />
             <Route path="/inventory/setup/operation-types" element={<ProtectedRoute><InventorySetupOperationTypes /></ProtectedRoute>} />
             <Route path="/inventory/adjustments" element={<ProtectedRoute><InventoryAdjustments /></ProtectedRoute>} />
+            <Route path="/inventory/adjustments/new" element={<ProtectedRoute><AdjustmentForm /></ProtectedRoute>} />
             <Route path="/inventory/reorder-rules" element={<ProtectedRoute><ReorderRules /></ProtectedRoute>} />
             <Route path="/inventory/reorder-rules/new" element={<ProtectedRoute><ReorderRuleForm /></ProtectedRoute>} />
             <Route path="/inventory/reorder-rules/:id/edit" element={<ProtectedRoute><ReorderRuleForm /></ProtectedRoute>} />
