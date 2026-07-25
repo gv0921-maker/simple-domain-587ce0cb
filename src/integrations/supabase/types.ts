@@ -9755,7 +9755,7 @@ export type Database = {
       check_advance_gate: { Args: { p_so_id: string }; Returns: boolean }
       check_so_closure_ready: { Args: { p_so_id: string }; Returns: boolean }
       check_so_ready_to_invoice: { Args: { p_so_id: string }; Returns: boolean }
-      close_correction_order: { Args: { p_co_id: string }; Returns: undefined }
+      close_correction_order: { Args: { p_co_id: string }; Returns: Json }
       complete_correction_qc_cycle: {
         Args: {
           p_co_item_id: string
@@ -9784,6 +9784,10 @@ export type Database = {
         Returns: undefined
       }
       complete_ito_with_qc: { Args: { _ito_id: string }; Returns: Json }
+      complete_pick_to_transit: {
+        Args: { p_movement_id: string }
+        Returns: Json
+      }
       complete_return_request: { Args: { p_rt_id: string }; Returns: Json }
       complete_stock_count: { Args: { p_count_id: string }; Returns: undefined }
       confirm_delivery: {
@@ -10139,6 +10143,10 @@ export type Database = {
       start_polishing: { Args: { p_wo_id: string }; Returns: undefined }
       start_work: { Args: { p_wo_id: string }; Returns: undefined }
       suggest_ito_for_so: { Args: { p_so_id: string }; Returns: Json }
+      sync_sales_order_paid_amount: {
+        Args: { p_so_id: string }
+        Returns: undefined
+      }
       update_serial_status: {
         Args: { _location_id?: string; _serial_id: string; _status: string }
         Returns: undefined
