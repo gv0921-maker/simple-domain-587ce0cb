@@ -118,10 +118,18 @@ export function ModuleNav({ items: rawItems }: ModuleNavProps) {
   const indexHref = items[0]?.href ?? '';
   const isIndexTab = (item: NavItem): boolean => item.href === indexHref;
 
-  // Flatten children for active detection & mobile select
-  const flatItems: NavItem[] = items.flatMap((i) =>
-    i.children && i.children.length > 0 ? [i, ...i.children] : [i],
-  ).filter((i) => !i.heading && !!i.href);
+  // Flatten children for active detection & mobile select. A parent tab and
+  // its first child often share an href (the "parent = overview" pattern), so
+  // dedupe by href — otherwise the mobile <Select> renders duplicate keys and
+  // duplicate values, which React and Radix both reject.
+  const seenHrefs = new Set<string>();
+  const flatItems: NavItem[] = items
+    .flatMap((i) => (i.children && i.children.length > 0 ? [i, ...i.children] : [i]))
+    .filter((i) => {
+      if (i.heading || !i.href || seenHrefs.has(i.href)) return false;
+      seenHrefs.add(i.href);
+      return true;
+    });
 
   const isItemActive = (item: NavItem): boolean => {
     if (item.heading || !item.href) return false;
