@@ -31,6 +31,7 @@ import { RefundVoucherPrint } from '@/components/print/templates/RefundVoucherPr
 import { ExchangePrint } from '@/components/print/templates/ExchangePrint';
 import { PayslipPrint } from '@/components/print/templates/PayslipPrint';
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/db';
 import { useQuery } from '@tanstack/react-query';
 import type { PrintableDocumentType } from '@/components/print/PrintableDocument';
 
@@ -57,7 +58,7 @@ function usePayment(id: string | undefined) {
     queryFn: async () => {
       if (!id) return null;
       // Prefer the new multi-payment ledger
-      const sop = await (supabase as any)
+      const sop = await db
         .from('sales_order_payments')
         .select('*, payment_account:payment_accounts(*), sales_order:sales_orders(reference, billing_customer_name, customer:customers(name))')
         .eq('id', id)
@@ -109,7 +110,7 @@ export default function PrintRoute() {
     queryKey: ['print-exchange', documentId, type],
     enabled: type === 'exchange' && !!documentId,
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data } = await db
         .from('exchanges')
         .select('*, replacement_product:products!exchanges_replacement_product_id_fkey(id,name,sku), customer:customers(name), source_return:return_requests(rt_number), source_invoice:invoices(reference)')
         .eq('id', documentId)
@@ -122,7 +123,7 @@ export default function PrintRoute() {
     queryKey: ['print-payslip', documentId, type],
     enabled: type === 'payslip' && !!documentId,
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data } = await db
         .from('payslips')
         .select('*, employees(full_name, employee_code, designation), payroll_periods(period_label, period_month, period_year), payslip_components(*, salary_components(code, name, component_type))')
         .eq('id', documentId)

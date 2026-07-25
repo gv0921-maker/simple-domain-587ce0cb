@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/db';
 import {
   getMyNotifications, getUnreadCount, markAsRead, markAllAsRead,
   deleteNotification, getMyPreferences, updateMyPreferences,
@@ -110,7 +111,7 @@ export function useNotificationsRealtime(enabled = true) {
       const uid = data.user?.id;
       if (!uid || cancelled) return;
 
-      const channel = (supabase as any)
+      const channel = db
         .channel(`notifications:${uid}`)
         .on(
           'postgres_changes',
@@ -175,7 +176,7 @@ export function useNotificationsRealtime(enabled = true) {
         )
         .subscribe();
 
-      cleanup = () => { (supabase as any).removeChannel(channel); };
+      cleanup = () => { db.removeChannel(channel); };
     })();
 
     return () => { cancelled = true; cleanup?.(); };

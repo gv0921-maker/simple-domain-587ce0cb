@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/db';
 import { generateDocumentNumber } from '@/lib/services/numbering/api';
 
 export type DeliveryNoteStatus = 'draft' | 'confirmed' | 'delivered';
@@ -33,7 +34,7 @@ export interface DeliveryNote {
   updatedAt: string;
 }
 
-const sb = supabase as any;
+const sb = db;
 
 function mapRow(r: any): DeliveryNote {
   return {

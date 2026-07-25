@@ -17,13 +17,14 @@ import {
 } from '@/hooks/manufacturing/workOrders';
 import { uploadReferenceImage } from '@/lib/services/manufacturing/workOrders';
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/db';
 import { useQuery } from '@tanstack/react-query';
 
 function useSalesOrdersLite() {
   return useQuery({
     queryKey: ['so-lite'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from('sales_orders')
+      const { data, error } = await db.from('sales_orders')
         .select('id, reference, status').order('created_at', { ascending: false }).limit(200);
       if (error) throw error;
       return data ?? [];
@@ -36,7 +37,7 @@ function useSOLines(soId: string | null) {
     queryKey: ['so-lines', soId],
     queryFn: async () => {
       if (!soId) return [];
-      const { data, error } = await (supabase as any).from('order_lines')
+      const { data, error } = await db.from('order_lines')
         .select('id, product_id, product_name, quantity, product_source')
         .eq('order_id', soId);
       if (error) throw error;

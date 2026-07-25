@@ -8,6 +8,7 @@ import { useCanCreateDeliveryForSO } from '@/hooks/inventory/workflow1';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+import { db } from '@/integrations/supabase/db';
 interface Props {
   salesOrderId: string;
   salesOrderStatus: string;
@@ -27,7 +28,7 @@ function useDeliveryNotesForSO(salesOrderId: string) {
   return useQuery({
     queryKey: ['workflow1', 'dns', salesOrderId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from('delivery_notes')
         .select('id, reference, status')
         .eq('sales_order_id', salesOrderId)

@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
-const sb = supabase as any;
+import { db } from '@/integrations/supabase/db';
+const sb = db;
 
 export type SOInvoiceType = 'regular' | 'warranty' | 'factory';
 

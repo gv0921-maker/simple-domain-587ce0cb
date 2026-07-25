@@ -1,7 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/db';
 import { logFieldChange, addManualNote } from '@/lib/services/activityLog';
 
-const sb = supabase as any;
+const sb = db;
 
 export type CreditNoteStatus = 'active' | 'partially_used' | 'fully_used' | 'expired' | 'voided';
 

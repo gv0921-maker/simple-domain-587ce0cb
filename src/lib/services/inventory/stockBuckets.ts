@@ -1,7 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/db';
 import { logStatusChange } from '@/lib/services/activityLog';
 
-const sb = supabase as any;
+const sb = db;
 
 export type StockBucket =
   | 'pending' | 'available' | 'under_correction' | 'reserved'

@@ -1,7 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/db';
 import { logStatusChange, logRecordCreated, logFieldChange } from '@/lib/services/activityLog';
 
-const sb = supabase as any;
+const sb = db;
 
 export type GRSourceType = 'vendor_order' | 'work_order' | 'manual' | 'return';
 export type GRStatus = 'draft' | 'quantity_pending' | 'labels_pending' | 'qc_pending' | 'completed' | 'cancelled';

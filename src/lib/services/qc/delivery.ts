@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
+import { db } from '@/integrations/supabase/db';
 export type DeliveryQCStatus = 'pending' | 'passed' | 'failed';
 
 export interface DeliveryQC {
@@ -40,7 +41,7 @@ function mapRow(r: any): DeliveryQC {
   };
 }
 
-const sb = supabase as any;
+const sb = db;
 
 export async function uploadDeliveryQCImageAsync(salesOrderId: string, file: File): Promise<string> {
   const ext = file.name.split('.').pop() || 'jpg';

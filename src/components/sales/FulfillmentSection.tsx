@@ -15,6 +15,7 @@ import { Truck, PackageSearch, ScanLine, Receipt, AlertTriangle } from 'lucide-r
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/db';
 import {
   useITOsForSO, useITODetail, useSuggestITO, useCreateITO, useSOReadyToInvoice,
 } from '@/hooks/inventory/internalTransfers';
@@ -34,7 +35,7 @@ function useItoLineLocations(salesOrderId: string, productIds: string[]) {
     queryKey: key,
     enabled: !!salesOrderId && productIds.length > 0,
     queryFn: async () => {
-      const sb = supabase as any;
+      const sb = db;
       const { data: serials } = await sb
         .from('goods_receipt_serials')
         .select('product_id, current_location, current_warehouse_id')

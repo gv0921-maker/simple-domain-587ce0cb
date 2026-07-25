@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/db';
 import { addToScanQueue } from '@/lib/services/barcode/api';
 
 export type StockCountStatus = 'draft' | 'in_progress' | 'completed' | 'reconciled' | 'skipped';
@@ -52,7 +53,7 @@ export interface StockCountFilters {
 }
 
 export async function getStockCounts(filters: StockCountFilters = {}): Promise<StockCount[]> {
-  let q = (supabase as any).from('stock_counts').select('*');
+  let q = db.from('stock_counts').select('*');
   if (filters.year) q = q.eq('count_period_year', filters.year);
   if (filters.status && filters.status !== 'all') q = q.eq('status', filters.status);
   q = q.order('count_period_year', { ascending: false }).order('count_period_month', { ascending: false });
@@ -62,10 +63,10 @@ export async function getStockCounts(filters: StockCountFilters = {}): Promise<S
 }
 
 export async function getStockCountById(id: string): Promise<{ count: StockCount; items: StockCountItem[] } | null> {
-  const { data: c, error } = await (supabase as any).from('stock_counts').select('*').eq('id', id).maybeSingle();
+  const { data: c, error } = await db.from('stock_counts').select('*').eq('id', id).maybeSingle();
   if (error) throw error;
   if (!c) return null;
-  const { data: items, error: ie } = await (supabase as any)
+  const { data: items, error: ie } = await db
     .from('stock_count_items')
     .select('*, product:products(name)')
     .eq('stock_count_id', id)
@@ -77,7 +78,7 @@ export async function getStockCountById(id: string): Promise<{ count: StockCount
 export async function createStockCount(month: number, year: number, warehouseId?: string | null): Promise<string> {
   const { data: u } = await supabase.auth.getUser();
   const uid = u.user?.id ?? null;
-  const { data, error } = await (supabase as any)
+  const { data, error } = await db
     .from('stock_counts')
     .insert({
       count_period_month: month,
@@ -93,24 +94,24 @@ export async function createStockCount(month: number, year: number, warehouseId?
 }
 
 export async function startCount(countId: string): Promise<number> {
-  const { data, error } = await (supabase as any).rpc('initialize_stock_count', { p_count_id: countId });
+  const { data, error } = await db.rpc('initialize_stock_count', { p_count_id: countId });
   if (error) throw error;
   // best-effort scan queue
   try {
-    const { data: c } = await (supabase as any).from('stock_counts').select('count_number').eq('id', countId).maybeSingle();
+    const { data: c } = await db.from('stock_counts').select('count_number').eq('id', countId).maybeSingle();
     await addToScanQueue('stock_count' as any, countId, (c as any)?.count_number ?? countId, Number(data ?? 0), 'normal');
   } catch { /* noop */ }
   return Number(data ?? 0);
 }
 
 export async function completeCount(countId: string): Promise<{ total_expected: number; found: number; missing: number; unexpected_found: number }> {
-  const { data, error } = await (supabase as any).rpc('complete_stock_count', { p_count_id: countId });
+  const { data, error } = await db.rpc('complete_stock_count', { p_count_id: countId });
   if (error) throw error;
   return data as any;
 }
 
 export async function reconcileCount(countId: string, reconciliations: { item_id: string; action: ReconcileAction }[]): Promise<void> {
-  const { error } = await (supabase as any).rpc('reconcile_stock_count', {
+  const { error } = await db.rpc('reconcile_stock_count', {
     p_count_id: countId,
     p_item_reconciliations: reconciliations,
   });
@@ -119,7 +120,7 @@ export async function reconcileCount(countId: string, reconciliations: { item_id
 
 export async function markItemsMissing(itemIds: string[]): Promise<void> {
   if (itemIds.length === 0) return;
-  const { error } = await (supabase as any)
+  const { error } = await db
     .from('stock_count_items')
     .update({ count_status: 'missing' })
     .in('id', itemIds);
@@ -133,7 +134,7 @@ export async function recordItemFound(args: {
   foundWarehouseId?: string | null;
   notes?: string;
 }): Promise<void> {
-  const { data: existing } = await (supabase as any)
+  const { data: existing } = await db
     .from('stock_count_items')
     .select('id')
     .eq('stock_count_id', args.countId)
@@ -142,7 +143,7 @@ export async function recordItemFound(args: {
   const { data: u } = await supabase.auth.getUser();
   const uid = u.user?.id ?? null;
   if (existing) {
-    const { error } = await (supabase as any)
+    const { error } = await db
       .from('stock_count_items')
       .update({
         count_status: 'found',
@@ -162,14 +163,14 @@ export async function recordItemFound(args: {
 export async function markItemUnexpectedFound(countId: string, serialId: string, notes?: string): Promise<void> {
   const { data: u } = await supabase.auth.getUser();
   const uid = u.user?.id ?? null;
-  const { data: s, error: se } = await (supabase as any)
+  const { data: s, error: se } = await db
     .from('goods_receipt_serials')
     .select('product_id, serial_number, stock_status')
     .eq('id', serialId)
     .maybeSingle();
   if (se) throw se;
   if (!s) return;
-  const { error } = await (supabase as any).from('stock_count_items').insert({
+  const { error } = await db.from('stock_count_items').insert({
     stock_count_id: countId,
     goods_receipt_serial_id: serialId,
     product_id: (s as any).product_id,
@@ -188,7 +189,7 @@ export async function requestCountSkip(year: number, month: number, reason: stri
   const { data: u } = await supabase.auth.getUser();
   const uid = u.user?.id;
   if (uid) {
-    const { data: roles } = await (supabase as any).from('user_roles').select('role').eq('user_id', uid);
+    const { data: roles } = await db.from('user_roles').select('role').eq('user_id', uid);
     const isSuper = ((roles ?? []) as any[]).some((r) => r.role === 'super_admin');
     if (isSuper) {
       const id = await approveCountSkip(year, month, reason);
@@ -196,7 +197,7 @@ export async function requestCountSkip(year: number, month: number, reason: stri
     }
   }
   // Pending approval — log activity
-  await (supabase as any).from('activity_log').insert({
+  await db.from('activity_log').insert({
     entity_type: 'stock_count',
     entity_id: null,
     action: 'skip_requested',
@@ -207,7 +208,7 @@ export async function requestCountSkip(year: number, month: number, reason: stri
 }
 
 export async function approveCountSkip(year: number, month: number, reason: string): Promise<string> {
-  const { data, error } = await (supabase as any).rpc('approve_count_skip', {
+  const { data, error } = await db.rpc('approve_count_skip', {
     p_year: year, p_month: month, p_reason: reason,
   });
   if (error) throw error;
@@ -216,7 +217,7 @@ export async function approveCountSkip(year: number, month: number, reason: stri
 
 export async function isCountRequiredThisMonth(): Promise<boolean> {
   const now = new Date();
-  const { data, error } = await (supabase as any).rpc('is_count_required_this_month', {
+  const { data, error } = await db.rpc('is_count_required_this_month', {
     p_year: now.getFullYear(), p_month: now.getMonth() + 1,
   });
   if (error) throw error;
@@ -224,7 +225,7 @@ export async function isCountRequiredThisMonth(): Promise<boolean> {
 }
 
 export async function getCountQueueId(countId: string): Promise<string | null> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await db
     .from('scan_queue').select('id')
     .eq('document_type', 'stock_count')
     .eq('document_id', countId)

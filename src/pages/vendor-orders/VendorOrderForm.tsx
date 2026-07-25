@@ -17,6 +17,7 @@ import { validateSOLinkedEta, type CreateVOLineInput, type VOMode } from '@/lib/
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
+import { db } from '@/integrations/supabase/db';
 interface LineDraft extends CreateVOLineInput { _key: string; }
 
 export default function VendorOrderForm() {
@@ -44,7 +45,7 @@ export default function VendorOrderForm() {
   useEffect(() => {
     if (!linkedSOLineId) return;
     (async () => {
-      const { data } = await (supabase as any)
+      const { data } = await db
         .from('order_lines')
         .select('product_id, quantity, customization_notes, size_spec, colour_polish_spec, fabric_spec')
         .eq('id', linkedSOLineId)

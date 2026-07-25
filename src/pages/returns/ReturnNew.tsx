@@ -16,6 +16,7 @@ import { ArrowLeft, Upload, AlertTriangle } from 'lucide-react';
 import { useReturnableItemsForInvoice, useCreateReturnRequest, useUploadReturnPhoto, useSubmitReturnForApproval } from '@/hooks/returns';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/db';
 import { toast } from 'sonner';
 
 const REASONS = [
@@ -31,7 +32,7 @@ function useInvoicesSearch(term: string) {
     queryKey: ['returns-invoice-search', term],
     queryFn: async () => {
       if (term.trim().length < 1) return [] as Array<{ id: string; reference: string; customer_name: string | null }>;
-      const { data } = await (supabase as any)
+      const { data } = await db
         .from('invoices')
         .select('id, reference, sales_order:sales_orders!invoices_sales_order_id_fkey(billing_customer_name)')
         .ilike('reference', `%${term}%`)

@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
+import { db } from '@/integrations/supabase/db';
 export type QCReferenceType = 'purchase_order' | 'work_order';
 export type QCStatus = 'pending' | 'passed' | 'failed';
 
@@ -56,7 +57,7 @@ function mapRow(r: any): GoodsReceiptQC {
   };
 }
 
-const sb = supabase as any;
+const sb = db;
 
 export async function uploadQCImageAsync(
   referenceType: QCReferenceType,

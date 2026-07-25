@@ -13,6 +13,7 @@ import { INVENTORY_NAV } from '@/lib/navigation';
 import { useCreateInternalMovement } from '@/hooks/inventory/internalMovements';
 import { MOVEMENT_TYPE_LABEL, GENERAL_MOVEMENT_TYPES, type MovementType, type LocationType, type CreateMovementItemInput } from '@/lib/services/inventory/internalMovements';
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/db';
 import { toast } from '@/hooks/use-toast';
 
 const LOCATION_TYPES: LocationType[] = ['warehouse','store_display','under_correction','packaging','vendor','scrap'];
@@ -34,7 +35,7 @@ export default function InternalMovementForm() {
   const addSerial = async () => {
     const code = serialInput.trim();
     if (!code) return;
-    const { data, error } = await (supabase as any)
+    const { data, error } = await db
       .from('goods_receipt_serials')
       .select('id, product_id, serial_number, barcode_value')
       .or(`serial_number.eq.${code},barcode_value.eq.${code}`)

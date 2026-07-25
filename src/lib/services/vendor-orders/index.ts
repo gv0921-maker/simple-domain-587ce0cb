@@ -1,8 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/db';
 import { logRecordCreated, logStatusChange, logFieldChange } from '@/lib/services/activityLog';
 import { createGoodsReceipt } from '@/lib/services/inventory/goodsReceipt';
 
-const sb = supabase as any;
+const sb = db;
 
 export type VOStatus = 'draft' | 'pending_approval' | 'approved' | 'placed' | 'partial' | 'received' | 'cancelled';
 export type VOMode = 'individual' | 'bulk';

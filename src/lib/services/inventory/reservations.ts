@@ -2,6 +2,7 @@
 // to specific inventory units (serial numbers / lots / quantity).
 import { supabase } from '@/integrations/supabase/client';
 
+import { db } from '@/integrations/supabase/db';
 export type StockReservationStatus = 'reserved' | 'released' | 'delivered';
 
 export interface StockReservation {
@@ -39,7 +40,7 @@ function mapRow(r: any): StockReservation {
 }
 
 export async function listReservationsAsync(): Promise<StockReservation[]> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await db
     .from('stock_reservations').select('*').order('reserved_at', { ascending: false });
   if (error) throw error;
   return (data ?? []).map(mapRow);
@@ -48,7 +49,7 @@ export async function listReservationsAsync(): Promise<StockReservation[]> {
 export async function listReservationsBySalesOrderAsync(
   salesOrderId: string,
 ): Promise<StockReservation[]> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await db
     .from('stock_reservations').select('*')
     .eq('sales_order_id', salesOrderId)
     .order('reserved_at', { ascending: false });
@@ -59,7 +60,7 @@ export async function listReservationsBySalesOrderAsync(
 export async function listReservationsByProductAsync(
   productId: string,
 ): Promise<StockReservation[]> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await db
     .from('stock_reservations').select('*')
     .eq('product_id', productId)
     .eq('status', 'reserved')
@@ -102,7 +103,7 @@ export async function createReservationsAsync(
       groups.set(key, g);
     }
     for (const g of groups.values()) {
-      const { data, error } = await (supabase as any).rpc('reserve_serials', {
+      const { data, error } = await db.rpc('reserve_serials', {
         _so_id: g.soId,
         _order_line_id: g.olId,
         _product_id: g.pid,
@@ -116,7 +117,7 @@ export async function createReservationsAsync(
   }
 
   for (const i of qtyInputs) {
-    const { data, error } = await (supabase as any).rpc('reserve_quantity', {
+    const { data, error } = await db.rpc('reserve_quantity', {
       _so_id: i.salesOrderId,
       _order_line_id: i.orderLineId ?? null,
       _product_id: i.productId,
@@ -128,14 +129,14 @@ export async function createReservationsAsync(
   }
 
   if (createdIds.length === 0) return [];
-  const { data: rows, error: fetchErr } = await (supabase as any)
+  const { data: rows, error: fetchErr } = await db
     .from('stock_reservations').select('*').in('id', createdIds);
   if (fetchErr) throw fetchErr;
   return (rows ?? []).map(mapRow);
 }
 
 export async function releaseReservationAsync(id: string): Promise<void> {
-  const { error } = await (supabase as any).rpc('release_reservations', {
+  const { error } = await db.rpc('release_reservations', {
     _document_type: 'reservation',
     _document_id: id,
   });
@@ -149,7 +150,7 @@ export async function deleteReservationAsync(id: string): Promise<void> {
 }
 
 export async function releaseReservationsForSalesOrderAsync(salesOrderId: string): Promise<number> {
-  const { data, error } = await (supabase as any).rpc('release_reservations', {
+  const { data, error } = await db.rpc('release_reservations', {
     _document_type: 'sales_order',
     _document_id: salesOrderId,
   });

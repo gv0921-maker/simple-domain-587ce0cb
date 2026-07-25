@@ -1,7 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/db';
 import { logFieldChange, logStatusChange } from '@/lib/services/activityLog';
 
-const sb = supabase as any;
+const sb = db;
 
 export type WorkOrderStage =
   | 'draft' | 'pending_approval' | 'approved' | 'placed'

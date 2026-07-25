@@ -1,7 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/db';
 import type { QCExpectedLine } from '@/lib/services/inventory/qcEngine';
 
-const sb = supabase as any;
+const sb = db;
 
 // ------------------------------------------------------------------
 // Helpers

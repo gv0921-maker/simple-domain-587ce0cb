@@ -1,8 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/db';
 import { logFieldChange, addManualNote } from '@/lib/services/activityLog';
 import type { ConditionGrade, ResolutionType } from './index';
 
-const sb = supabase as any;
+const sb = db;
 
 export type AllowedResolution = Extract<ResolutionType, 'exchange' | 'credit_note' | 'refund'>;
 

@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
+import { db } from '@/integrations/supabase/db';
 export type NotificationCategory = 'sales'|'inventory'|'manufacturing'|'hr'|'returns'|'chat'|'system'|'vendor_orders';
 export type NotificationPriority = 'urgent'|'high'|'normal'|'low';
 
@@ -28,7 +29,7 @@ export interface NotifFilters {
 }
 
 export async function getMyNotifications(f: NotifFilters = {}): Promise<AppNotification[]> {
-  let q = (supabase as any).from('notifications').select('*').order('created_at', { ascending: false });
+  let q = db.from('notifications').select('*').order('created_at', { ascending: false });
   if (f.unreadOnly) q = q.eq('is_read', false);
   if (f.category) q = q.eq('category', f.category);
   if (f.priority) q = q.eq('priority', f.priority);
@@ -39,25 +40,25 @@ export async function getMyNotifications(f: NotifFilters = {}): Promise<AppNotif
 }
 
 export async function getUnreadCount(): Promise<number> {
-  const { count, error } = await (supabase as any)
+  const { count, error } = await db
     .from('notifications').select('*', { count: 'exact', head: true }).eq('is_read', false);
   if (error) throw error;
   return count ?? 0;
 }
 
 export async function markAsRead(id: string) {
-  const { error } = await (supabase as any).rpc('mark_notification_read', { p_id: id });
+  const { error } = await db.rpc('mark_notification_read', { p_id: id });
   if (error) throw error;
 }
 
 export async function markAllAsRead() {
-  const { data, error } = await (supabase as any).rpc('mark_all_notifications_read');
+  const { data, error } = await db.rpc('mark_all_notifications_read');
   if (error) throw error;
   return data as number;
 }
 
 export async function deleteNotification(id: string) {
-  const { error } = await (supabase as any).from('notifications').delete().eq('id', id);
+  const { error } = await db.from('notifications').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -65,9 +66,9 @@ export async function getMyPreferences(): Promise<any> {
   const { data: u } = await supabase.auth.getUser();
   const uid = u.user?.id;
   if (!uid) return null;
-  const { data } = await (supabase as any).from('notification_preferences').select('*').eq('user_id', uid).maybeSingle();
+  const { data } = await db.from('notification_preferences').select('*').eq('user_id', uid).maybeSingle();
   if (data) return data;
-  const { data: created, error } = await (supabase as any)
+  const { data: created, error } = await db
     .from('notification_preferences').insert({ user_id: uid }).select().single();
   if (error) throw error;
   return created;
@@ -77,7 +78,7 @@ export async function updateMyPreferences(input: Record<string, unknown>) {
   const { data: u } = await supabase.auth.getUser();
   const uid = u.user?.id;
   if (!uid) throw new Error('Not authenticated');
-  const { data, error } = await (supabase as any)
+  const { data, error } = await db
     .from('notification_preferences')
     .upsert({ user_id: uid, ...input, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
     .select().single();
@@ -100,7 +101,7 @@ export async function unsubscribeBrowserPush() {
 export async function sendTestNotification() {
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) throw new Error('Not authenticated');
-  const { error } = await (supabase as any).rpc('create_app_notification', {
+  const { error } = await db.rpc('create_app_notification', {
     p_recipient: u.user.id,
     p_type: 'test',
     p_category: 'system',

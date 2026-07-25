@@ -26,6 +26,7 @@ import {
 import type { PaymentMode, SalesOrderPayment } from '@/lib/services/sales/payments';
 import { useCustomerActiveCreditNotes, useRedeemCreditNote } from '@/hooks/credit-notes';
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/db';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 
@@ -471,7 +472,7 @@ function RedeemCreditNoteDialog({ open, onOpenChange, salesOrderId, balance }: {
   const { data: so } = useQuery({
     queryKey: ['so-customer', salesOrderId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from('sales_orders').select('customer_id').eq('id', salesOrderId).maybeSingle();
       if (error) throw error;
       return data as { customer_id: string | null } | null;

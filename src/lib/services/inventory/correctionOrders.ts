@@ -1,9 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/db';
 import { addToScanQueue } from '@/lib/services/barcode/api';
 import { createWriteOffDraft, addItemsToWriteOff } from '@/lib/services/inventory/writeOffs';
 import { logStatusChange, logRecordCreated, logFieldChange } from '@/lib/services/activityLog';
 
-const sb = supabase as any;
+const sb = db;
 
 export type COStatus = 'draft' | 'sent' | 'in_progress' | 'completed' | 'closed' | 'cancelled';
 export type COSourceType = 'goods_receipt' | 'return' | 'manual';

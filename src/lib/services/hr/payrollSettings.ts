@@ -1,6 +1,7 @@
 // Phase 7 Batch 4 — Payroll Settings service (super_admin only).
 import { supabase } from '@/integrations/supabase/client';
 
+import { db } from '@/integrations/supabase/db';
 async function requireSuperAdmin() {
   const { data: u } = await supabase.auth.getUser();
   const uid = u.user?.id;
@@ -15,7 +16,7 @@ async function requireSuperAdmin() {
 
 export async function getPayrollSettings(): Promise<any> {
   await requireSuperAdmin();
-  const { data, error } = await (supabase as any)
+  const { data, error } = await db
     .from('payroll_settings')
     .select('*')
     .eq('is_active', true)
@@ -38,7 +39,7 @@ export interface PayrollSettingsInput {
 
 export async function updatePayrollSettingsX(id: string, patch: PayrollSettingsInput) {
   const uid = await requireSuperAdmin();
-  const { data, error } = await (supabase as any)
+  const { data, error } = await db
     .from('payroll_settings')
     .update({ ...patch, updated_by: uid, updated_at: new Date().toISOString() })
     .eq('id', id)

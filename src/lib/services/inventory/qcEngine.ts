@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
+import { db } from '@/integrations/supabase/db';
 export type QCDocumentType = 'ito' | 'goods_receipt' | 'delivery_note' | 'return';
 export type QCInspectionStatus = 'pending' | 'pass' | 'fail';
 
@@ -41,7 +42,7 @@ export interface QCReadinessResult {
   reasons: string[];
 }
 
-const sb = supabase as any;
+const sb = db;
 
 function mapRow(r: any): QCInspection {
   return {

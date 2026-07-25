@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/db';
 import { addToScanQueue } from '@/lib/services/barcode/api';
 
 export type MovementType =
@@ -78,7 +79,7 @@ export async function createInternalMovement(args: {
   const { data: u } = await supabase.auth.getUser();
   const uid = u.user?.id ?? null;
 
-  const { data: mv, error } = await (supabase as any)
+  const { data: mv, error } = await db
     .from('internal_movements')
     .insert({
       movement_type: args.movementType,
@@ -104,7 +105,7 @@ export async function createInternalMovement(args: {
       product_id: it.product_id,
       serial_number: it.serial_number,
     }));
-    const { error: ie } = await (supabase as any).from('internal_movement_items').insert(rows);
+    const { error: ie } = await db.from('internal_movement_items').insert(rows);
     if (ie) throw ie;
   }
 
@@ -123,7 +124,7 @@ export async function createInternalMovement(args: {
 }
 
 export async function getInternalMovements(filters: MovementFilters = {}): Promise<InternalMovement[]> {
-  let q = (supabase as any).from('internal_movements').select('*');
+  let q = db.from('internal_movements').select('*');
   if (filters.movementType && filters.movementType !== 'all') q = q.eq('movement_type', filters.movementType);
   if (filters.status && filters.status !== 'all') q = q.eq('status', filters.status);
   if (filters.from) q = q.gte('created_at', filters.from);
@@ -139,11 +140,11 @@ export async function getInternalMovementById(id: string): Promise<{
   movement: InternalMovement;
   items: InternalMovementItem[];
 } | null> {
-  const { data: m, error } = await (supabase as any)
+  const { data: m, error } = await db
     .from('internal_movements').select('*').eq('id', id).maybeSingle();
   if (error) throw error;
   if (!m) return null;
-  const { data: items, error: ie } = await (supabase as any)
+  const { data: items, error: ie } = await db
     .from('internal_movement_items')
     .select('*, product:products(name)')
     .eq('internal_movement_id', id)
@@ -153,7 +154,7 @@ export async function getInternalMovementById(id: string): Promise<{
 }
 
 export async function cancelMovement(movementId: string, reason: string): Promise<void> {
-  const { error } = await (supabase as any)
+  const { error } = await db
     .from('internal_movements')
     .update({ status: 'cancelled', notes: reason })
     .eq('id', movementId);
@@ -161,7 +162,7 @@ export async function cancelMovement(movementId: string, reason: string): Promis
 }
 
 export async function startMovement(movementId: string): Promise<void> {
-  const { error } = await (supabase as any)
+  const { error } = await db
     .from('internal_movements')
     .update({ status: 'in_progress' })
     .eq('id', movementId);
@@ -169,7 +170,7 @@ export async function startMovement(movementId: string): Promise<void> {
 }
 
 export async function completeMovement(movementId: string): Promise<boolean> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await db
     .rpc('complete_internal_movement', { p_movement_id: movementId });
   if (error) throw error;
   return Boolean(data);
@@ -196,7 +197,7 @@ export async function recordDisplaySold(args: {
 }
 
 export async function getMovementQueueId(movementId: string): Promise<string | null> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await db
     .from('scan_queue').select('id')
     .eq('document_type', 'internal_movement')
     .eq('document_id', movementId)
@@ -238,7 +239,7 @@ export async function suggestAvailableSerials(
   quantity: number,
   warehouseId?: string | null,
 ): Promise<AvailableSerialSuggestion[]> {
-  let q = (supabase as any)
+  let q = db
     .from('goods_receipt_serials')
     .select('id, serial_number, product_id, current_location, current_warehouse_id')
     .eq('product_id', productId)
@@ -263,7 +264,7 @@ export async function suggestAvailableSerials(
 export async function getTransitLocationForWarehouse(
   warehouseId: string,
 ): Promise<{ id: string; name: string }> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await db
     .from('warehouse_locations')
     .select('id, name')
     .eq('warehouse_id', warehouseId)
@@ -312,7 +313,7 @@ export interface CompletePickToTransitResult {
 export async function completePickToTransit(
   movementId: string,
 ): Promise<CompletePickToTransitResult> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await db
     .rpc('complete_pick_to_transit', { p_movement_id: movementId });
   if (error) throw new Error(error.message);
   const res = (data ?? {}) as CompletePickToTransitResult;

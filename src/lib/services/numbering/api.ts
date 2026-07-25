@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
+import { db } from '@/integrations/supabase/db';
 export type DocumentType =
   | 'sales_order' | 'quotation' | 'invoice' | 'delivery_note'
   | 'internal_transfer' | 'vendor_order' | 'work_order' | 'return_request'
@@ -16,7 +17,7 @@ export interface NumberingSettings {
   updated_by: string | null;
 }
 
-const sb = supabase as any;
+const sb = db;
 
 /** Returns the current FY label (e.g. "2526") via the DB function. */
 export async function getCurrentFY(): Promise<string> {

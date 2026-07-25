@@ -7,6 +7,7 @@
 // these directly.
 
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/db';
 import { generateDocumentNumber } from '@/lib/services/numbering/api';
 import type {
   Product, Warehouse, Location, Lot, SerialNumber,
@@ -502,7 +503,7 @@ export async function getSerialsByProductAsync(productId: string): Promise<Seria
   // Canonical serial state lives in goods_receipt_serials, surfaced via v_available_serials.
   // Callers that pass through this function currently only need the "available" set
   // (e.g. reservation dialog); return that set mapped to the SerialNumber shape.
-  const { data, error } = await (supabase as any)
+  const { data, error } = await db
     .from('v_available_serials')
     .select('id, product_id, serial_number, location_id, updated_at')
     .eq('product_id', productId)
@@ -523,7 +524,7 @@ export async function getAvailableSerialsAsync(productId: string): Promise<Seria
 export async function saveSerialNumberAsync(s: SerialNumber): Promise<SerialNumber> {
   const row = serialToRow(s);
   const isNew = !s.id || s.id.startsWith('new-');
-  const { data: id, error } = await (supabase as any).rpc('save_serial_number', {
+  const { data: id, error } = await db.rpc('save_serial_number', {
     _id: isNew ? null : s.id,
     _product_id: row.product_id,
     _name: row.name,
@@ -541,7 +542,7 @@ export async function updateSerialStatusAsync(
   status: SerialNumber['status'],
   locationId?: string,
 ): Promise<void> {
-  const { error } = await (supabase as any).rpc('update_serial_status', {
+  const { error } = await db.rpc('update_serial_status', {
     _serial_id: serialId,
     _status: status,
     _location_id: locationId ?? null,
@@ -582,7 +583,7 @@ export async function saveStockMoveAsync(move: StockMove): Promise<StockMove> {
   const headerRow = stockMoveToRow(move);
   const isNew = !move.id || move.id.startsWith('new-');
   const lines = move.lines.map((l) => stockMoveLineToRow('__placeholder__', l));
-  const { data: id, error } = await (supabase as any).rpc('inv_save_stock_move', {
+  const { data: id, error } = await db.rpc('inv_save_stock_move', {
     _move_id: isNew ? null : move.id,
     _header: headerRow as any,
     _lines: lines as any,
@@ -591,7 +592,7 @@ export async function saveStockMoveAsync(move: StockMove): Promise<StockMove> {
   return (await getStockMoveAsync(id as string))!;
 }
 export async function deleteStockMoveAsync(id: string): Promise<void> {
-  const { error } = await (supabase as any).rpc('inv_delete_stock_move', { _move_id: id });
+  const { error } = await db.rpc('inv_delete_stock_move', { _move_id: id });
   if (error) throw new Error(error.message);
 }
 export async function validateStockMoveAsync(moveId: string): Promise<void> {
