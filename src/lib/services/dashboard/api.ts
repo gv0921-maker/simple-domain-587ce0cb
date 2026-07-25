@@ -62,12 +62,12 @@ export async function getSuperAdminMetrics(): Promise<SuperAdminMetrics> {
     supabase.from('sales_orders').select('status'),
   ]);
 
-  const revenueMTD = (ordersMTD.data ?? []).reduce((s, o: any) => s + Number(o.total ?? 0), 0);
-  const revenueYTD = (ordersYTD.data ?? []).reduce((s, o: any) => s + Number(o.total ?? 0), 0);
-  const cashPosition = (paidInvRes.data ?? []).reduce((s, i: any) => s + Number(i.total ?? 0), 0);
+  const revenueMTD = (ordersMTD.data ?? []).reduce((s, o) => s + Number(o.total ?? 0), 0);
+  const revenueYTD = (ordersYTD.data ?? []).reduce((s, o) => s + Number(o.total ?? 0), 0);
+  const cashPosition = (paidInvRes.data ?? []).reduce((s, i) => s + Number(i.total ?? 0), 0);
 
   const lowStock = (lowStockRes.data ?? []).filter(
-    (p: any) => p.reorder_level != null && Number(p.stock_on_hand ?? 0) <= Number(p.reorder_level)
+    (p) => p.reorder_level != null && Number(p.stock_on_hand ?? 0) <= Number(p.reorder_level)
   );
 
   // Revenue trend (last 6 months)
@@ -81,7 +81,7 @@ export async function getSuperAdminMetrics(): Promise<SuperAdminMetrics> {
     const d = subMonths(now, i);
     monthlyBuckets.set(format(d, 'yyyy-MM'), 0);
   }
-  (trendRes.data ?? []).forEach((o: any) => {
+  (trendRes.data ?? []).forEach((o) => {
     const key = format(new Date(o.order_date), 'yyyy-MM');
     if (monthlyBuckets.has(key)) {
       monthlyBuckets.set(key, (monthlyBuckets.get(key) ?? 0) + Number(o.total ?? 0));
@@ -94,7 +94,7 @@ export async function getSuperAdminMetrics(): Promise<SuperAdminMetrics> {
 
   // Order status breakdown
   const statusMap = new Map<string, number>();
-  (orderStatusRes.data ?? []).forEach((o: any) => {
+  (orderStatusRes.data ?? []).forEach((o) => {
     const k = o.status ?? 'unknown';
     statusMap.set(k, (statusMap.get(k) ?? 0) + 1);
   });
@@ -139,15 +139,15 @@ export async function getSalesManagerMetrics(): Promise<SalesManagerMetrics> {
 
   const orders = ordersRes.data ?? [];
   const quotations = quotsRes.data ?? [];
-  const revenueMTD = orders.reduce((s, o: any) => s + Number(o.total ?? 0), 0);
-  const confirmedQuotes = quotations.filter((q: any) => ['accepted', 'confirmed'].includes(q.status)).length;
+  const revenueMTD = orders.reduce((s, o) => s + Number(o.total ?? 0), 0);
+  const confirmedQuotes = quotations.filter((q) => ['accepted', 'confirmed'].includes(q.status)).length;
   const conversionRate = quotations.length ? (confirmedQuotes / quotations.length) * 100 : 0;
-  const pipelineValue = (pipelineRes.data ?? []).reduce((s, o: any) => s + Number(o.expected_revenue ?? 0), 0);
+  const pipelineValue = (pipelineRes.data ?? []).reduce((s, o) => s + Number(o.expected_revenue ?? 0), 0);
   const avgDealSize = orders.length ? revenueMTD / orders.length : 0;
 
   // Top customers by revenue
   const custMap = new Map<string, { label: string; value: number }>();
-  orders.forEach((o: any) => {
+  orders.forEach((o) => {
     const k = o.customer_id ?? o.customer_name ?? 'unknown';
     const cur = custMap.get(k) ?? { label: o.customer_name ?? 'Unknown', value: 0 };
     cur.value += Number(o.total ?? 0);
@@ -159,7 +159,7 @@ export async function getSalesManagerMetrics(): Promise<SalesManagerMetrics> {
 
   // Top salespeople
   const spMap = new Map<string, { label: string; value: number }>();
-  orders.forEach((o: any) => {
+  orders.forEach((o) => {
     if (!o.salesperson_id && !o.salesperson_name) return;
     const k = o.salesperson_id ?? o.salesperson_name;
     const cur = spMap.get(k) ?? { label: o.salesperson_name ?? 'Unknown', value: 0 };
@@ -175,7 +175,7 @@ export async function getSalesManagerMetrics(): Promise<SalesManagerMetrics> {
     .select('id, action, details, timestamp, order_id')
     .order('timestamp', { ascending: false })
     .limit(10);
-  const recentActivities = (actRows ?? []).map((a: any) => ({
+  const recentActivities = (actRows ?? []).map((a) => ({
     id: a.id,
     title: a.action ?? 'Activity',
     subtitle: a.details ?? '',
@@ -212,7 +212,7 @@ export async function getSalesRepMetrics(userId: string): Promise<SalesRepMetric
     myOrdersMTD: oRes.count ?? 0,
     myCustomers: cRes.count ?? 0,
     followUpsDue: fRes.count ?? 0,
-    recentActivities: (aRes.data ?? []).map((a: any) => ({
+    recentActivities: (aRes.data ?? []).map((a) => ({
       id: a.id, title: a.type ?? 'Activity', subtitle: a.subject ?? '', timestamp: a.created_at,
     })),
   };
@@ -242,7 +242,7 @@ export async function getWarehouseOperatorMetrics(): Promise<WarehouseMetrics> {
   ]);
 
   const lowStock = (lowStockRes.data ?? []).filter(
-    (p: any) => p.reorder_level != null && Number(p.stock_on_hand ?? 0) <= Number(p.reorder_level)
+    (p) => p.reorder_level != null && Number(p.stock_on_hand ?? 0) <= Number(p.reorder_level)
   );
 
   return {
@@ -250,10 +250,10 @@ export async function getWarehouseOperatorMetrics(): Promise<WarehouseMetrics> {
     pendingQC: qcRes.count ?? 0,
     lowStockCount: lowStock.length,
     todaysDeliveries: delsRes.count ?? 0,
-    lowStockItems: lowStock.slice(0, 8).map((p: any) => ({
+    lowStockItems: lowStock.slice(0, 8).map((p) => ({
       id: p.id, label: p.name ?? 'Product', value: `${p.stock_on_hand ?? 0} / ${p.reorder_level}`,
     })),
-    recentMovements: (movesRes.data ?? []).map((m: any) => ({
+    recentMovements: (movesRes.data ?? []).map((m) => ({
       id: m.id, title: m.reference ?? m.operation_type ?? 'Move', subtitle: `${m.operation_type ?? ''} · ${m.state ?? ''}`, timestamp: m.created_at,
     })),
   };
@@ -281,15 +281,15 @@ export async function getAccountantMetrics(): Promise<AccountantMetrics> {
     supabase.from('invoices').select('id, reference, total, updated_at').eq('status', 'paid').order('updated_at', { ascending: false }).limit(8),
   ]);
 
-  const toCollect = (openInv.data ?? []).reduce((s, i: any) => s + Number(i.total ?? 0), 0);
-  const overdue = (openInv.data ?? []).filter((i: any) => i.due_date && i.due_date < today).reduce((s, i: any) => s + Number(i.total ?? 0), 0);
-  const collectedMTD = (paidMTD.data ?? []).reduce((s, i: any) => s + Number(i.total ?? 0), 0);
+  const toCollect = (openInv.data ?? []).reduce((s, i) => s + Number(i.total ?? 0), 0);
+  const overdue = (openInv.data ?? []).filter((i) => i.due_date && i.due_date < today).reduce((s, i) => s + Number(i.total ?? 0), 0);
+  const collectedMTD = (paidMTD.data ?? []).reduce((s, i) => s + Number(i.total ?? 0), 0);
   const gstMTD = collectedMTD * 0.18 / 1.18; // best-effort estimate
 
   // Aging buckets
   const buckets = { '0-30': 0, '31-60': 0, '61-90': 0, '90+': 0 } as Record<string, number>;
   const todayMs = Date.now();
-  (openInv.data ?? []).forEach((i: any) => {
+  (openInv.data ?? []).forEach((i) => {
     if (!i.due_date) return;
     const days = Math.floor((todayMs - new Date(i.due_date).getTime()) / 86400000);
     if (days < 31) buckets['0-30'] += Number(i.total ?? 0);
@@ -301,7 +301,7 @@ export async function getAccountantMetrics(): Promise<AccountantMetrics> {
 
   return {
     toCollect, overdue, collectedMTD, gstMTD,
-    recentPaidInvoices: (recentPaid.data ?? []).map((i: any) => ({
+    recentPaidInvoices: (recentPaid.data ?? []).map((i) => ({
       id: i.id,
       title: i.reference ?? 'Invoice',
       subtitle: `₹${Number(i.total ?? 0).toLocaleString('en-IN')}`,
@@ -339,7 +339,7 @@ export async function getHRManagerMetrics(): Promise<HRMetrics> {
   ]);
 
   const upcoming = (empBdays.data ?? [])
-    .map((e: any) => {
+    .map((e) => {
       if (!e.date_of_birth) return null;
       const dob = new Date(e.date_of_birth);
       const next = new Date(now.getFullYear(), dob.getMonth(), dob.getDate());
@@ -348,7 +348,7 @@ export async function getHRManagerMetrics(): Promise<HRMetrics> {
       return { id: e.id, label: e.full_name ?? 'Employee', subtitle: format(next, 'MMM d'), value: `${days}d`, days };
     })
     .filter(Boolean)
-    .sort((a: any, b: any) => a.days - b.days)
+    .sort((a, b) => a.days - b.days)
     .slice(0, 5) as any[];
 
   return {
@@ -357,7 +357,7 @@ export async function getHRManagerMetrics(): Promise<HRMetrics> {
     pendingLeaveApprovals: pendLeaveRes.count ?? 0,
     attendanceToday: attRes.count ?? 0,
     upcomingBirthdays: upcoming.map(({ days: _d, ...rest }: any) => rest),
-    expiringContracts: (contractsRes.data ?? []).map((c: any) => ({
+    expiringContracts: (contractsRes.data ?? []).map((c) => ({
       id: c.id, label: c.contract_number ?? 'Contract', subtitle: c.employee_id ?? '', value: c.end_date,
     })),
     pendingAppraisals: apprRes.count ?? 0,
@@ -394,7 +394,7 @@ export async function getEmployeeMetrics(userId: string): Promise<EmployeeMetric
   return {
     employeeId,
     activeSession: sess ? { id: sess.id, type: sess.session_type, check_in_time: sess.check_in_time } : null,
-    leaveBalances: (balRes.data ?? []).map((b: any) => ({
+    leaveBalances: (balRes.data ?? []).map((b) => ({
       id: b.id,
       label: b.leave_types?.name ?? 'Leave',
       value: `${Number(b.available_balance ?? 0)} days`,

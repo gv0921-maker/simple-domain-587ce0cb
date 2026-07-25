@@ -48,11 +48,11 @@ export default function RosterReschedule() {
                       <Button size="sm" onClick={async () => {
                         const nd = newDates[key]; if (!nd) { toast.error('Pick new date'); return; }
                         try { await reschedule.mutateAsync({ employeeId: it.employee_id, originalDate: it.roster_date, newDate: nd });
-                          toast.success('Rescheduled'); } catch (e: any) { toast.error(e.message); }
+                          toast.success('Rescheduled'); } catch (e) { toast.error(e.message); }
                       }}>Reschedule</Button>
                       <Button size="sm" variant="outline" onClick={async () => {
                         try { await grant.mutateAsync({ employee_id: it.employee_id, work_date: it.roster_date }); toast.success('Comp off granted'); }
-                        catch (e: any) { toast.error(e.message); }
+                        catch (e) { toast.error(e.message); }
                       }}>Grant Comp Off</Button>
                     </td>
                   </tr>

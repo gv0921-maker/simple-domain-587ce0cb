@@ -337,7 +337,7 @@ function notifyHydrated() {
 }
 
 // Map a Supabase app_roles row + permissions into a Role.
-function rowToRole(row: any, permRows: any[]): Role {
+function rowToRole(row, permRows: any[]): Role {
   const permissions: Permission[] = permRows
     .filter((p) => p.role_id === row.id)
     .map((p) => ({
@@ -386,7 +386,7 @@ export async function hydrateRbacFromSupabase(): Promise<void> {
     _userRolesCache = Array.from(byUser.entries()).map(([userId, roleIds]) => ({ userId, roleIds }));
 
     if (!auditRes.error && auditRes.data) {
-      _auditCache = auditRes.data.map((row: any) => ({
+      _auditCache = auditRes.data.map((row) => ({
         id: row.id,
         userId: row.user_id ?? '',
         userName: row.user_name ?? 'System',

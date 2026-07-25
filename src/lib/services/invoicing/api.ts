@@ -303,7 +303,7 @@ export async function generateInvoiceFromOrder(orderId: string): Promise<{ invoi
 
   // 4. Copy order_lines → invoice_lines
   if (orderLines && orderLines.length > 0) {
-    const lineRows = orderLines.map((l: any) => ({
+    const lineRows = orderLines.map((l) => ({
       invoice_id: invoiceId,
       product_id: l.product_id,
       description: l.description ?? l.product_name ?? '',

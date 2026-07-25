@@ -154,8 +154,8 @@ export async function getEmployeeAttendanceForPeriod(employeeId: string, month: 
     .lte('start_date', end)
     .gte('end_date', start);
   const lop_days = (leaveRows ?? [])
-    .filter((r: any) => r.leave_types?.code === 'UPL')
-    .reduce((a: number, r: any) => a + Number(r.total_days || 0), 0);
+    .filter((r) => r.leave_types?.code === 'UPL')
+    .reduce((a: number, r) => a + Number(r.total_days || 0), 0);
 
   // Overtime: extra hours beyond standard
   const { data: sessions } = await supabase.from('attendance_sessions')
@@ -163,8 +163,8 @@ export async function getEmployeeAttendanceForPeriod(employeeId: string, month: 
     .eq('employee_id', employeeId)
     .gte('session_date', start)
     .lte('session_date', end);
-  const workMin = (sessions ?? []).filter((s: any) => s.session_type === 'work')
-    .reduce((a: number, s: any) => a + (s.duration_minutes || 0), 0);
+  const workMin = (sessions ?? []).filter((s) => s.session_type === 'work')
+    .reduce((a: number, s) => a + (s.duration_minutes || 0), 0);
   const standardMin = wdays * (settings?.working_hours_per_day ?? 8) * 60;
   const overtime_hours = Math.max(0, (workMin - standardMin) / 60);
 
@@ -405,7 +405,7 @@ export async function processPayroll(periodId: string) {
       await savePayslipFromCalc(periodId, emp.id, calc);
       totalGross += calc.gross; totalDed += calc.totalDeductions;
       totalNet += calc.net; totalEmp += calc.employerContrib; count++;
-    } catch (e: any) {
+    } catch (e) {
       errors.push({ employeeId: emp.id, error: e?.message ?? String(e) });
     }
   }

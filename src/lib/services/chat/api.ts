@@ -265,7 +265,7 @@ export async function fetchUserMentions(
   if (typeof isRead === 'boolean') q = q.eq('is_read', isRead);
   const { data, error } = await q;
   if (error) throw error;
-  return (data ?? []).map((row: any) => ({
+  return (data ?? []).map((row) => ({
     ...row,
     channel: row.message?.channel ?? null,
     message: row.message ? { ...row.message, channel: undefined } : null,
@@ -340,7 +340,7 @@ export async function searchMessages(
   const nameById = new Map(dir.map((d) => [d.user_id, d.name]));
   const terms = q.split(/\s+/).filter(Boolean);
 
-  return (data ?? []).map((row: any) => {
+  return (data ?? []).map((row) => {
     const body: string = row.body ?? '';
     let snippet = body;
     // build a snippet around the first match
@@ -642,7 +642,7 @@ export async function findOrCreateDM(otherUserId: string): Promise<ChatChannel> 
   if (e1) throw e1;
 
   const dmChannelIds = (myDms ?? [])
-    .filter((r: any) => r.chat_channels?.type === 'dm')
+    .filter((r) => r.chat_channels?.type === 'dm')
     .map((r) => r.channel_id);
 
   if (dmChannelIds.length > 0) {

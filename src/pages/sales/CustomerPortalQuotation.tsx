@@ -69,7 +69,7 @@ export default function CustomerPortalQuotation() {
     try {
       await statusMut.mutateAsync('accepted');
       toast({ title: 'Quotation accepted!' });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Could not accept', description: e?.message, variant: 'destructive' });
     }
   };
@@ -78,7 +78,7 @@ export default function CustomerPortalQuotation() {
     try {
       await statusMut.mutateAsync('cancelled');
       toast({ title: 'Quotation declined' });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Could not decline', description: e?.message, variant: 'destructive' });
     }
   };
@@ -128,7 +128,7 @@ export default function CustomerPortalQuotation() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lines.map((line: any) => (
+                {lines.map((line) => (
                   <TableRow key={line.id}>
                     <TableCell className="font-medium">{line.product_name ?? line.description ?? '—'}</TableCell>
                     <TableCell className="text-right">{Number(line.quantity ?? 0)}</TableCell>

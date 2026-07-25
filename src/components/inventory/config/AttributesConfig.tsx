@@ -64,14 +64,14 @@ export function AttributesConfig() {
       await saveAttr.mutateAsync({ id: editingAttr?.id, ...attrForm, name: attrForm.name.trim() });
       toast({ title: editingAttr ? 'Attribute updated' : 'Attribute created' });
       setAttrOpen(false);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Save failed', description: e?.message, variant: 'destructive' });
     }
   };
   const removeAttr = async (id: string) => {
     if (!confirm('Delete this attribute and all its values?')) return;
     try { await delAttr.mutateAsync(id); toast({ title: 'Deleted' }); }
-    catch (e: any) { toast({ title: 'Delete failed', description: e?.message, variant: 'destructive' }); }
+    catch (e) { toast({ title: 'Delete failed', description: e?.message, variant: 'destructive' }); }
   };
 
   const openNewVal = (attrId: string) => {
@@ -101,14 +101,14 @@ export function AttributesConfig() {
       });
       toast({ title: editingVal ? 'Value updated' : 'Value created' });
       setValOpen(false);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Save failed', description: e?.message, variant: 'destructive' });
     }
   };
   const removeVal = async (id: string) => {
     if (!confirm('Delete this value?')) return;
     try { await delVal.mutateAsync(id); toast({ title: 'Deleted' }); }
-    catch (e: any) { toast({ title: 'Delete failed', description: e?.message, variant: 'destructive' }); }
+    catch (e) { toast({ title: 'Delete failed', description: e?.message, variant: 'destructive' }); }
   };
 
   return (

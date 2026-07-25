@@ -163,10 +163,10 @@ export async function calculateLeaveDays(
     supabase.from('employee_rosters').select('roster_date,roster_type')
       .eq('employee_id', employeeId).gte('roster_date', startDate).lte('roster_date', endDate),
   ]);
-  const holDates = new Set((hol.data ?? []).map((r: any) => r.holiday_date as string));
+  const holDates = new Set((hol.data ?? []).map((r) => r.holiday_date as string));
   const offDates = new Set(
-    (rost.data ?? []).filter((r: any) => r.roster_type === 'weekly_off' || r.roster_type === 'holiday')
-      .map((r: any) => r.roster_date as string),
+    (rost.data ?? []).filter((r) => r.roster_type === 'weekly_off' || r.roster_type === 'holiday')
+      .map((r) => r.roster_date as string),
   );
   const excluded = allDates.filter((d) => holDates.has(d) || offDates.has(d));
   let working = allDates.length - excluded.length;

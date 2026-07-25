@@ -25,7 +25,7 @@ export interface CreateDeliveryQCInput {
   qcNotes?: string;
 }
 
-function mapRow(r: any): DeliveryQC {
+function mapRow(r): DeliveryQC {
   return {
     id: r.id,
     salesOrderId: r.sales_order_id,

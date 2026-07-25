@@ -49,7 +49,7 @@ export default function PriceApprovalsPage() {
       }
       await setStatus.mutateAsync({ invoiceId, status: 'approved' });
       toast.success('Prices approved');
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e?.message ?? 'Failed to approve');
     }
   };
@@ -67,7 +67,7 @@ export default function PriceApprovalsPage() {
       }
       await setStatus.mutateAsync({ invoiceId, status: 'rejected' });
       toast.success('Prices rejected');
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e?.message ?? 'Failed to reject');
     }
   };

@@ -80,7 +80,7 @@ export default function ReturnDetail() {
       const url = await uploadPhoto.mutateAsync({ rtId: rt.id, file, type: 'qc' });
       const cur = qcDrafts[itemId]?.images ?? [];
       setDraft(itemId, { images: [...cur, url], uploading: false });
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e?.message ?? 'Upload failed');
       setDraft(itemId, { uploading: false });
     }
@@ -93,7 +93,7 @@ export default function ReturnDetail() {
       await recordQC.mutateAsync({ itemId, conditionGrade: d.grade, notes: d.notes || null, images: d.images ?? [] });
       toast.success('QC recorded');
       setQcDrafts((all) => { const c = { ...all }; delete c[itemId]; return c; });
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e?.message ?? 'Failed to record QC');
     }
   };
@@ -163,7 +163,7 @@ export default function ReturnDetail() {
                 <Button
                   onClick={() => submit.mutate(rt.id, {
                     onSuccess: () => toast.success('Submitted for super admin approval'),
-                    onError: (e: any) => toast.error(e?.message ?? 'Submission failed'),
+                    onError: (e) => toast.error(e?.message ?? 'Submission failed'),
                   })}
                   disabled={submit.isPending}
                 >
@@ -186,7 +186,7 @@ export default function ReturnDetail() {
                   className="bg-emerald-600 hover:bg-emerald-700"
                   onClick={() => approve.mutate(rt.id, {
                     onSuccess: () => toast.success('Return approved'),
-                    onError: (e: any) => toast.error(e?.message ?? 'Approval failed'),
+                    onError: (e) => toast.error(e?.message ?? 'Approval failed'),
                   })}
                   disabled={approve.isPending}
                 >
@@ -347,7 +347,7 @@ export default function ReturnDetail() {
               onClick={() => {
                 reject.mutate({ rtId: rt.id, reason: rejectReason.trim() }, {
                   onSuccess: () => { toast.success('Return rejected'); setRejectOpen(false); setRejectReason(''); },
-                  onError: (e: any) => toast.error(e?.message ?? 'Rejection failed'),
+                  onError: (e) => toast.error(e?.message ?? 'Rejection failed'),
                 });
               }}
             >Reject</Button>

@@ -5,7 +5,7 @@
  * Kept separate from the hook so non-hook contexts (e.g. ContactForm's
  * save callback) can reuse the exact same logic.
  */
-export function buildContactPopulationFields(c: any) {
+export function buildContactPopulationFields(c) {
   const fullName =
     [c.firstName, c.lastName].filter(Boolean).join(' ').trim() || c.name || '';
   const primaryPhone = c.phone || c.phones?.[0]?.phone || '';
@@ -13,11 +13,11 @@ export function buildContactPopulationFields(c: any) {
     ? (c.phones?.[0]?.phone || '')
     : (c.phones?.[1]?.phone || '');
   const billing =
-    c.addresses?.find((a: any) =>
+    c.addresses?.find((a) =>
       a.type?.toLowerCase() === 'billing' || a.type?.toLowerCase() === 'both',
     ) || c.addresses?.[0] || {};
   const shipping =
-    c.addresses?.find((a: any) =>
+    c.addresses?.find((a) =>
       a.type?.toLowerCase() === 'shipping' || a.type?.toLowerCase() === 'both',
     ) || c.addresses?.[1] || {};
   return {

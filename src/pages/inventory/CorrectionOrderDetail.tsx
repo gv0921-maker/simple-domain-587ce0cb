@@ -231,7 +231,7 @@ export default function CorrectionOrderDetail() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((it: any) => {
+                {items.map((it) => {
                   const itemCycles = cycles.filter(c => c.correction_order_item_id === it.id);
                   const isOpen = expanded === it.id;
                   return (
@@ -483,7 +483,7 @@ function RefundDialog({
                 {filtered.length === 0 && (
                   <div className="px-3 py-2 text-xs text-muted-foreground">No accounts configured</div>
                 )}
-                {filtered.map((a: any) => (
+                {filtered.map((a) => (
                   <SelectItem key={a.id} value={a.id}>{a.account_name}</SelectItem>
                 ))}
               </SelectContent>

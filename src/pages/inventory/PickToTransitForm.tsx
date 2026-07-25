@@ -44,7 +44,7 @@ export default function PickToTransitForm() {
         toast({ title: `Only ${rows.length} available`, description: `Fewer Available serials than requested (${qty}).` });
       }
       setPicked(rows);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Could not suggest serials', description: e?.message, variant: 'destructive' });
     } finally {
       setSuggesting(false);
@@ -82,7 +82,7 @@ export default function PickToTransitForm() {
       });
       toast({ title: 'Pick-to-transit created', description: `Destination: ${transit.name}. Scan and QC each unit.` });
       navigate(`/inventory/internal-movements/${id}`);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Could not create', description: e?.message, variant: 'destructive' });
     }
   };

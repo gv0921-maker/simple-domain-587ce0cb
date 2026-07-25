@@ -106,14 +106,14 @@ export default function WarehousesList() {
         setIsDialogOpen(false);
         toast({ title: editingWarehouse ? 'Warehouse Updated' : 'Warehouse Created', description: `${formData.name} has been saved successfully.` });
       },
-      onError: (e: any) => toast({ title: 'Save failed', description: e?.message, variant: 'destructive' }),
+      onError: (e) => toast({ title: 'Save failed', description: e?.message, variant: 'destructive' }),
     });
   };
 
   const handleDelete = (id: string) => {
     deleteMut.mutate(id, {
       onSuccess: () => toast({ title: 'Warehouse Deleted' }),
-      onError: (e: any) => toast({ title: 'Delete failed', description: e?.message, variant: 'destructive' }),
+      onError: (e) => toast({ title: 'Delete failed', description: e?.message, variant: 'destructive' }),
     });
   };
 

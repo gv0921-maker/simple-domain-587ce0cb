@@ -52,7 +52,7 @@ export default function HolidaysSettings() {
       else await create.mutateAsync(form);
       toast({ title: editing ? 'Holiday updated' : 'Holiday created' });
       setOpen(false);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed', description: e?.message, variant: 'destructive' });
     }
   }

@@ -135,7 +135,7 @@ export default function InvoiceDetail() {
                     toast.success(`Delivery note ${dn.reference} created`);
                     navigate(`/inventory/delivery-notes/${dn.id}`);
                   },
-                  onError: (e: any) => toast.error(e?.message ?? 'Failed to generate delivery note'),
+                  onError: (e) => toast.error(e?.message ?? 'Failed to generate delivery note'),
                 })
               }
               disabled={generateDN.isPending}

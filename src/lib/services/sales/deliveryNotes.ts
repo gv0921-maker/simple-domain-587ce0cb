@@ -83,12 +83,12 @@ export async function getAvailableSerialsForSO(salesOrderId: string, productId: 
     .eq('product_id', productId)
     .eq('stock_status', 'reserved');
   if (error) throw error;
-  const all = (data ?? []).map((r: any) => r.serial_number as string);
+  const all = (data ?? []).map((r) => r.serial_number as string);
   // Filter out those already placed on a DN line
   const { data: used } = await sb
     .from('delivery_note_lines')
     .select('serial_numbers');
   const usedSet = new Set<string>();
-  (used ?? []).forEach((r: any) => (r.serial_numbers ?? []).forEach((s: string) => usedSet.add(s)));
+  (used ?? []).forEach((r) => (r.serial_numbers ?? []).forEach((s: string) => usedSet.add(s)));
   return all.filter((s) => !usedSet.has(s));
 }

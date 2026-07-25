@@ -39,7 +39,7 @@ export function CorrectionOrderPrint({ co, items, isDraft = false }: Props) {
           </tr>
         </thead>
         <tbody>
-          {items.map((it: any, i: number) => (
+          {items.map((it, i: number) => (
             <tr key={it.id} className="border-b align-top">
               <td className="py-2">{i + 1}</td>
               <td className="py-2 font-mono text-[10px]">{it.serial_number}</td>

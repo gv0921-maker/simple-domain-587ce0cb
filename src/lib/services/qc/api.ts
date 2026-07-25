@@ -36,7 +36,7 @@ export interface CreateGoodsReceiptQCInput {
   qcNotes?: string;
 }
 
-function mapRow(r: any): GoodsReceiptQC {
+function mapRow(r): GoodsReceiptQC {
   return {
     id: r.id,
     referenceType: r.reference_type,

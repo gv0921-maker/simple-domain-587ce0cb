@@ -36,7 +36,7 @@ export default function PayrollPeriodsList() {
             <Input type="number" value={y} onChange={(e) => setY(parseInt(e.target.value) || y)} className="w-32" /></div>
           <Button onClick={async () => {
             try { await create.mutateAsync({ month: m, year: y }); toast({ title: 'Created' }); }
-            catch (e: any) { toast({ title: 'Failed', description: e.message, variant: 'destructive' }); }
+            catch (e) { toast({ title: 'Failed', description: e.message, variant: 'destructive' }); }
           }}>Create Period</Button>
         </Card>
 

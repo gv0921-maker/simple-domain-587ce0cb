@@ -74,7 +74,7 @@ export function ChannelSettingsDialog({
       onOpenChange(false);
       navigate('/chat');
       invalidate();
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed', description: e?.message });
     }
   };

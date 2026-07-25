@@ -15,7 +15,7 @@ export interface InventoryOverviewMetrics {
 }
 
 async function fetchOverview(): Promise<InventoryOverviewMetrics> {
-  const count = (q: any) => q.select('*', { count: 'exact', head: true });
+  const count = (q) => q.select('*', { count: 'exact', head: true });
 
   const [
     productsRes,
@@ -61,7 +61,7 @@ async function fetchOverview(): Promise<InventoryOverviewMetrics> {
   ]);
 
   const stockValue = (productsValueRes.data ?? []).reduce(
-    (sum: number, p: any) => sum + Number(p.stock_on_hand ?? 0) * Number(p.cost_price ?? 0),
+    (sum: number, p) => sum + Number(p.stock_on_hand ?? 0) * Number(p.cost_price ?? 0),
     0,
   );
 

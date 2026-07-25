@@ -179,7 +179,7 @@ function parseLeadPriority(val: string): 'low' | 'medium' | 'high' | 'urgent' {
   return 'low';
 }
 
-function parseNumber(val: any): number {
+function parseNumber(val): number {
   if (typeof val === 'number') return val;
   if (!val) return 0;
   const cleaned = String(val).replace(/[^0-9.\-]/g, '');

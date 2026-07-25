@@ -91,7 +91,7 @@ export default function EmployeeForm() {
         return;
       }
       navigate(`/employees/${id}`);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Save failed', description: e?.message ?? String(e), variant: 'destructive' });
     }
   };

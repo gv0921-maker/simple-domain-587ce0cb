@@ -57,7 +57,7 @@ export default function PricelistsPage() {
     if (pricelistToDelete) {
       deleteMut.mutate(pricelistToDelete, {
         onSuccess: () => toast({ title: 'Pricelist deleted' }),
-        onError: (e: any) => toast({ title: e?.message ?? 'Delete failed', variant: 'destructive' }),
+        onError: (e) => toast({ title: e?.message ?? 'Delete failed', variant: 'destructive' }),
       });
     }
     setDeleteDialogOpen(false);

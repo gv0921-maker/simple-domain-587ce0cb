@@ -48,7 +48,7 @@ export default function AppraisalDetail() {
         </Card>
         <Card className="p-6 space-y-3">
           <h2 className="font-semibold">Criteria</h2>
-          {ratings.map((r: any) => (
+          {ratings.map((r) => (
             <div key={r.id} className="grid md:grid-cols-4 gap-2 text-sm border-b pb-2">
               <p className="md:col-span-2 font-medium">{r.appraisal_criteria?.criterion_name}</p>
               <p>Self: {r.self_rating ?? '—'}</p>

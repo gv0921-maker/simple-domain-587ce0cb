@@ -102,7 +102,7 @@ export function ReservationsSection({ salesOrderId, lines }: Props) {
                         try {
                           await releaseMut.mutateAsync(r.id);
                           toast({ title: 'Reservation released' });
-                        } catch (e: any) {
+                        } catch (e) {
                           toast({ title: 'Release failed', description: e?.message, variant: 'destructive' });
                         }
                       }}

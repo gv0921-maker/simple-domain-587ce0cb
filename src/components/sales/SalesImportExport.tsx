@@ -119,7 +119,7 @@ export function SalesImportExport({ type, onImportComplete }: SalesImportExportP
           });
         }
         imported++;
-      } catch (e: any) {
+      } catch (e) {
         errs.push(`Row ${i + 2}: ${e.message}`);
       }
     }

@@ -72,7 +72,7 @@ export default function ScanWorkspace() {
       else setFlash('error');
       setValue('');
       inputRef.current?.focus();
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Scan failed', description: e?.message, variant: 'destructive' });
     }
   };
@@ -97,7 +97,7 @@ export default function ScanWorkspace() {
       await completeMut.mutateAsync({ queueId, force, reason: force ? forceReason : undefined });
       toast({ title: 'Scan completed' });
       navigate('/barcode');
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed to complete', description: e?.message, variant: 'destructive' });
     }
   };

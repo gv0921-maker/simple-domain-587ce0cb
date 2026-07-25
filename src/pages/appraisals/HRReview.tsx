@@ -35,7 +35,7 @@ export default function HRReview() {
       <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-4">
         <Card className="p-6 space-y-4">
           <h2 className="font-semibold">Criteria (Self · Manager · Final)</h2>
-          {ratings.map((r: any) => (
+          {ratings.map((r) => (
             <div key={r.id} className="border-b pb-3 grid md:grid-cols-4 gap-3 items-end">
               <div className="md:col-span-2">
                 <p className="font-medium">{r.appraisal_criteria?.criterion_name}</p>

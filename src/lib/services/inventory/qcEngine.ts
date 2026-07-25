@@ -44,7 +44,7 @@ export interface QCReadinessResult {
 
 const sb = db;
 
-function mapRow(r: any): QCInspection {
+function mapRow(r): QCInspection {
   return {
     id: r.id,
     documentType: r.document_type,

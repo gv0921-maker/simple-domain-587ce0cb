@@ -243,7 +243,7 @@ function CreateInvoiceDialog({
       onClose();
       window.open(`/print/invoice/${invoiceId}`, '_blank');
       navigate(`/invoicing/invoices/${invoiceId}`);
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e?.message ?? 'Failed to create invoice');
     }
   };

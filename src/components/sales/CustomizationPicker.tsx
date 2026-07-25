@@ -113,7 +113,7 @@ export function CustomizationPicker({ productId, value, onChange, disabled }: Pr
         if (data?.publicUrl) urls.push(data.publicUrl);
       }
       onChange({ ...value, referenceImages: urls });
-    } catch (e: any) {
+    } catch (e) {
       toast({
         title: 'Upload failed',
         description: e?.message ?? 'Ensure the "sales-order-images" Storage bucket exists and is public.',

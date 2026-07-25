@@ -53,7 +53,7 @@ export default function PayrollDashboard() {
                     const p = await create.mutateAsync({ month: now.getMonth() + 1, year: now.getFullYear() });
                     toast({ title: 'Period created' });
                     navigate(`/payroll/periods/${p.id}`);
-                  } catch (e: any) { toast({ title: 'Failed', description: e.message, variant: 'destructive' }); }
+                  } catch (e) { toast({ title: 'Failed', description: e.message, variant: 'destructive' }); }
                 }}
               >Create Current Period</Button>
             )}

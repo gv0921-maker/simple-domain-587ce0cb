@@ -88,13 +88,13 @@ export default function WriteOffDetail() {
     try {
       await updateMut.mutateAsync({ reason: currentReason, write_off_type: currentType });
       toast({ title: 'Saved' });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Save failed', description: e.message, variant: 'destructive' });
     }
   };
 
   const onUpload = async (f: File) => {
-    try { await uploadMut.mutateAsync(f); } catch (e: any) {
+    try { await uploadMut.mutateAsync(f); } catch (e) {
       toast({ title: 'Upload failed', description: e.message, variant: 'destructive' });
     }
   };
@@ -113,7 +113,7 @@ export default function WriteOffDetail() {
       const res = await approveMut.mutateAsync();
       toast({ title: 'Write-off approved', description: `₹ ${Number(res.total_value).toLocaleString('en-IN')} written off (${res.item_count} items)` });
       setApproveOpen(false);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Approval failed', description: e.message, variant: 'destructive' });
     }
   };
@@ -124,7 +124,7 @@ export default function WriteOffDetail() {
       await cancelMut.mutateAsync(cancelReason.trim());
       toast({ title: 'Cancelled' });
       setCancelOpen(false); setCancelReason('');
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Cancel failed', description: e.message, variant: 'destructive' });
     }
   };
@@ -135,7 +135,7 @@ export default function WriteOffDetail() {
     try {
       await addItemsMut.mutateAsync({ serialIds: ids });
       setSelectedIds({}); setAddOpen(false); setSearch('');
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Add failed', description: e.message, variant: 'destructive' });
     }
   };

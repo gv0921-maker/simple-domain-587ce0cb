@@ -181,7 +181,7 @@ export default function OpportunityDetail() {
     }
   }, [id]);
 
-  const updateField = (field: keyof Opportunity, value: any) => {
+  const updateField = (field: keyof Opportunity, value) => {
     setEditingData(prev => prev ? { ...prev, [field]: value } : prev);
     setIsDirty(true);
   };
@@ -271,7 +271,7 @@ export default function OpportunityDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opportunity?.id, !!opportunity]);
 
-  const formatAuditValue = (field: string, value: any): string => {
+  const formatAuditValue = (field: string, value): string => {
     if (value == null || value === '' || (Array.isArray(value) && value.length === 0)) return '—';
     if (field === 'expectedRevenue') return `₹${Number(value).toLocaleString('en-IN')}`;
     if (field === 'probability') return `${value}%`;

@@ -101,7 +101,7 @@ export default function VendorOrderForm() {
       });
       toast({ title: 'Draft created' });
       navigate(`/vendor-orders/${id}`);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Could not create', description: e.message, variant: 'destructive' });
     }
   };

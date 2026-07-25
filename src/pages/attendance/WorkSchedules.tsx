@@ -25,7 +25,7 @@ export default function WorkSchedulesPage() {
     return m;
   }, [schedules]);
 
-  async function patch(dow: number, fields: any) {
+  async function patch(dow: number, fields) {
     if (!empId) return;
     const existing = map[dow];
     try {
@@ -38,7 +38,7 @@ export default function WorkSchedulesPage() {
         is_working_day: existing?.is_working_day ?? true,
         ...fields,
       });
-    } catch (e: any) { toast({ title: 'Failed', description: e?.message, variant: 'destructive' }); }
+    } catch (e) { toast({ title: 'Failed', description: e?.message, variant: 'destructive' }); }
   }
 
   return (

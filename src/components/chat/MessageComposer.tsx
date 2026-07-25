@@ -105,7 +105,7 @@ export function MessageComposer({ channelId, parentMessageId, placeholder, autoF
       try {
         const uploaded = await upload.mutateAsync(f);
         setFiles((prev) => prev.map((p) => p.id === id ? { ...p, uploading: false, uploaded } : p));
-      } catch (e: any) {
+      } catch (e) {
         setFiles((prev) => prev.map((p) => p.id === id ? { ...p, uploading: false, error: e?.message ?? 'Upload failed' } : p));
         toast({ title: 'Upload failed', description: e?.message, variant: 'destructive' });
       }
@@ -129,7 +129,7 @@ export function MessageComposer({ channelId, parentMessageId, placeholder, autoF
       else await sendMain.mutateAsync(payload);
       setText('');
       setFiles([]);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed to send', description: e?.message, variant: 'destructive' });
     }
   };

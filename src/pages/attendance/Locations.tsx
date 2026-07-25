@@ -26,7 +26,7 @@ export default function LocationsPage() {
     try {
       const pos = await getCurrentPosition();
       setForm({ ...form, latitude: pos.coords.latitude, longitude: pos.coords.longitude });
-    } catch (e: any) { toast({ title: 'GPS failed', description: e?.message, variant: 'destructive' }); }
+    } catch (e) { toast({ title: 'GPS failed', description: e?.message, variant: 'destructive' }); }
   }
 
   async function handleSave() {
@@ -35,7 +35,7 @@ export default function LocationsPage() {
       await create.mutateAsync(form);
       toast({ title: 'Location created' });
       setOpen(false); setForm(blank());
-    } catch (e: any) { toast({ title: 'Failed', description: e?.message, variant: 'destructive' }); }
+    } catch (e) { toast({ title: 'Failed', description: e?.message, variant: 'destructive' }); }
   }
 
   return (

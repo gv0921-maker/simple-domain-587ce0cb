@@ -85,14 +85,14 @@ export default function StockCountDetail() {
     try {
       const n = await startMut.mutateAsync(id!);
       toast({ title: 'Count started', description: `${n} item(s) snapshotted` });
-    } catch (e: any) { toast({ title: 'Failed', description: e.message, variant: 'destructive' }); }
+    } catch (e) { toast({ title: 'Failed', description: e.message, variant: 'destructive' }); }
   };
 
   const handleComplete = async () => {
     try {
       const r = await completeMut.mutateAsync(id!);
       toast({ title: 'Count completed', description: `${r.found} found, ${r.missing} missing, ${r.unexpected_found} unexpected` });
-    } catch (e: any) { toast({ title: 'Failed', description: e.message, variant: 'destructive' }); }
+    } catch (e) { toast({ title: 'Failed', description: e.message, variant: 'destructive' }); }
   };
 
   const handleReconcile = async () => {
@@ -102,7 +102,7 @@ export default function StockCountDetail() {
       await reconcileMut.mutateAsync({ countId: id!, reconciliations: recs });
       toast({ title: 'Reconciled', description: `${recs.length} action(s) applied` });
       setReconciliations({});
-    } catch (e: any) { toast({ title: 'Failed', description: e.message, variant: 'destructive' }); }
+    } catch (e) { toast({ title: 'Failed', description: e.message, variant: 'destructive' }); }
   };
 
   const handleMarkSelectedMissing = async () => {
@@ -112,7 +112,7 @@ export default function StockCountDetail() {
       await markMissingMut.mutateAsync(ids);
       setSelected(new Set());
       toast({ title: 'Marked as missing', description: `${ids.length} item(s)` });
-    } catch (e: any) { toast({ title: 'Failed', description: e.message, variant: 'destructive' }); }
+    } catch (e) { toast({ title: 'Failed', description: e.message, variant: 'destructive' }); }
   };
 
   const openScanner = () => {

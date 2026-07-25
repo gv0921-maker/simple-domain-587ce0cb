@@ -42,7 +42,7 @@ export default function StandaloneDeliveryForm() {
         toast({ title: 'Nothing at transit', description: 'No units of this product are waiting at transit.', variant: 'destructive' });
       }
       setPicked(rows);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Could not load transit stock', description: e?.message, variant: 'destructive' });
     } finally {
       setFinding(false);
@@ -74,7 +74,7 @@ export default function StandaloneDeliveryForm() {
       });
       toast({ title: 'Delivery created', description: 'Scan and QC each unit, then complete the handoff.' });
       navigate(`/inventory/delivery-notes/${dn.id}`);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Could not create delivery', description: e?.message, variant: 'destructive' });
     }
   };

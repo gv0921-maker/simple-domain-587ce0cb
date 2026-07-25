@@ -54,7 +54,7 @@ export default function AdminAttendance() {
     try {
       const n = await recalc.mutateAsync(Array.from(pairs.values()));
       toast({ title: `Recalculated ${n} record(s)` });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Recalc failed', description: e?.message ?? String(e), variant: 'destructive' });
     }
   };
@@ -164,7 +164,7 @@ export default function AdminAttendance() {
                           onClick={async () => {
                             if (!confirm('Delete this session?')) return;
                             try { await del.mutateAsync(s.id); toast({ title: 'Deleted' }); }
-                            catch (e: any) { toast({ title: 'Delete failed', description: e?.message, variant: 'destructive' }); }
+                            catch (e) { toast({ title: 'Delete failed', description: e?.message, variant: 'destructive' }); }
                           }}
                         >Delete</Button>
                       </span>

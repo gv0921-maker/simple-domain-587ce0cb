@@ -49,7 +49,7 @@ export default function ContractForm() {
   const set = <K extends keyof ContractInsert>(k: K, v: ContractInsert[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
 
-  const num = (v: any) => Number(v ?? 0);
+  const num = (v) => Number(v ?? 0);
   const gross = useMemo(
     () => num(form.basic_salary) + num(form.hra) + num(form.da) +
       num(form.special_allowance) + num(form.conveyance_allowance) + num(form.medical_allowance),
@@ -65,7 +65,7 @@ export default function ContractForm() {
       const created = await createMut.mutateAsync(form);
       toast({ title: 'Contract created' });
       navigate(`/employees/contracts/${created.id}`);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Create failed', description: e?.message, variant: 'destructive' });
     }
   };

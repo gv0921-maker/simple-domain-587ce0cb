@@ -296,7 +296,7 @@ export function ActivityChatter({ recordType, recordId, className, recordLabel }
       if (value.mentions?.length) {
         toast({ title: 'Note logged', description: `Notified ${value.mentions.length} user${value.mentions.length === 1 ? '' : 's'}.` });
       }
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed to add note', description: e?.message, variant: 'destructive' });
       throw e;
     }
@@ -304,7 +304,7 @@ export function ActivityChatter({ recordType, recordId, className, recordLabel }
 
   const handleDelete = async (id: string) => {
     try { await softDelete.mutateAsync(id); }
-    catch (e: any) {
+    catch (e) {
       toast({ title: 'Failed to delete', description: e?.message, variant: 'destructive' });
     }
   };

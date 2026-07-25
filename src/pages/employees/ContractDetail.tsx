@@ -30,7 +30,7 @@ export default function ContractDetail() {
     try {
       await updateMut.mutateAsync({ id, patch: { status } });
       toast({ title: `Contract marked as ${status}` });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Update failed', description: e?.message, variant: 'destructive' });
     }
   };

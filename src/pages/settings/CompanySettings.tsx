@@ -20,7 +20,7 @@ export default function CompanySettings() {
   // Edit access is enforced by RLS (Super Admin only). UI shows banner.
   const readOnly = false;
 
-  function update_(field: keyof CS, value: any) {
+  function update_(field: keyof CS, value) {
     setForm((f) => ({ ...f, [field]: value }));
   }
 

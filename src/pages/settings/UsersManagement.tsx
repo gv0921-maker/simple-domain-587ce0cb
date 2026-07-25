@@ -91,7 +91,7 @@ export default function UsersManagement() {
       setIsRoleDialogOpen(false);
       await qc.invalidateQueries({ queryKey: ['settings', 'app-users'] });
       await qc.invalidateQueries({ queryKey: ['settings', 'user-role-assignments'] });
-    } catch (e: any) {
+    } catch (e) {
       toast.error('Failed to save roles', {
         description: e?.message ?? 'Unknown error',
       });
@@ -125,7 +125,7 @@ export default function UsersManagement() {
       setNewName('');
       await qc.invalidateQueries({ queryKey: ['settings', 'app-users'] });
     },
-    onError: (e: any) =>
+    onError: (e) =>
       toast.error('Failed to create user', { description: e?.message ?? 'Unknown error' }),
   });
 

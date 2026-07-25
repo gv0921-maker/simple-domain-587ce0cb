@@ -79,7 +79,7 @@ export default function InternalMovementForm() {
       });
       toast({ title: 'Movement created' });
       navigate(`/inventory/internal-movements/${id}`);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Could not create', description: e.message, variant: 'destructive' });
     }
   };

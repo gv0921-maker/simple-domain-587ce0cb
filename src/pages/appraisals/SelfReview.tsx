@@ -30,7 +30,7 @@ export default function SelfReview() {
 
   if (!id || !appraisal) return <AppLayout title="Appraisals" moduleNav={APPRAISALS_NAV}><div className="p-6">Loading…</div></AppLayout>;
 
-  const handleRate = async (criterionId: string, field: 'self_rating' | 'self_comments', val: any) => {
+  const handleRate = async (criterionId: string, field: 'self_rating' | 'self_comments', val) => {
     await upsert.mutateAsync({ appraisal_id: id, criterion_id: criterionId, [field]: val } as any);
   };
   const saveDraft = async () => {
@@ -49,7 +49,7 @@ export default function SelfReview() {
       <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-4">
         <Card className="p-6 space-y-4">
           <h2 className="font-semibold">Criteria</h2>
-          {ratings.map((r: any) => (
+          {ratings.map((r) => (
             <div key={r.id} className="border-b pb-3">
               <div className="flex justify-between mb-2">
                 <div>

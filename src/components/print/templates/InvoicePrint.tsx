@@ -8,9 +8,9 @@ interface Props {
 
 export function InvoicePrint({ invoice, isDraft = false }: Props) {
   const lines = invoice?.invoice_lines ?? [];
-  const totalCGST = lines.reduce((s: number, l: any) => s + Number(l.cgst_amount ?? 0), 0);
-  const totalSGST = lines.reduce((s: number, l: any) => s + Number(l.sgst_amount ?? 0), 0);
-  const totalIGST = lines.reduce((s: number, l: any) => s + Number(l.igst_amount ?? 0), 0);
+  const totalCGST = lines.reduce((s: number, l) => s + Number(l.cgst_amount ?? 0), 0);
+  const totalSGST = lines.reduce((s: number, l) => s + Number(l.sgst_amount ?? 0), 0);
+  const totalIGST = lines.reduce((s: number, l) => s + Number(l.igst_amount ?? 0), 0);
   const hasIGST = totalIGST > 0 && totalCGST === 0 && totalSGST === 0;
 
   return (
@@ -61,7 +61,7 @@ export function InvoicePrint({ invoice, isDraft = false }: Props) {
           </tr>
         </thead>
         <tbody>
-          {lines.map((l: any, i: number) => (
+          {lines.map((l, i: number) => (
             <tr key={l.id ?? i} className="border-b">
               <td className="py-2">{i + 1}</td>
               <td className="py-2">{l.description}</td>

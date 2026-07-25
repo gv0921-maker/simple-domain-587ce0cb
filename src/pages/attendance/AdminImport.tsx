@@ -71,7 +71,7 @@ export default function AdminImport() {
       await bulk.mutateAsync(payload);
       toast({ title: `Imported ${payload.length} sessions`, description: skipped ? `${skipped} skipped` : undefined });
       setRows([]); setHeaders([]);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Import failed', description: e?.message, variant: 'destructive' });
     }
   }

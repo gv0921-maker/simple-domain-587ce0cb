@@ -36,7 +36,7 @@ export interface DeliveryNote {
 
 const sb = db;
 
-function mapRow(r: any): DeliveryNote {
+function mapRow(r): DeliveryNote {
   return {
     id: r.id,
     reference: r.reference,
@@ -100,12 +100,12 @@ export async function generateDeliveryNoteFromInvoiceAsync(invoiceId: string): P
   if (olErr) throw olErr;
 
   // 5. Resolve serial numbers (id → name)
-  const serialIds = (reservations ?? []).map((r: any) => r.serial_number_id).filter(Boolean);
+  const serialIds = (reservations ?? []).map((r) => r.serial_number_id).filter(Boolean);
   let serialMap = new Map<string, { name: string; locationId: string | null }>();
   if (serialIds.length) {
     const { data: serials } = await sb
       .from('serial_numbers').select('id,name,location_id').in('id', serialIds);
-    (serials ?? []).forEach((s: any) =>
+    (serials ?? []).forEach((s) =>
       serialMap.set(s.id, { name: s.name, locationId: s.location_id }),
     );
   }
@@ -119,7 +119,7 @@ export async function generateDeliveryNoteFromInvoiceAsync(invoiceId: string): P
   if (locIds.length) {
     const { data: locs } = await sb
       .from('warehouse_locations').select('id,name,warehouse_id').in('id', locIds);
-    (locs ?? []).forEach((l: any) => {
+    (locs ?? []).forEach((l) => {
       locationNameById.set(l.id, l.name);
       if (!warehouseId) warehouseId = l.warehouse_id;
     });
@@ -131,25 +131,25 @@ export async function generateDeliveryNoteFromInvoiceAsync(invoiceId: string): P
 
   // 7. Get product fallback names + units
   const productIds = Array.from(new Set(
-    (reservations ?? []).map((r: any) => r.product_id),
+    (reservations ?? []).map((r) => r.product_id),
   ));
   let productMap = new Map<string, { name: string; unit: string }>();
   if (productIds.length) {
     const { data: prods } = await sb
       .from('products').select('id,name,unit_of_measure').in('id', productIds);
-    (prods ?? []).forEach((p: any) =>
+    (prods ?? []).forEach((p) =>
       productMap.set(p.id, { name: p.name, unit: p.unit_of_measure ?? 'Unit' }),
     );
   }
 
   const olByProduct = new Map<string, any>();
-  (orderLines ?? []).forEach((l: any) => {
+  (orderLines ?? []).forEach((l) => {
     if (l.product_id) olByProduct.set(l.product_id, l);
   });
 
   // 8. Group reservations by product
   const byProduct = new Map<string, DeliveryNoteProduct>();
-  (reservations ?? []).forEach((r: any) => {
+  (reservations ?? []).forEach((r) => {
     const pid = r.product_id;
     const ol = olByProduct.get(pid);
     const prod = productMap.get(pid);

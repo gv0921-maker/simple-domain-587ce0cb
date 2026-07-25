@@ -115,7 +115,7 @@ export default function WorkOrderForm() {
   }, [params, isEdit]);
 
   const onLineSelect = (lineId: string) => {
-    const l = soLines.find((x: any) => x.id === lineId);
+    const l = soLines.find((x) => x.id === lineId);
     setForm(f => ({
       ...f,
       linked_sales_order_line_id: lineId,
@@ -129,7 +129,7 @@ export default function WorkOrderForm() {
     try {
       const url = await uploadReferenceImage(id ?? 'new', file);
       setForm(f => ({ ...f, reference_images: [...f.reference_images, url] }));
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e?.message ?? 'Upload failed. Create the manufacturing-references bucket?');
     } finally {
       setUploading(false);
@@ -163,7 +163,7 @@ export default function WorkOrderForm() {
       if (submit && woId) await submitMut.mutateAsync(woId);
       toast.success(submit ? 'Submitted for approval' : 'Saved');
       navigate(woId ? `/manufacturing/work-orders/${woId}` : '/manufacturing/work-orders');
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e?.message ?? 'Save failed');
     }
   };

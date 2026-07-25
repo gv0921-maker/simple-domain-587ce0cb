@@ -97,7 +97,7 @@ export default function WorkSchedulePage() {
               return (
                 <div key={c.key} className={`min-h-[72px] rounded border p-1 text-xs ${isSunday ? 'bg-muted/40' : ''}`}>
                   <div className="font-medium mb-1">{day}</div>
-                  {rows.map((r: any) => {
+                  {rows.map((r) => {
                     const emp = employees.find((e) => e.id === r.employee_id);
                     const label = emp?.full_name?.split(' ')[0] ?? '';
                     if (r.is_sunday_duty) return (

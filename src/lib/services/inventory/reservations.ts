@@ -21,7 +21,7 @@ export interface StockReservation {
   updatedAt: string;
 }
 
-function mapRow(r: any): StockReservation {
+function mapRow(r): StockReservation {
   return {
     id: r.id,
     salesOrderId: r.sales_order_id,

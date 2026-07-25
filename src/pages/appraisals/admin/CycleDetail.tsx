@@ -16,7 +16,7 @@ export default function CycleDetail() {
   const upd = useUpdateAppraisalCycle();
 
   const stats = useMemo(() => {
-    const by = (s: string) => list.filter((a: any) => a.status === s).length;
+    const by = (s: string) => list.filter((a) => a.status === s).length;
     return { total: list.length, self: by('self_review'), mgr: by('manager_review'), hr: by('hr_review'), done: by('completed') + by('closed') };
   }, [list]);
 

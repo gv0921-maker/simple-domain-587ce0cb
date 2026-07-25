@@ -23,7 +23,7 @@ export default function AdminSettings() {
 
   if (!settings) return <AppLayout title="Payroll Settings" moduleNav={PAYROLL_NAV}><div className="p-6">Loading…</div></AppLayout>;
 
-  const setField = (k: string, v: any) => setForm({ ...form, [k]: v });
+  const setField = (k: string, v) => setForm({ ...form, [k]: v });
   const Num = ({ label, k }: { label: string; k: string }) => (
     <div><label className="text-xs">{label}</label>
       <Input type="number" value={form[k] ?? ''} onChange={(e) => setField(k, parseFloat(e.target.value) || 0)} /></div>

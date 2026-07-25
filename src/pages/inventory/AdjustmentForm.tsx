@@ -96,7 +96,7 @@ export default function AdjustmentForm() {
       await saveMut.mutateAsync(adjustment);
       toast({ title: 'Adjustment submitted for approval' });
       navigate('/inventory/adjustments');
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Could not save', description: e?.message, variant: 'destructive' });
     }
   };

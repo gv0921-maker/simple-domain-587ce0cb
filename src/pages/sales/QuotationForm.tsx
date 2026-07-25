@@ -137,14 +137,14 @@ export default function QuotationForm() {
   }, [isNew, isLoadingQuotation, loadedQuotation, navigate, toast]);
 
   // Auto-populate billing from selected customer (customers table is the FK target).
-  const populateFromCustomer = useCallback((customer: any) => {
+  const populateFromCustomer = useCallback((customer) => {
     const fields = buildCustomerPopulationFields(customer);
     setFormData((prev) => ({ ...prev, ...fields }));
   }, []);
 
   useEffect(() => {
     if (!isNew || !urlCustomerId) return;
-    const c = customers.find((x: any) => x.id === urlCustomerId);
+    const c = customers.find((x) => x.id === urlCustomerId);
     if (c) populateFromCustomer(c);
   }, [isNew, urlCustomerId, customers, populateFromCustomer]);
 
@@ -175,7 +175,7 @@ export default function QuotationForm() {
       (location.state as any)?.newCustomerId ||
       (location.state as any)?.newContactId;
     if (newCustomerId && customers.length > 0) {
-      const c: any = customers.find((x: any) => x.id === newCustomerId);
+      const c: any = customers.find((x) => x.id === newCustomerId);
       if (c) populateFromCustomer(c);
     }
   }, [customers, location.state, populateFromCustomer]);
@@ -305,7 +305,7 @@ export default function QuotationForm() {
       await saveQuotationMut.mutateAsync(data);
       toast({ title: isNew ? 'Quotation Created' : 'Quotation Updated', description: `${data.reference} saved.` });
       navigate('/sales/quotations');
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: 'Error saving quotation',
         description: error?.message ?? String(error),
@@ -332,7 +332,7 @@ export default function QuotationForm() {
             toast({ title: 'Sales Order created from Quotation', description: order.reference });
             navigate(`/sales/orders/${order.id}`);
           }
-        } catch (e: any) {
+        } catch (e) {
           toast({ title: 'Conversion failed', description: e?.message ?? String(e), variant: 'destructive' });
         }
         break;

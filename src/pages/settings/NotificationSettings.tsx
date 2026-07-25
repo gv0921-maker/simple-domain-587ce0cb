@@ -57,14 +57,14 @@ export default function NotificationSettings() {
     );
   }
 
-  const setField = (k: string, v: any) => setLocal({ ...local, [k]: v });
+  const setField = (k: string, v) => setLocal({ ...local, [k]: v });
   const setCategory = (k: string, v: boolean) => setLocal({ ...local, categories: { ...local.categories, [k]: v } });
 
   async function save() {
     try {
       await update.mutateAsync(local);
       toast({ title: 'Preferences saved' });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed to save', description: e?.message, variant: 'destructive' });
     }
   }
@@ -83,7 +83,7 @@ export default function NotificationSettings() {
         await unsubscribe.mutateAsync();
         setField('browser_push_enabled', false);
       }
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed', description: e?.message, variant: 'destructive' });
     }
   }
@@ -142,7 +142,7 @@ export default function NotificationSettings() {
         <div className="flex items-center justify-between gap-2">
           <Button variant="outline" onClick={() => test.mutate(undefined, {
             onSuccess: () => toast({ title: 'Test notification sent', description: 'Check your bell icon.' }),
-            onError: (e: any) => toast({ title: 'Failed', description: e?.message, variant: 'destructive' }),
+            onError: (e) => toast({ title: 'Failed', description: e?.message, variant: 'destructive' }),
           })}>
             Send test notification
           </Button>

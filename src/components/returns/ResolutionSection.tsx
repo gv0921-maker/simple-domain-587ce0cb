@@ -170,7 +170,7 @@ function ExchangeWizard({ open, onOpenChange, item }: {
                         toast.success(`Exchange created. Difference: ${fmtINR(diff)}`);
                         onOpenChange(false);
                       },
-                      onError: (e: any) => toast.error(e?.message ?? 'Failed'),
+                      onError: (e) => toast.error(e?.message ?? 'Failed'),
                     },
                   );
                 }}
@@ -245,7 +245,7 @@ function ExchangeWorkflowPanel({ exchange, item }: { exchange: any; item: Return
             disabled={!serialId || selectSerial.isPending}
             onClick={() => selectSerial.mutate({ exchangeId: exchange.id, serialId }, {
               onSuccess: () => toast.success('Replacement serial reserved'),
-              onError: (e: any) => toast.error(e?.message ?? 'Failed'),
+              onError: (e) => toast.error(e?.message ?? 'Failed'),
             })}
           >Reserve</Button>
         </div>
@@ -258,7 +258,7 @@ function ExchangeWorkflowPanel({ exchange, item }: { exchange: any; item: Return
       {exchange.status === 'item_selected' && diff <= 0 && (
         <Button size="sm" onClick={() => settle.mutate({ exchangeId: exchange.id, paymentMode: 'cash', paymentAccountId: '' }, {
           onSuccess: () => toast.success('No difference — marked settled'),
-          onError: (e: any) => toast.error(e?.message ?? 'Failed'),
+          onError: (e) => toast.error(e?.message ?? 'Failed'),
         })}>Mark Settled (no difference)</Button>
       )}
 
@@ -267,7 +267,7 @@ function ExchangeWorkflowPanel({ exchange, item }: { exchange: any; item: Return
         <div className="flex gap-2">
           <Button size="sm" onClick={() => complete.mutate(exchange.id, {
             onSuccess: () => toast.success('Exchange completed — replacement delivered'),
-            onError: (e: any) => toast.error(e?.message ?? 'Failed'),
+            onError: (e) => toast.error(e?.message ?? 'Failed'),
           })}>
             <CheckCircle2 className="h-4 w-4 mr-1" />Complete Exchange
           </Button>
@@ -312,7 +312,7 @@ function ExchangeWorkflowPanel({ exchange, item }: { exchange: any; item: Return
               onClick={() => settle.mutate(
                 { exchangeId: exchange.id, paymentMode: mode, paymentAccountId: acctId, referenceNumber: refNum || null },
                 { onSuccess: () => { toast.success('Difference collected'); setSettleOpen(false); },
-                  onError: (e: any) => toast.error(e?.message ?? 'Failed') },
+                  onError: (e) => toast.error(e?.message ?? 'Failed') },
               )}
             >Record Payment</Button>
           </DialogFooter>
@@ -358,7 +358,7 @@ function CreditNoteDialog({ open, onOpenChange, item, rt }: {
                   onOpenChange(false);
                   window.open(`/print/credit_note/${cnId}`, '_blank');
                 },
-                onError: (e: any) => toast.error(e?.message ?? 'Failed'),
+                onError: (e) => toast.error(e?.message ?? 'Failed'),
               },
             )}
           ><Receipt className="h-4 w-4 mr-1" />Issue Credit Note</Button>
@@ -430,7 +430,7 @@ function RefundDialog({ open, onOpenChange, item }: {
                   onOpenChange(false);
                   window.open(`/print/refund_voucher/${rid}`, '_blank');
                 },
-                onError: (e: any) => toast.error(e?.message ?? 'Failed'),
+                onError: (e) => toast.error(e?.message ?? 'Failed'),
               },
             )}
           ><BadgeIndianRupee className="h-4 w-4 mr-1" />Process Refund</Button>
@@ -460,7 +460,7 @@ function FinalizeReturnPanel({ rtId }: { rtId: string }) {
       }
       setSummary(lines);
       toast.success('Stock actions applied');
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e?.message ?? 'Failed to apply stock actions');
     } finally {
       setRunning(false);
@@ -479,7 +479,7 @@ function FinalizeReturnPanel({ rtId }: { rtId: string }) {
           disabled={complete.isPending}
           onClick={() => complete.mutate(rtId, {
             onSuccess: () => toast.success('Return resolved'),
-            onError: (e: any) => toast.error(e?.message ?? 'Failed'),
+            onError: (e) => toast.error(e?.message ?? 'Failed'),
           })}
         >
           <CheckCircle2 className="h-4 w-4 mr-1" />Complete Return

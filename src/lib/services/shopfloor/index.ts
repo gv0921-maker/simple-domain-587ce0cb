@@ -42,7 +42,7 @@ async function uid(): Promise<string | null> {
   return data.user?.id ?? null;
 }
 
-function normalize(r: any): ShopFloorWO {
+function normalize(r): ShopFloorWO {
   return {
     ...r,
     reference_images: r.reference_images ?? [],

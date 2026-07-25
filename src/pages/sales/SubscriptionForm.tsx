@@ -118,7 +118,7 @@ export default function SubscriptionForm() {
       await saveSubMut.mutateAsync({ subscription, lines });
       toast({ title: editingSub ? 'Subscription updated' : 'Subscription created' });
       navigate('/sales/subscriptions');
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Save failed', description: e?.message ?? String(e), variant: 'destructive' });
     }
   };

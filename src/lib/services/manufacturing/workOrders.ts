@@ -119,7 +119,7 @@ export async function fetchWorkOrders(filters?: {
   }
   const { data, error } = await q;
   if (error) throw error;
-  return (data ?? []).map((r: any) => ({ ...r, reference_images: r.reference_images ?? [] })) as WorkOrderRow[];
+  return (data ?? []).map((r) => ({ ...r, reference_images: r.reference_images ?? [] })) as WorkOrderRow[];
 }
 
 export async function fetchWorkOrderById(id: string): Promise<WorkOrderRow | null> {

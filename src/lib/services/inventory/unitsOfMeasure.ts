@@ -11,7 +11,7 @@ export interface UnitOfMeasure {
   isActive: boolean;
 }
 
-const map = (r: any): UnitOfMeasure => ({
+const map = (r): UnitOfMeasure => ({
   id: r.id,
   name: r.name,
   abbreviation: r.abbreviation,

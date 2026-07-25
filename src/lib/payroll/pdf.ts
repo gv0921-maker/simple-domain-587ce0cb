@@ -21,7 +21,7 @@ function numberToWords(num: number): string {
   return inWords(n) + ' Rupees Only';
 }
 
-export function generatePayslipPDF(psl: any) {
+export function generatePayslipPDF(psl) {
   const doc = new jsPDF();
   const emp = psl.employees ?? {};
   const period = psl.payroll_periods ?? {};

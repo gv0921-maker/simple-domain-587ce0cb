@@ -94,7 +94,7 @@ export default function ClockIn() {
       }
       point.address = await reverseGeocode(point.latitude, point.longitude);
       return point;
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'GPS unavailable', description: e?.message ?? 'Permission denied', variant: 'destructive' });
       return null;
     }
@@ -109,7 +109,7 @@ export default function ClockIn() {
       await punchIn.mutateAsync({ employee_id: empId, session_type: type, point, notes: notes || null });
       setNotes('');
       toast({ title: type === 'work' ? 'Started work' : 'Started break' });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Punch failed', description: e?.message, variant: 'destructive' });
     } finally { setBusy(null); }
   }
@@ -123,7 +123,7 @@ export default function ClockIn() {
       await punchOut.mutateAsync({ session_id: active.id, point, notes: notes || null });
       setNotes('');
       toast({ title: 'Session ended' });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Punch failed', description: e?.message, variant: 'destructive' });
     } finally { setBusy(null); }
   }

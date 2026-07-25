@@ -78,7 +78,7 @@ export default function CustomerPortal() {
               <p className="text-sm text-muted-foreground">No quotations available.</p>
             ) : (
               <div className="space-y-2">
-                {quotations.map((q: any) => (
+                {quotations.map((q) => (
                   <div
                     key={q.id}
                     className="flex items-center justify-between p-3 border rounded-md hover:bg-muted/50 cursor-pointer"
@@ -112,7 +112,7 @@ export default function CustomerPortal() {
               <p className="text-sm text-muted-foreground">No orders available.</p>
             ) : (
               <div className="space-y-2">
-                {orders.map((o: any) => (
+                {orders.map((o) => (
                   <div key={o.id} className="flex items-center justify-between p-3 border rounded-md">
                     <div className="flex items-center gap-3">
                       <span className="font-medium text-sm">{o.reference}</span>

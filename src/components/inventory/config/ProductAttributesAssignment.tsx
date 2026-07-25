@@ -32,7 +32,7 @@ export function ProductAttributesAssignment({ productId }: Props) {
     try {
       await setMut.mutateAsync(selected);
       toast({ title: 'Attributes updated' });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Save failed', description: e?.message, variant: 'destructive' });
     }
   };

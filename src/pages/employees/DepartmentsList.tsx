@@ -44,7 +44,7 @@ export default function DepartmentsList() {
       await createMut.mutateAsync({ name, code: code.toUpperCase(), color });
       toast({ title: 'Department created' });
       setOpen(false); setName(''); setCode(''); setColor('#1D9E75');
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Create failed', description: e?.message, variant: 'destructive' });
     }
   };

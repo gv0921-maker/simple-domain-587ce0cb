@@ -67,7 +67,7 @@ export function NewChatDialog({
       });
       onOpenChange(false); reset();
       navigate(`/chat/channels/${ch.id}`);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed to create', description: e?.message });
     }
   };

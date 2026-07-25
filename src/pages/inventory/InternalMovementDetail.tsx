@@ -67,7 +67,7 @@ export default function InternalMovementDetail() {
     try {
       await completeMut.mutateAsync(movement.id);
       toast({ title: 'Movement completed' });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Could not complete', description: e.message, variant: 'destructive' });
     }
   };
@@ -76,7 +76,7 @@ export default function InternalMovementDetail() {
     try {
       const res = await completePttMut.mutateAsync(movement.id);
       sonner.success(`Pick-to-transit complete — ${res.moved} unit(s) moved to ${res.transit_location_name ?? 'transit'}.`);
-    } catch (e: any) {
+    } catch (e) {
       sonner.error(e?.message ?? 'Could not complete pick-to-transit');
     }
   };

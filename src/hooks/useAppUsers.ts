@@ -16,7 +16,7 @@ async function fetchAppUsers(): Promise<AppUserLite[]> {
   if (error) throw error;
   const list = (data as any)?.users;
   if (!Array.isArray(list)) return [];
-  return list.map((u: any) => ({
+  return list.map((u) => ({
     user_id: u.user_id,
     email: u.email,
     name: u.name || u.full_name || u.user_metadata?.name || u.user_metadata?.full_name,

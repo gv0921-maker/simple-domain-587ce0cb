@@ -217,7 +217,7 @@ export default function WarehouseLocations() {
         toast({ title: 'Location created' });
       }
       setDialogOpen(false);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Save failed', description: e?.message, variant: 'destructive' });
     }
   }

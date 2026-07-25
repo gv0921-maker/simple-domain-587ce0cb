@@ -134,7 +134,7 @@ export function OperationTypesConfig() {
       });
       toast({ title: editing ? 'Operation type updated' : 'Operation type created' });
       setOpen(false);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Save failed', description: e?.message, variant: 'destructive' });
     }
   };
@@ -144,7 +144,7 @@ export function OperationTypesConfig() {
     try {
       await delMut.mutateAsync(id);
       toast({ title: 'Deleted' });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Delete failed', description: e?.message, variant: 'destructive' });
     }
   };

@@ -81,7 +81,7 @@ export function RichComposer({
           const att = await uploadFile(file);
           next.push(att);
           continue;
-        } catch (e: any) {
+        } catch (e) {
           toast({ title: `Failed to upload ${file.name}`, description: e?.message, variant: 'destructive' });
           continue;
         }

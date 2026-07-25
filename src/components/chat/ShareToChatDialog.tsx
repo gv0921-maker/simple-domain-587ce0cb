@@ -36,7 +36,7 @@ export function ShareToChatDialog({
       toast({ title: 'Shared to chat' });
       onOpenChange(false);
       navigate(`/chat/channels/${selectedId}`);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed', description: e?.message, variant: 'destructive' });
     }
   };

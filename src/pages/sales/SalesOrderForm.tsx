@@ -162,7 +162,7 @@ export default function SalesOrderForm() {
   }, [isNew, isLoadingOrder, loadedOrder, navigate, toast]);
 
   // Auto-populate billing + delivery from selected customer.
-  const populateFromCustomer = useCallback((customer: any) => {
+  const populateFromCustomer = useCallback((customer) => {
     const fields = buildCustomerPopulationFields(customer);
     setFormData((prev) => ({ ...prev, ...fields }));
   }, []);
@@ -195,7 +195,7 @@ export default function SalesOrderForm() {
       (location.state as any)?.newCustomerId ||
       (location.state as any)?.newContactId;
     if (newCustomerId && customers.length > 0) {
-      const c: any = customers.find((x: any) => x.id === newCustomerId);
+      const c: any = customers.find((x) => x.id === newCustomerId);
       if (c) populateFromCustomer(c);
     }
   }, [customers, location.state, populateFromCustomer]);
@@ -346,7 +346,7 @@ export default function SalesOrderForm() {
       if (newStatus === 'cancelled' && !isNew && id) {
         try {
           await applySalesOrderCancellationEffects(id);
-        } catch (e: any) {
+        } catch (e) {
           toast({
             title: 'Reservations not fully released',
             description: e?.message ?? String(e),
@@ -356,7 +356,7 @@ export default function SalesOrderForm() {
       }
       toast({ title: isNew ? 'Order Created' : 'Order Updated', description: `${data.reference} saved.` });
       navigate('/sales/orders');
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: 'Error saving order',
         description: error?.message ?? String(error),
@@ -411,7 +411,7 @@ export default function SalesOrderForm() {
       if (next === 'cancelled' && id) {
         try {
           await applySalesOrderCancellationEffects(id);
-        } catch (e: any) {
+        } catch (e) {
           toast({
             title: 'Reservations not fully released',
             description: e?.message ?? String(e),
@@ -421,7 +421,7 @@ export default function SalesOrderForm() {
       }
       setFormData((prev) => ({ ...prev, status: next }));
       toast({ title: 'Status updated', description: note });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Status update failed', description: e?.message ?? String(e), variant: 'destructive' });
     }
     // Phase 4: stock reservation on confirmed wired next.
@@ -807,7 +807,7 @@ function ConfirmOrderButton({
       await confirmSalesOrder(orderId);
       toast({ title: 'Order confirmed' });
       onConfirmed('confirmed');
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed to confirm', description: e?.message ?? String(e), variant: 'destructive' });
     }
   };
@@ -861,7 +861,7 @@ function OverrideAdvanceDialog({
       await overrideAdvanceGate(orderId, reason);
       toast({ title: 'Advance gate overridden' });
       onSuccess();
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed', description: e?.message ?? String(e), variant: 'destructive' });
     } finally {
       setSaving(false);

@@ -12,7 +12,7 @@ export default function MyAppraisals() {
   return (
     <AppLayout title="Appraisals" subtitle="My Appraisals" moduleNav={APPRAISALS_NAV}>
       <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-3">
-        {list.length === 0 ? <Card className="p-6 text-sm text-muted-foreground">No appraisals yet.</Card> : list.map((a: any) => (
+        {list.length === 0 ? <Card className="p-6 text-sm text-muted-foreground">No appraisals yet.</Card> : list.map((a) => (
           <Link key={a.id} to={pathFor(a)}>
             <Card className="p-4 hover:bg-accent cursor-pointer flex justify-between">
               <div>
@@ -31,7 +31,7 @@ export default function MyAppraisals() {
   );
 }
 
-function pathFor(a: any) {
+function pathFor(a) {
   if (a.status === 'self_review') return `/appraisals/${a.id}/self-review`;
   return `/appraisals/${a.id}`;
 }

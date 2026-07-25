@@ -11,7 +11,7 @@ export interface ProductCategory {
   updatedAt?: string;
 }
 
-const map = (r: any): ProductCategory => ({
+const map = (r): ProductCategory => ({
   id: r.id,
   name: r.name,
   parentCategoryId: r.parent_category_id ?? null,

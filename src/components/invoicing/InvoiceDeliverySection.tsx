@@ -138,7 +138,7 @@ export function InvoiceDeliverySection({ invoiceId, salesOrderId, invoiceStatus 
       toast.success('Delivery note created');
       setOpen(false);
       window.open(`/print/delivery_note/${dnId}`, '_blank');
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e?.message ?? 'Failed to create delivery note');
     }
   };
@@ -184,7 +184,7 @@ export function InvoiceDeliverySection({ invoiceId, salesOrderId, invoiceStatus 
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {dns.map((dn: any) => (
+                {dns.map((dn) => (
                   <TableRow key={dn.id} className="cursor-pointer" onClick={() => navigate(`/inventory/delivery-notes/${dn.id}`)}>
                     <TableCell className="font-medium">{dn.reference}</TableCell>
                     <TableCell>

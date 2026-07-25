@@ -47,7 +47,7 @@ export default function ItoDetail() {
       const res = await complete.mutateAsync(id);
       toast.success(`ITO completed — ${res.moved} unit(s) moved to transit.`);
       navigate(`/sales/orders/${ito.sales_order_id}`);
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e?.message ?? 'Could not complete ITO');
     }
   };

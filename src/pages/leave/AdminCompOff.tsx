@@ -40,7 +40,7 @@ export default function AdminCompOff() {
                     <td className="p-2 text-right">
                       <Button size="sm" onClick={async () => {
                         try { await grant.mutateAsync({ employee_id: d.employee_id, work_date: d.roster_date }); toast.success('Comp off granted'); }
-                        catch (e: any) { toast.error(e.message); }
+                        catch (e) { toast.error(e.message); }
                       }}>Grant Comp Off</Button>
                     </td>
                   </tr>

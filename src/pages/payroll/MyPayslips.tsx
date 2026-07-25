@@ -24,7 +24,7 @@ export default function MyPayslips() {
               <tr><th className="text-left p-3">Period</th><th className="text-left p-3">Number</th><th className="text-right p-3">Gross</th><th className="text-right p-3">Net</th><th className="text-center p-3">Status</th><th></th></tr>
             </thead>
             <tbody>
-              {payslips.map((p: any) => (
+              {payslips.map((p) => (
                 <tr key={p.id} className="border-t">
                   <td className="p-3">{p.payroll_periods?.period_label}</td>
                   <td className="p-3 text-xs">{p.payslip_number}</td>

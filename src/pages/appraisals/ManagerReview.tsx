@@ -58,7 +58,7 @@ export default function ManagerReview() {
       <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-4">
         <Card className="p-6 space-y-4">
           <h2 className="font-semibold">Criteria (Self vs Manager)</h2>
-          {ratings.map((r: any) => (
+          {ratings.map((r) => (
             <div key={r.id} className="border-b pb-3 grid md:grid-cols-2 gap-4">
               <div>
                 <p className="font-medium">{r.appraisal_criteria?.criterion_name}</p>

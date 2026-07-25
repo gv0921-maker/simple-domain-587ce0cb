@@ -11,8 +11,8 @@ import { buildContactPopulationFields } from '@/lib/sales/contactPopulation';
 export function useContactAutoPopulate(
   setFormData: React.Dispatch<React.SetStateAction<any>>,
 ) {
-  return useCallback((c: any) => {
+  return useCallback((c) => {
     const fields = buildContactPopulationFields(c);
-    setFormData((prev: any) => ({ ...prev, ...fields }));
+    setFormData((prev) => ({ ...prev, ...fields }));
   }, [setFormData]);
 }

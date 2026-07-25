@@ -50,7 +50,7 @@ export default function StockCountsList() {
     try {
       const id = await createMut.mutateAsync({ month: m, year });
       navigate(`/inventory/stock-counts/${id}`);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Could not create count', description: e.message, variant: 'destructive' });
     }
   };
@@ -66,7 +66,7 @@ export default function StockCountsList() {
       setSkipOpen(false);
       setSkipReason('');
       setSkipTarget(null);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed', description: e.message, variant: 'destructive' });
     }
   };

@@ -39,7 +39,7 @@ export function PinnedPanel({
                 <Button size="sm" variant="ghost" onClick={() => onJump(m.id)}>Jump to message</Button>
                 <Button size="sm" variant="ghost" onClick={async () => {
                   try { await unpin.mutateAsync(m.id); toast({ title: 'Unpinned' }); }
-                  catch (e: any) { toast({ title: 'Failed', description: e?.message, variant: 'destructive' }); }
+                  catch (e) { toast({ title: 'Failed', description: e?.message, variant: 'destructive' }); }
                 }}>Unpin</Button>
               </div>
             </div>

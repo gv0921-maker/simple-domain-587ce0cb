@@ -36,7 +36,7 @@ export default function PayrollPeriodDetail() {
 
   const exportCSV = () => {
     const header = ['Employee', 'Code', 'Working Days', 'Paid Days', 'Gross', 'Deductions', 'Net', 'Status'];
-    const rows = payslips.map((p: any) => [
+    const rows = payslips.map((p) => [
       p.employees?.full_name, p.employees?.employee_code, p.total_working_days, p.paid_days,
       p.gross_earnings, p.total_deductions, p.net_pay, p.status,
     ]);
@@ -61,7 +61,7 @@ export default function PayrollPeriodDetail() {
                 try {
                   const r = await process.mutateAsync(period.id);
                   toast({ title: `Processed ${r.processed} employees`, description: r.errors.length ? `${r.errors.length} errors` : '' });
-                } catch (e: any) { toast({ title: 'Failed', description: e.message, variant: 'destructive' }); }
+                } catch (e) { toast({ title: 'Failed', description: e.message, variant: 'destructive' }); }
               }}>Process / Recalculate All</Button>
             )}
             {period.status === 'processed' && (
@@ -113,7 +113,7 @@ export default function PayrollPeriodDetail() {
               </tr>
             </thead>
             <tbody>
-              {payslips.map((p: any) => (
+              {payslips.map((p) => (
                 <tr key={p.id} className="border-t hover:bg-accent">
                   <td className="p-3 sticky left-0 bg-card z-10"><div className="font-medium">{p.employees?.full_name}</div><div className="text-xs text-muted-foreground">{p.employees?.employee_code}</div></td>
                   <td className="p-3 text-right">{p.paid_days}/{p.total_working_days}</td>

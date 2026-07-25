@@ -100,7 +100,7 @@ export default function GoodsReceiptWizard() {
       });
       toast.success(`Created ${gr.gr_number}`);
       navigate(`/inventory/goods-receipts/${gr.id}`);
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e.message ?? 'Failed to create');
     }
   };
@@ -299,7 +299,7 @@ export default function GoodsReceiptWizard() {
               try {
                 await completeQC.mutateAsync({ lineId, passedSerialIds: passed, failedSerialIds: failed, failedNotes: notes });
                 toast.success('QC completed for line');
-              } catch (e: any) {
+              } catch (e) {
                 console.error('[GR QC] complete_gr_line_qc failed', e);
                 toast.error(e?.message || 'Failed to complete QC for line');
                 throw e;

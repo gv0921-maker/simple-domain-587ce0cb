@@ -131,7 +131,7 @@ export default function CreditNoteDetail() {
               disabled={!reason.trim() || voidMut.isPending}
               onClick={() => voidMut.mutate({ cnId: cn.id, reason: reason.trim() }, {
                 onSuccess: () => { toast.success('Voided'); setVoidOpen(false); setReason(''); },
-                onError: (e: any) => toast.error(e?.message ?? 'Failed'),
+                onError: (e) => toast.error(e?.message ?? 'Failed'),
               })}
             >Void</Button>
           </DialogFooter>

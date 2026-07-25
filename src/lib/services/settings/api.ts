@@ -17,7 +17,7 @@ export interface UserRoleAssignment {
 }
 
 // ---------- Mappers ----------
-function mapRoleRow(row: any, permRows: any[]): Role {
+function mapRoleRow(row, permRows: any[]): Role {
   const permissions: Permission[] = permRows
     .filter((p) => p.role_id === row.id)
     .map((p) => ({
@@ -41,7 +41,7 @@ function mapRoleRow(row: any, permRows: any[]): Role {
   };
 }
 
-function mapAuditRow(row: any): AuditLog {
+function mapAuditRow(row): AuditLog {
   return {
     id: row.id,
     userId: row.user_id ?? '',

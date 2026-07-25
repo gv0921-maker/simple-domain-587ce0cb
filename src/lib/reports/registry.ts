@@ -187,7 +187,7 @@ const pipelineFunnel: ReportDef = {
   async fetch() {
     const { data } = await supabase.from("crm_opportunities").select("stage,expected_revenue");
     const agg = new Map<string, { stage: string; count: number; value: number }>();
-    (data || []).forEach((o: any) => {
+    (data || []).forEach((o) => {
       const k = o.stage || "Unknown";
       const e = agg.get(k) || { stage: k, count: 0, value: 0 };
       e.count += 1; e.value += Number(o.expected_revenue || 0); agg.set(k, e);
@@ -230,7 +230,7 @@ const stockValuation: ReportDef = {
   ],
   async fetch() {
     const { data } = await supabase.from("products").select("name,sku,stock_on_hand,cost_price,sale_price");
-    return (data || []).map((p: any) => ({
+    return (data || []).map((p) => ({
       ...p, cost: p.cost_price, price: p.sale_price,
       value: Number(p.stock_on_hand || 0) * Number(p.cost_price || 0),
     }));
@@ -251,8 +251,8 @@ const lowStock: ReportDef = {
   ],
   async fetch() {
     const { data } = await supabase.from("products").select("name,sku,stock_on_hand,reorder_level");
-    return (data || []).filter((p: any) => Number(p.stock_on_hand || 0) <= Number(p.reorder_level || 0))
-      .map((p: any) => ({ ...p, shortage: Math.max(0, Number(p.reorder_level || 0) - Number(p.stock_on_hand || 0)) }));
+    return (data || []).filter((p) => Number(p.stock_on_hand || 0) <= Number(p.reorder_level || 0))
+      .map((p) => ({ ...p, shortage: Math.max(0, Number(p.reorder_level || 0) - Number(p.stock_on_hand || 0)) }));
   },
 };
 
@@ -300,7 +300,7 @@ const serialTracking: ReportDef = {
     const s = (filters.serial as string)?.trim();
     if (!s) return [];
     const { data } = await supabase.from("serial_numbers").select("name,product_id,status").ilike("name", `%${s}%`).limit(200);
-    const rows = (data || []).map((r: any) => ({ serial_number: r.name, product_name: r.product_id, status: r.status }));
+    const rows = (data || []).map((r) => ({ serial_number: r.name, product_name: r.product_id, status: r.status }));
     return rows as Record<string, unknown>[];
   },
 };
@@ -389,7 +389,7 @@ const agingReceivables: ReportDef = {
     const { data } = await supabase.from("invoices").select("issue_date,total,status").neq("status", "paid");
     const buckets = { "0-30": { bucket: "0-30 days", count: 0, amount: 0 }, "31-60": { bucket: "31-60 days", count: 0, amount: 0 }, "61-90": { bucket: "61-90 days", count: 0, amount: 0 }, "90+": { bucket: "90+ days", count: 0, amount: 0 } };
     const now = Date.now();
-    (data || []).forEach((i: any) => {
+    (data || []).forEach((i) => {
       if (!i.issue_date) return;
       const days = Math.floor((now - new Date(i.issue_date).getTime()) / 86400000);
       const key = days <= 30 ? "0-30" : days <= 60 ? "31-60" : days <= 90 ? "61-90" : "90+";
@@ -441,7 +441,7 @@ const employeeMaster: ReportDef = {
   ],
   async fetch() {
     const { data } = await supabase.from("employees").select("employee_code,full_name,email,designation,status,department:departments(name)").limit(1000);
-    return (data || []).map((e: any) => ({ ...e, department_name: e.department?.name || "" }));
+    return (data || []).map((e) => ({ ...e, department_name: e.department?.name || "" }));
   },
 };
 
@@ -457,7 +457,7 @@ const headcountByDept: ReportDef = {
   async fetch() {
     const { data } = await supabase.from("employees").select("department:departments(name),status");
     const agg = new Map<string, { department: string; headcount: number }>();
-    (data || []).forEach((e: any) => {
+    (data || []).forEach((e) => {
       if (e.status && e.status !== "active") return;
       const d = e.department?.name || "Unassigned";
       const v = agg.get(d) || { department: d, headcount: 0 }; v.headcount += 1; agg.set(d, v);
@@ -588,7 +588,7 @@ const leadSourceAnalysis: ReportDef = {
   async fetch() {
     const { data } = await supabase.from("crm_opportunities").select("sales_team,expected_revenue");
     const agg = new Map<string, { source: string; count: number; value: number }>();
-    (data || []).forEach((o: any) => {
+    (data || []).forEach((o) => {
       const k = o.sales_team || "Unknown";
       const e = agg.get(k) || { source: k, count: 0, value: 0 };
       e.count += 1; e.value += Number(o.expected_revenue || 0); agg.set(k, e);

@@ -106,7 +106,7 @@ export function GoodsReceiptQCDialog({
         ...s,
         [key]: { ...s[key], images: [...s[key].images, ...urls], uploading: false },
       }));
-    } catch (e: any) {
+    } catch (e) {
       updateLine(key, { uploading: false });
       toast.error(e?.message ?? 'Image upload failed');
     }
@@ -173,7 +173,7 @@ export function GoodsReceiptQCDialog({
       await createQC.mutateAsync(payload);
       await onConfirmed(payload);
       onOpenChange(false);
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e?.message ?? 'QC submission failed');
     } finally {
       setSubmitting(false);

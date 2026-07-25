@@ -21,7 +21,7 @@ import type {
 
 type Row<T> = Record<string, any> & T;
 
-const toISO = (v: any) => (v == null ? undefined : new Date(v).toISOString());
+const toISO = (v) => (v == null ? undefined : new Date(v).toISOString());
 
 function mapProduct(r: Row<any>): Product {
   return {
@@ -509,7 +509,7 @@ export async function getSerialsByProductAsync(productId: string): Promise<Seria
     .eq('product_id', productId)
     .order('serial_number');
   if (error) throw error;
-  return (data ?? []).map((r: any) => ({
+  return (data ?? []).map((r) => ({
     id: r.id,
     name: r.serial_number,
     productId: r.product_id,
@@ -559,7 +559,7 @@ export async function getStockMovesAsync(): Promise<StockMove[]> {
     .select('*, stock_move_lines(*)')
     .order('scheduled_date', { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((r: any) => mapStockMove(r, (r.stock_move_lines ?? []).map(mapStockMoveLine)));
+  return (data ?? []).map((r) => mapStockMove(r, (r.stock_move_lines ?? []).map(mapStockMoveLine)));
 }
 export async function getStockMoveAsync(id: string): Promise<StockMove | undefined> {
   const { data, error } = await supabase
@@ -577,7 +577,7 @@ export async function getStockMovesByStateAsync(state: StockMoveState): Promise<
     .select('*, stock_move_lines(*)')
     .eq('state', state);
   if (error) throw error;
-  return (data ?? []).map((r: any) => mapStockMove(r, (r.stock_move_lines ?? []).map(mapStockMoveLine)));
+  return (data ?? []).map((r) => mapStockMove(r, (r.stock_move_lines ?? []).map(mapStockMoveLine)));
 }
 export async function saveStockMoveAsync(move: StockMove): Promise<StockMove> {
   const headerRow = stockMoveToRow(move);
@@ -637,10 +637,10 @@ export async function checkReorderRulesAsync(): Promise<ReorderRule[]> {
   if (rulesRes.error) throw rulesRes.error;
   if (productsRes.error) throw productsRes.error;
   const stockById = new Map<string, number>(
-    (productsRes.data ?? []).map((p: any) => [p.id, Number(p.stock_on_hand ?? 0)]),
+    (productsRes.data ?? []).map((p) => [p.id, Number(p.stock_on_hand ?? 0)]),
   );
   return (rulesRes.data ?? [])
-    .filter((r: any) => (stockById.get(r.product_id) ?? 0) <= Number(r.min_qty ?? 0))
+    .filter((r) => (stockById.get(r.product_id) ?? 0) <= Number(r.min_qty ?? 0))
     .map(mapReorderRule);
 }
 
@@ -653,7 +653,7 @@ export async function getAdjustmentsAsync(): Promise<InventoryAdjustment[]> {
     .select('*, adjustment_lines(*)')
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((r: any) => mapAdjustment(r, (r.adjustment_lines ?? []).map(mapAdjustmentLine)));
+  return (data ?? []).map((r) => mapAdjustment(r, (r.adjustment_lines ?? []).map(mapAdjustmentLine)));
 }
 export async function getAdjustmentAsync(id: string): Promise<InventoryAdjustment | undefined> {
   const { data, error } = await supabase
@@ -711,7 +711,7 @@ export async function getStockValuationAsync(): Promise<{
   if (error) throw error;
   let totalValue = 0;
   const byCategory: Record<string, number> = {};
-  (data ?? []).forEach((p: any) => {
+  (data ?? []).forEach((p) => {
     if (p.type !== 'stockable' || !p.track_inventory) return;
     const value = Number(p.stock_on_hand ?? 0) * Number(p.cost_price ?? 0);
     totalValue += value;
@@ -738,7 +738,7 @@ export async function getForecastedStockAsync(productId: string): Promise<{
   const onHand = Number(productRes.data?.stock_on_hand ?? 0);
   let incoming = 0;
   let outgoing = 0;
-  (linesRes.data ?? []).forEach((l: any) => {
+  (linesRes.data ?? []).forEach((l) => {
     const move = l.stock_moves;
     if (!move || move.state === 'done' || move.state === 'cancelled') return;
     const remaining = Number(l.demand_qty ?? 0) - Number(l.done_qty ?? 0);

@@ -122,7 +122,7 @@ export function PreDeliveryQCSection({ salesOrderId, orderReference }: Props) {
         urls.push(await uploadDeliveryQCImageAsync(salesOrderId, f));
       }
       setImages(prev => [...prev, ...urls]);
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e?.message ?? 'Image upload failed');
     } finally {
       setUploading(false);
@@ -152,7 +152,7 @@ export function PreDeliveryQCSection({ salesOrderId, orderReference }: Props) {
       } else {
         toast.success('Pre-delivery QC passed');
       }
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e?.message ?? 'Failed to record QC');
     } finally {
       setSubmitting(false);

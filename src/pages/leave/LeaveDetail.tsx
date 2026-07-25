@@ -59,12 +59,12 @@ export default function LeaveDetail() {
             <div className="flex gap-2">
               <Button onClick={async () => {
                 try { await approve.mutateAsync({ id, approver_id: me?.id, comments: reason }); toast.success('Approved'); }
-                catch (e: any) { toast.error(e.message); }
+                catch (e) { toast.error(e.message); }
               }}>Approve</Button>
               <Button variant="destructive" onClick={async () => {
                 if (!reason) { toast.error('Reason required'); return; }
                 try { await reject.mutateAsync({ id, reason }); toast.success('Rejected'); }
-                catch (e: any) { toast.error(e.message); }
+                catch (e) { toast.error(e.message); }
               }}>Reject</Button>
             </div>
           </Card>

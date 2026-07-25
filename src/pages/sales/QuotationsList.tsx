@@ -126,7 +126,7 @@ export default function QuotationsList() {
     try {
       await saveQuotationMut.mutateAsync({ ...quotation, ...updates });
       toast({ title: `Quotation marked as ${status}` });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Update failed', description: e?.message ?? String(e), variant: 'destructive' });
     }
   }, [quotations, toast, saveQuotationMut]);
@@ -145,7 +145,7 @@ export default function QuotationsList() {
         });
         navigate(`/sales/orders/${order.id}`);
       }
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Conversion failed', description: e?.message ?? String(e), variant: 'destructive' });
     }
   }, [user, toast, navigate, convertMut]);
@@ -167,7 +167,7 @@ export default function QuotationsList() {
     try {
       await saveQuotationMut.mutateAsync(duplicated);
       toast({ title: 'Quotation duplicated' });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Duplicate failed', description: e?.message ?? String(e), variant: 'destructive' });
     }
   }, [toast, saveQuotationMut]);
@@ -177,7 +177,7 @@ export default function QuotationsList() {
       try {
         await deleteQuotationMut.mutateAsync(quotationToDelete);
         toast({ title: 'Quotation deleted' });
-      } catch (e: any) {
+      } catch (e) {
         toast({ title: 'Delete failed', description: e?.message ?? String(e), variant: 'destructive' });
       }
     }

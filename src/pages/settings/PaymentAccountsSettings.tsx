@@ -39,7 +39,7 @@ export default function PaymentAccountsSettings() {
   const handleToggleActive = async (a: PaymentAccount) => {
     try {
       await saveMut.mutateAsync({ ...a, is_active: !a.is_active });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed', description: e?.message ?? String(e), variant: 'destructive' });
     }
   };
@@ -47,7 +47,7 @@ export default function PaymentAccountsSettings() {
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this payment account?')) return;
     try { await deleteMut.mutateAsync(id); toast({ title: 'Deleted' }); }
-    catch (e: any) { toast({ title: 'Failed', description: e?.message ?? String(e), variant: 'destructive' }); }
+    catch (e) { toast({ title: 'Failed', description: e?.message ?? String(e), variant: 'destructive' }); }
   };
 
   return (
@@ -101,7 +101,7 @@ export default function PaymentAccountsSettings() {
             await saveMut.mutateAsync(v as any);
             toast({ title: 'Saved' });
             setEditing(null);
-          } catch (e: any) {
+          } catch (e) {
             toast({ title: 'Failed', description: e?.message ?? String(e), variant: 'destructive' });
           }
         }}

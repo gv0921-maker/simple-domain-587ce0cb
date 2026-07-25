@@ -111,7 +111,7 @@ export default function SubscriptionsList() {
     try {
       await saveSubscriptionMut.mutateAsync({ subscription: { ...sub, status } });
       toast({ title: `Subscription ${status}` });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Update failed', description: e?.message ?? String(e), variant: 'destructive' });
     }
   }, [subscriptions, toast, saveSubscriptionMut]);
@@ -174,7 +174,7 @@ export default function SubscriptionsList() {
       } else {
         toast({ title: 'Renewal failed', description: 'Subscription must be active', variant: 'destructive' });
       }
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Renewal failed', description: e?.message ?? String(e), variant: 'destructive' });
     }
   }, [subscriptions, navigate, toast, renewOne]);

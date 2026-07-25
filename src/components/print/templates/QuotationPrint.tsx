@@ -48,7 +48,7 @@ export function QuotationPrint({ quotation, lines = [], isDraft = false }: Props
           </tr>
         </thead>
         <tbody>
-          {items.map((l: any, i: number) => (
+          {items.map((l, i: number) => (
             <tr key={l.id ?? i} className="border-b">
               <td className="py-2 align-top">{i + 1}</td>
               <td className="py-2 align-top">{l.product_name || l.description || '—'}</td>

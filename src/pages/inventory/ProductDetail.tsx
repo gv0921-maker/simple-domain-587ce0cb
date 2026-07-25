@@ -119,7 +119,7 @@ export default function ProductDetail() {
     }
   }, [existingProduct, isNew]);
 
-  const handleChange = (field: keyof Product, value: any) => {
+  const handleChange = (field: keyof Product, value) => {
     setProduct((prev) => ({ ...prev, [field]: value }));
     setHasChanges(true);
   };
@@ -172,7 +172,7 @@ export default function ProductDetail() {
         toast({ title: isNew ? 'Product Created' : 'Product Updated', description: `${product.name} has been saved successfully.` });
         if (isNew) navigate('/inventory/products');
       },
-      onError: (e: any) => toast({ title: 'Save failed', description: e?.message, variant: 'destructive' }),
+      onError: (e) => toast({ title: 'Save failed', description: e?.message, variant: 'destructive' }),
     });
   };
 
@@ -230,7 +230,7 @@ export default function ProductDetail() {
                             toast({ title: 'Product Deleted', description: `${product.name} has been removed.` });
                             navigate('/inventory/products');
                           },
-                          onError: (e: any) => toast({ title: 'Delete failed', description: e?.message, variant: 'destructive' }),
+                          onError: (e) => toast({ title: 'Delete failed', description: e?.message, variant: 'destructive' }),
                         });
                       }}
                     >

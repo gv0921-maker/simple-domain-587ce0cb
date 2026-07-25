@@ -56,16 +56,16 @@ export default function WorkOrderDetail() {
   const stage = wo.current_stage;
   const factoryStarted = ['placed','work_start','polishing','completed','received_at_store'].includes(stage);
 
-  const handleSubmit = async () => { try { await submitMut.mutateAsync(wo.id); toast.success('Submitted'); } catch (e: any) { toast.error(e.message); } };
-  const handleApprove = async () => { try { await approveMut.mutateAsync(wo.id); toast.success('Approved'); } catch (e: any) { toast.error(e.message); } };
+  const handleSubmit = async () => { try { await submitMut.mutateAsync(wo.id); toast.success('Submitted'); } catch (e) { toast.error(e.message); } };
+  const handleApprove = async () => { try { await approveMut.mutateAsync(wo.id); toast.success('Approved'); } catch (e) { toast.error(e.message); } };
   const handleReject = async () => {
     if (!rejectReason.trim()) { toast.error('Please provide a reason'); return; }
-    try { await rejectMut.mutateAsync({ id: wo.id, reason: rejectReason }); toast.success('Rejected'); setRejectOpen(false); } catch (e: any) { toast.error(e.message); }
+    try { await rejectMut.mutateAsync({ id: wo.id, reason: rejectReason }); toast.success('Rejected'); setRejectOpen(false); } catch (e) { toast.error(e.message); }
   };
-  const handlePlace = async () => { try { await placeMut.mutateAsync(wo.id); toast.success('Placed at factory'); setPlaceOpen(false); } catch (e: any) { toast.error(e.message); } };
+  const handlePlace = async () => { try { await placeMut.mutateAsync(wo.id); toast.success('Placed at factory'); setPlaceOpen(false); } catch (e) { toast.error(e.message); } };
   const handleCancel = async () => {
     if (!cancelReason.trim()) { toast.error('Please provide a reason'); return; }
-    try { await cancelMut.mutateAsync({ id: wo.id, reason: cancelReason }); toast.success('Cancelled'); setCancelOpen(false); } catch (e: any) { toast.error(e.message); }
+    try { await cancelMut.mutateAsync({ id: wo.id, reason: cancelReason }); toast.success('Cancelled'); setCancelOpen(false); } catch (e) { toast.error(e.message); }
   };
 
   return (

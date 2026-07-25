@@ -28,7 +28,7 @@ export default function PayrollSettingsPage() {
   if (loading) return <AppLayout title="Payroll Settings" moduleNav={SETTINGS_NAV}><div className="p-6">Loading…</div></AppLayout>;
   if (!settings) return <AppLayout title="Payroll Settings" moduleNav={SETTINGS_NAV}><div className="p-6">No active payroll settings found.</div></AppLayout>;
 
-  const set = (k: string, v: any) => setSettings({ ...settings, [k]: v });
+  const set = (k: string, v) => setSettings({ ...settings, [k]: v });
 
   const save = async () => {
     setSaving(true);
@@ -43,7 +43,7 @@ export default function PayrollSettingsPage() {
         notes: settings.notes ?? null,
       });
       toast({ title: 'Saved' });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed', description: e.message, variant: 'destructive' });
     } finally {
       setSaving(false);

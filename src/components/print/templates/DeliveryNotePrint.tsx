@@ -52,7 +52,7 @@ export function DeliveryNotePrint({ note, isDraft = false }: Props) {
           </tr>
         </thead>
         <tbody>
-          {items.map((p: any, i: number) => (
+          {items.map((p, i: number) => (
             <tr key={`${p.product_id}-${i}`} className="border-b">
               <td className="py-2">{i + 1}</td>
               <td className="py-2">{p.product_name}</td>

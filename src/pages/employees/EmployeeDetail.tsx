@@ -76,7 +76,7 @@ export default function EmployeeDetail() {
       await deleteMut.mutateAsync(id);
       toast({ title: 'Employee deleted' });
       navigate('/employees/directory');
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Delete failed', description: e?.message, variant: 'destructive' });
     }
   };
@@ -281,7 +281,7 @@ export default function EmployeeDetail() {
               <h3 className="font-semibold mb-3">Last 6 Payslips</h3>
               {payslips.length === 0 ? <p className="text-sm text-muted-foreground">No payslips yet.</p> : (
                 <div className="space-y-2">
-                  {payslips.slice(0, 6).map((p: any) => (
+                  {payslips.slice(0, 6).map((p) => (
                     <Link key={p.id} to={`/payroll/payslips/${p.id}`} className="flex justify-between p-2 rounded border hover:bg-accent">
                       <span>{p.payroll_periods?.period_label}</span>
                       <span className="font-medium">{fmtINR(Number(p.net_pay))}</span>
@@ -321,7 +321,7 @@ export default function EmployeeDetail() {
               <h3 className="font-semibold mb-3">Appraisal History</h3>
               {empAppraisals.length === 0 ? <p className="text-sm text-muted-foreground">No appraisals yet.</p> : (
                 <div className="space-y-2">
-                  {empAppraisals.map((a: any) => (
+                  {empAppraisals.map((a) => (
                     <Link key={a.id} to={`/appraisals/${a.id}`} className="flex justify-between p-3 rounded border hover:bg-accent">
                       <div>
                         <p className="font-medium">{a.appraisal_cycles?.name}</p>

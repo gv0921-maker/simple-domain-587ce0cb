@@ -167,7 +167,7 @@ export function MessageList({
                               try {
                                 await editMessage.mutateAsync({ id: m.id, body: editText.trim() });
                                 setEditingId(null);
-                              } catch (e: any) {
+                              } catch (e) {
                                 toast({ title: 'Failed to edit', description: e?.message, variant: 'destructive' });
                               }
                             }}>Save</Button>
@@ -221,7 +221,7 @@ export function MessageList({
                               try {
                                 if (m.is_pinned) { await unpinMutation.mutateAsync(m.id); toast({ title: 'Unpinned' }); }
                                 else { await pinMutation.mutateAsync(m.id); toast({ title: 'Pinned' }); }
-                              } catch (e: any) {
+                              } catch (e) {
                                 toast({ title: 'Failed', description: e?.message, variant: 'destructive' });
                               }
                             }}>
@@ -237,7 +237,7 @@ export function MessageList({
                             <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" title="Delete"
                               onClick={async () => {
                                 if (!confirm('Delete this message?')) return;
-                                try { await deleteMessage.mutateAsync(m.id); } catch (e: any) {
+                                try { await deleteMessage.mutateAsync(m.id); } catch (e) {
                                   toast({ title: 'Failed to delete', description: e?.message, variant: 'destructive' });
                                 }
                               }}>

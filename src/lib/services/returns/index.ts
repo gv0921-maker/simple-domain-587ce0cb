@@ -132,18 +132,18 @@ export async function getReturnRequests(filters: ReturnFilters = {}): Promise<Re
   const { data, error } = await q;
   if (error) throw error;
   // Fetch item count per row via aggregate
-  const ids = (data ?? []).map((r: any) => r.id);
+  const ids = (data ?? []).map((r) => r.id);
   let counts: Record<string, number> = {};
   if (ids.length) {
     const { data: items } = await sb
       .from('return_request_items')
       .select('return_request_id')
       .in('return_request_id', ids);
-    (items ?? []).forEach((i: any) => {
+    (items ?? []).forEach((i) => {
       counts[i.return_request_id] = (counts[i.return_request_id] ?? 0) + 1;
     });
   }
-  return (data ?? []).map((r: any) => ({ ...r, items: Array(counts[r.id] ?? 0).fill(null) })) as ReturnRequest[];
+  return (data ?? []).map((r) => ({ ...r, items: Array(counts[r.id] ?? 0).fill(null) })) as ReturnRequest[];
 }
 
 export async function getReturnRequestById(id: string): Promise<ReturnRequest | null> {
@@ -284,7 +284,7 @@ export async function getReturnableItemsForInvoice(invoiceId: string): Promise<I
       .from('order_lines')
       .select('id, customization_size, customization_colour, customization_fabric, customization_polish, customization_notes')
       .in('id', soLineIds);
-    (soLines ?? []).forEach((s: any) => {
+    (soLines ?? []).forEach((s) => {
       customizationBySoLine[s.id] = {
         size: s.customization_size, colour: s.customization_colour,
         fabric: s.customization_fabric, polish: s.customization_polish,
@@ -307,12 +307,12 @@ export async function getReturnableItemsForInvoice(invoiceId: string): Promise<I
     .eq('return_request.source_invoice_id', invoiceId);
   const returnedSerials = new Set<string>(
     (existingReturns ?? [])
-      .filter((r: any) => r.return_request && r.return_request.request_status !== 'cancelled' && r.return_request.request_status !== 'rejected')
-      .map((r: any) => r.serial_number)
+      .filter((r) => r.return_request && r.return_request.request_status !== 'cancelled' && r.return_request.request_status !== 'rejected')
+      .map((r) => r.serial_number)
   );
 
   // Lookup serial IDs
-  const allSerialNums = (dnLines ?? []).flatMap((d: any) => (d.serial_numbers as string[]) ?? []);
+  const allSerialNums = (dnLines ?? []).flatMap((d) => (d.serial_numbers as string[]) ?? []);
   let serialIdMap: Record<string, string> = {};
   let serialStatus: Record<string, string> = {};
   if (allSerialNums.length) {
@@ -320,7 +320,7 @@ export async function getReturnableItemsForInvoice(invoiceId: string): Promise<I
       .from('goods_receipt_serials')
       .select('id, serial_number, stock_status')
       .in('serial_number', allSerialNums);
-    (serialRows ?? []).forEach((s: any) => {
+    (serialRows ?? []).forEach((s) => {
       serialIdMap[s.serial_number] = s.id;
       serialStatus[s.serial_number] = s.stock_status;
     });
@@ -331,11 +331,11 @@ export async function getReturnableItemsForInvoice(invoiceId: string): Promise<I
   let productNames: Record<string, string> = {};
   if (productIds.length) {
     const { data: prods } = await sb.from('products').select('id, name').in('id', productIds);
-    (prods ?? []).forEach((p: any) => { productNames[p.id] = p.name; });
+    (prods ?? []).forEach((p) => { productNames[p.id] = p.name; });
   }
 
   const out: InvoiceReturnableItem[] = [];
-  (dnLines ?? []).forEach((dnl: any) => {
+  (dnLines ?? []).forEach((dnl) => {
     const invLine = lines.find((l) => l.id === dnl.invoice_line_id);
     if (!invLine) return;
     const custom = invLine.sales_order_line_id ? customizationBySoLine[invLine.sales_order_line_id] ?? null : null;

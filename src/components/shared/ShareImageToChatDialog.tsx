@@ -53,7 +53,7 @@ export function ShareImageToChatDialog({
       onOpenChange(false);
       setNote(''); setSelectedId(null);
       navigate(`/chat/channels/${selectedId}`);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed to share', description: e?.message, variant: 'destructive' });
     } finally {
       setBusy(false);

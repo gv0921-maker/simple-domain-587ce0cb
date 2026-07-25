@@ -100,7 +100,7 @@ export default function ReturnNew() {
       }
       toast.success(submitForApproval ? 'Return submitted for approval' : 'Draft saved');
       navigate(`/returns/${rtId}`);
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e?.message ?? 'Failed to create return');
     }
   };

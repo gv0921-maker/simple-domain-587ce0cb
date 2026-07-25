@@ -97,7 +97,7 @@ export function ReserveStockDialog({
       onOpenChange(false);
       setSelectedSerials([]);
       setNotes('');
-    } catch (e: any) {
+    } catch (e) {
       await refetchSerials();
       toast({ title: 'Failed to reserve stock', description: e?.message, variant: 'destructive' });
     }

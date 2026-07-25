@@ -69,7 +69,7 @@ export default function ProductsList() {
   const handleDelete = (id: string) => {
     deleteMut.mutate(id, {
       onSuccess: () => toast({ title: 'Product deleted', description: 'The product has been removed.' }),
-      onError: (e: any) => toast({ title: 'Delete failed', description: e?.message, variant: 'destructive' }),
+      onError: (e) => toast({ title: 'Delete failed', description: e?.message, variant: 'destructive' }),
     });
   };
 

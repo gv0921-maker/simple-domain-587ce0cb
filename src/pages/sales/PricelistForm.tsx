@@ -121,7 +121,7 @@ export default function PricelistForm() {
           toast({ title: isEdit ? 'Pricelist updated' : 'Pricelist created' });
           navigate('/sales/pricelists');
         },
-        onError: (e: any) => toast({ title: e?.message ?? 'Save failed', variant: 'destructive' }),
+        onError: (e) => toast({ title: e?.message ?? 'Save failed', variant: 'destructive' }),
       },
     );
   }, [formData, rules, id, isEdit, toast, navigate, saveMut]);

@@ -50,7 +50,7 @@ export default function LabelsPage() {
         format: labelFormat,
       }]);
       setLabels(out);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Generation failed', description: e?.message, variant: 'destructive' });
     }
   };
@@ -62,7 +62,7 @@ export default function LabelsPage() {
       toast({ title: `Recorded ${labels.length} labels` });
       // small delay to let the DOM settle before invoking print
       setTimeout(() => window.print(), 50);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Print log failed', description: e?.message, variant: 'destructive' });
     }
   };

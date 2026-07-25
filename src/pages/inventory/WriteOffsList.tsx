@@ -67,7 +67,7 @@ export default function WriteOffsList() {
     try {
       const id = await createMut.mutateAsync({ writeOffType: 'damage', sourceType: 'manual' });
       navigate(`/inventory/write-offs/${id}`);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Could not create draft', description: e.message, variant: 'destructive' });
     }
   };

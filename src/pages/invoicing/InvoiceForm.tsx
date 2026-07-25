@@ -162,7 +162,7 @@ export default function InvoiceForm() {
       );
       navigate(TYPE_BACK[type]);
       return saved;
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e?.message ?? 'Failed to create invoice');
       return null;
     }

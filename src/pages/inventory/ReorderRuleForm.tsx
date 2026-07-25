@@ -85,7 +85,7 @@ export default function ReorderRuleForm() {
         toast({ title: editingRule ? 'Rule Updated' : 'Rule Created', description: `Reorder rule for ${product.name} has been saved.` });
         navigate('/inventory/reorder-rules');
       },
-      onError: (e: any) => toast({ title: 'Save failed', description: e?.message, variant: 'destructive' }),
+      onError: (e) => toast({ title: 'Save failed', description: e?.message, variant: 'destructive' }),
     });
   };
 

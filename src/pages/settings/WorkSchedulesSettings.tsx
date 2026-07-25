@@ -146,7 +146,7 @@ function EditScheduleDialog({ target, onClose }: { target: EmployeeWithSchedule 
       await save.mutateAsync({ employeeId: target.id, schedule: form });
       toast({ title: 'Schedule updated' });
       onClose();
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed to save', description: e?.message ?? String(e), variant: 'destructive' });
     }
   };
@@ -187,7 +187,7 @@ function BulkApplyDialog({ open, onClose, employees }: {
       await bulk.mutateAsync({ employeeIds: Array.from(selected), template: form });
       toast({ title: `Schedule applied to ${selected.size} employee${selected.size === 1 ? '' : 's'}` });
       onClose();
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed', description: e?.message ?? String(e), variant: 'destructive' });
     }
   };

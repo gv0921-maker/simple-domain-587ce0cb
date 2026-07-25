@@ -59,7 +59,7 @@ export function UnitsConfig() {
       });
       toast({ title: editing ? 'Unit updated' : 'Unit created' });
       setOpen(false);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Save failed', description: e?.message, variant: 'destructive' });
     }
   };
@@ -69,7 +69,7 @@ export function UnitsConfig() {
     try {
       await delMut.mutateAsync(id);
       toast({ title: 'Unit deleted' });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Delete failed', description: e?.message, variant: 'destructive' });
     }
   };

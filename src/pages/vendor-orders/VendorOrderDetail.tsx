@@ -74,7 +74,7 @@ export default function VendorOrderDetail() {
     try {
       await updateMut.mutateAsync({ voId: id, input: { eta_date: currentEta, notes: currentNotes || null } });
       toast({ title: 'Saved' });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Save failed', description: e.message, variant: 'destructive' });
     }
   };
@@ -82,15 +82,15 @@ export default function VendorOrderDetail() {
     if (lines.length === 0) { toast({ title: 'Add at least one line', variant: 'destructive' }); return; }
     await saveDraft();
     try { await submitMut.mutateAsync(id); toast({ title: 'Submitted for approval' }); }
-    catch (e: any) { toast({ title: 'Submit failed', description: e.message, variant: 'destructive' }); }
+    catch (e) { toast({ title: 'Submit failed', description: e.message, variant: 'destructive' }); }
   };
   const approve = async () => {
     try { await approveMut.mutateAsync(id); toast({ title: 'Approved' }); }
-    catch (e: any) { toast({ title: 'Approve failed', description: e.message, variant: 'destructive' }); }
+    catch (e) { toast({ title: 'Approve failed', description: e.message, variant: 'destructive' }); }
   };
   const place = async () => {
     try { await placeMut.mutateAsync(id); toast({ title: 'Order placed with vendor' }); }
-    catch (e: any) { toast({ title: 'Place failed', description: e.message, variant: 'destructive' }); }
+    catch (e) { toast({ title: 'Place failed', description: e.message, variant: 'destructive' }); }
   };
   const cancel = async () => {
     if (!cancelReason.trim()) return;
@@ -98,7 +98,7 @@ export default function VendorOrderDetail() {
       await cancelMut.mutateAsync({ voId: id, reason: cancelReason.trim() });
       toast({ title: 'Cancelled' });
       setCancelOpen(false); setCancelReason('');
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Cancel failed', description: e.message, variant: 'destructive' });
     }
   };
@@ -112,7 +112,7 @@ export default function VendorOrderDetail() {
       toast({ title: 'Receipt recorded', description: `Goods Receipt created` });
       setReceiptOpen(false); setReceiptQty({});
       navigate(`/inventory/goods-receipts/${grId}`);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Receipt failed', description: e.message, variant: 'destructive' });
     }
   };

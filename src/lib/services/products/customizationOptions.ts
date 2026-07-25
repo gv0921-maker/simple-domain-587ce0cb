@@ -4,7 +4,7 @@ import type {
   ProductCustomizationOptionType,
 } from '@/lib/data/sales/types';
 
-function mapRow(r: any): ProductCustomizationOption {
+function mapRow(r): ProductCustomizationOption {
   return {
     id: r.id,
     productId: r.product_id,

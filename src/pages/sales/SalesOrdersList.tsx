@@ -163,7 +163,7 @@ export default function SalesOrdersList() {
       if (status === 'cancelled') {
         try {
           await applySalesOrderCancellationEffects(orderId);
-        } catch (e: any) {
+        } catch (e) {
           toast({
             title: 'Reservations not fully released',
             description: e?.message ?? String(e),
@@ -172,7 +172,7 @@ export default function SalesOrdersList() {
         }
       }
       toast({ title: `Order ${status}` });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Update failed', description: e?.message ?? String(e), variant: 'destructive' });
     }
     setConfirmDialogOpen(false);
@@ -183,7 +183,7 @@ export default function SalesOrdersList() {
       try {
         await deleteOrderMut.mutateAsync(orderToDelete);
         toast({ title: 'Order deleted' });
-      } catch (error: any) {
+      } catch (error) {
         toast({ title: error?.message ?? String(error), variant: 'destructive' });
       }
     }

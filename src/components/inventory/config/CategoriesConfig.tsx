@@ -68,7 +68,7 @@ export function CategoriesConfig() {
       });
       toast({ title: editing ? 'Category updated' : 'Category created' });
       setOpen(false);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Save failed', description: e?.message, variant: 'destructive' });
     }
   };
@@ -78,7 +78,7 @@ export function CategoriesConfig() {
     try {
       await delMut.mutateAsync(id);
       toast({ title: 'Category deleted' });
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Delete failed', description: e?.message, variant: 'destructive' });
     }
   };

@@ -25,7 +25,7 @@ export default function HolidaysPage() {
   async function save() {
     if (!form.holiday_date || !form.name) { toast({ title: 'Date & name required', variant: 'destructive' }); return; }
     try { await create.mutateAsync(form); toast({ title: 'Holiday added' }); setOpen(false); setForm(blank()); }
-    catch (e: any) { toast({ title: 'Failed', description: e?.message, variant: 'destructive' }); }
+    catch (e) { toast({ title: 'Failed', description: e?.message, variant: 'destructive' }); }
   }
 
   return (

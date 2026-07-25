@@ -15,7 +15,7 @@ const SOURCE_LABEL: Record<string, string> = {
   factory: 'Factory',
 };
 
-function customizationSummary(l: any): string {
+function customizationSummary(l): string {
   const bits: string[] = [];
   if (l.customization_size || l.customizationSize) bits.push(`Size: ${l.customization_size || l.customizationSize}`);
   if (l.customization_colour || l.customizationColour) bits.push(`Colour: ${l.customization_colour || l.customizationColour}`);
@@ -81,7 +81,7 @@ export function SalesOrderPrint({ order, lines = [], isDraft = false }: Props) {
           </tr>
         </thead>
         <tbody>
-          {items.map((l: any, i: number) => (
+          {items.map((l, i: number) => (
             <tr key={l.id ?? i} className="border-b">
               <td className="py-2 align-top">{i + 1}</td>
               <td className="py-2 align-top">

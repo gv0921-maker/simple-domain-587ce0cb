@@ -147,7 +147,7 @@ export default function StockMoves() {
     }
     validateMut.mutate(moveId, {
       onSuccess: () => toast({ title: 'Stock Move Validated', description: 'Stock levels have been updated.' }),
-      onError: (e: any) => toast({ title: 'Validation failed', description: e?.message, variant: 'destructive' }),
+      onError: (e) => toast({ title: 'Validation failed', description: e?.message, variant: 'destructive' }),
     });
   };
 

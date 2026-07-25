@@ -6,7 +6,7 @@ import type { Contact } from '@/lib/crm/types';
 
 interface CustomerSelectorProps {
   value?: string;
-  onChange: (customer: any) => void;
+  onChange: (customer) => void;
   disabled?: boolean;
   placeholder?: string;
   onCreateNew?: () => void;

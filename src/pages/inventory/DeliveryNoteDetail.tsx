@@ -46,7 +46,7 @@ export default function DeliveryNoteDetail() {
       toast.success(res.soClosed
         ? `Delivery complete — ${res.delivered} unit(s) handed off. Sales order closed.`
         : `Delivery complete — ${res.delivered} unit(s) handed off.`);
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e?.message ?? 'Failed to complete delivery');
     }
   };

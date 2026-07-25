@@ -24,7 +24,7 @@ export interface OperationType {
   allowExtraProducts?: boolean;
 }
 
-const map = (r: any): OperationType => ({
+const map = (r): OperationType => ({
   id: r.id,
   name: r.name,
   operationKind: r.operation_kind as OperationKind,

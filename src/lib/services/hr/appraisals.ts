@@ -174,7 +174,7 @@ export async function listRatings(appraisalId: string) {
     .select('*, appraisal_criteria:criterion_id(criterion_name, category, weightage_percentage, rating_scale, display_order)')
     .eq('appraisal_id', appraisalId);
   if (error) throw error;
-  return (data ?? []).sort((a: any, b: any) =>
+  return (data ?? []).sort((a, b) =>
     (a.appraisal_criteria?.display_order ?? 0) - (b.appraisal_criteria?.display_order ?? 0));
 }
 export async function upsertRating(p: AppraisalRatingInsert & { id?: string }) {
@@ -258,7 +258,7 @@ export async function acknowledgeAppraisal(appraisalId: string, response?: strin
 export async function getAppraisalStatistics(cycleId: string) {
   const list = await listAppraisalsByCycle(cycleId);
   const total = list.length;
-  const by = (s: string) => list.filter((a: any) => a.status === s).length;
+  const by = (s: string) => list.filter((a) => a.status === s).length;
   return {
     total,
     not_started: by('not_started'),

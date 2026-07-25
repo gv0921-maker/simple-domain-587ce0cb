@@ -95,7 +95,7 @@ export default function InventoryAdjustments() {
     if (!user) return;
     approveMut.mutate({ id, userId: user.id }, {
       onSuccess: () => toast({ title: 'Adjustment Approved', description: 'Stock levels have been updated.' }),
-      onError: (e: any) => toast({ title: 'Approval failed', description: e?.message, variant: 'destructive' }),
+      onError: (e) => toast({ title: 'Approval failed', description: e?.message, variant: 'destructive' }),
     });
   };
 

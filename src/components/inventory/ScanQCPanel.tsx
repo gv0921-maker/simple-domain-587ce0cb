@@ -132,7 +132,7 @@ export function ScanQCPanel({
       feedbackSuccess();
       setScanValue('');
       scanRef.current?.focus();
-    } catch (e: any) {
+    } catch (e) {
       feedbackError();
       toast.error(e?.message ?? 'Scan failed');
     }
@@ -145,7 +145,7 @@ export function ScanQCPanel({
         status,
         notes: notesById[inspection.id],
       });
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e?.message ?? 'Could not save result');
     }
   };
@@ -154,7 +154,7 @@ export function ScanQCPanel({
     if (!file) return;
     try {
       await uploadPhoto.mutateAsync({ inspection, file });
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e?.message ?? 'Upload failed');
     }
   };

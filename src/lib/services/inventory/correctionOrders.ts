@@ -100,7 +100,7 @@ export async function getCorrectionOrderById(id: string) {
   ]);
   if (co.error) throw co.error;
   if (items.error) throw items.error;
-  const itemIds = (items.data ?? []).map((i: any) => i.id);
+  const itemIds = (items.data ?? []).map((i) => i.id);
   let cycles: CorrectionQCCycle[] = [];
   let refunds: any[] = [];
   if (itemIds.length) {

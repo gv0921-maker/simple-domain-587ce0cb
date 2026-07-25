@@ -342,7 +342,7 @@ function RecordPaymentDialog({ open, onOpenChange, salesOrderId, defaultAmount, 
       });
       onOpenChange(false);
       onSuccess?.(p.id);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed to record payment', description: e?.message ?? String(e), variant: 'destructive' });
     }
   };
@@ -430,7 +430,7 @@ function VoidPaymentDialog({ target, onClose }: {
       await voidMut.mutateAsync({ paymentId: target.id, reason });
       toast({ title: 'Payment voided' });
       onClose();
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed to void', description: e?.message ?? String(e), variant: 'destructive' });
     }
   };
@@ -506,7 +506,7 @@ function RedeemCreditNoteDialog({ open, onOpenChange, salesOrderId, balance }: {
       await redeemMut.mutateAsync({ cnId: selectedCn, salesOrderId, amount });
       toast({ title: 'Credit note applied' });
       onOpenChange(false);
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: 'Failed to apply credit note', description: e?.message ?? String(e), variant: 'destructive' });
     }
   };

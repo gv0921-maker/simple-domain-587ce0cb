@@ -52,7 +52,7 @@ export default function AdminWorkSchedule() {
       });
       toast.success('Sunday duty assigned');
       setSingle({ employeeId: '', sundayDate: '', compOffDate: '' });
-    } catch (e: any) { toast.error(e.message ?? 'Failed'); }
+    } catch (e) { toast.error(e.message ?? 'Failed'); }
   }
 
   async function handleBulk() {
@@ -64,7 +64,7 @@ export default function AdminWorkSchedule() {
       try {
         await assign.mutateAsync({ employeeId: empId, sundayDate: bulkSunday, compOffDate: r.compOff });
         count++;
-      } catch (e: any) { toast.error(`${empId}: ${e.message}`); }
+      } catch (e) { toast.error(`${empId}: ${e.message}`); }
     }
     toast.success(`Assigned to ${count} employee(s)`);
     setBulkOpen(false); setBulkRows({}); setBulkSunday('');
@@ -123,7 +123,7 @@ export default function AdminWorkSchedule() {
                 </tr>
               </thead>
               <tbody>
-                {rosters.map((r: any) => {
+                {rosters.map((r) => {
                   const emp = employees.find((e) => e.id === r.employee_id);
                   return (
                     <tr key={r.id} className="border-t">
