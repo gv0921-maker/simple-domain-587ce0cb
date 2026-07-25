@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ActivityChatter } from '@/components/shared/ActivityChatter';
@@ -11,6 +11,7 @@ import {
   useRecordItemReceivedBack,
   useCompleteCorrectionQCCycle,
   useRecordVendorRefund,
+  useMarkCorrectionItemUnsalvageable,
   useCloseCorrectionOrder,
   useCancelCorrectionOrder,
 } from '@/hooks/inventory/correctionOrders';
@@ -23,6 +24,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { ToastAction } from '@/components/ui/toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChevronDown, ChevronRight, Printer, Send, CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
 import { DocumentPipeline } from '@/components/inventory/DocumentPipeline';
@@ -66,12 +68,14 @@ export default function CorrectionOrderDetail() {
   const receivedBack = useRecordItemReceivedBack(id);
   const completeQC = useCompleteCorrectionQCCycle(id);
   const recordRefund = useRecordVendorRefund(id);
+  const markUnsalvageable = useMarkCorrectionItemUnsalvageable(id);
   const closeCO = useCloseCorrectionOrder(id);
   const cancelCO = useCancelCorrectionOrder(id);
 
   const [expanded, setExpanded] = useState<string | null>(null);
   const [qcDialog, setQcDialog] = useState<{ open: boolean; itemId?: string }>({ open: false });
   const [refundDialog, setRefundDialog] = useState<{ open: boolean; itemId?: string }>({ open: false });
+  const [unsalvageableDialog, setUnsalvageableDialog] = useState<{ open: boolean; itemId?: string }>({ open: false });
 
   const isDraft = co?.status === 'draft';
   const isClosed = co?.status === 'closed' || co?.status === 'cancelled';
@@ -231,8 +235,8 @@ export default function CorrectionOrderDetail() {
                   const itemCycles = cycles.filter(c => c.correction_order_item_id === it.id);
                   const isOpen = expanded === it.id;
                   return (
-                    <>
-                      <TableRow key={it.id}>
+                    <Fragment key={it.id}>
+                      <TableRow>
                         <TableCell>
                           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setExpanded(isOpen ? null : it.id)}>
                             {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -275,6 +279,16 @@ export default function CorrectionOrderDetail() {
                               Refund
                             </Button>
                           )}
+                          {!['refunded_by_vendor', 'closed'].includes(it.current_status) && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => setUnsalvageableDialog({ open: true, itemId: it.id })}
+                            >
+                              Unsalvageable
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                       {isOpen && (
@@ -298,7 +312,7 @@ export default function CorrectionOrderDetail() {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
                 {items.length === 0 && (
@@ -335,6 +349,25 @@ export default function CorrectionOrderDetail() {
           setRefundDialog({ open: false });
         }}
       />
+
+      <UnsalvageableDialog
+        open={unsalvageableDialog.open}
+        onClose={() => setUnsalvageableDialog({ open: false })}
+        onSubmit={async (reason) => {
+          if (!unsalvageableDialog.itemId) return;
+          const { writeOffId } = await markUnsalvageable.mutateAsync({ coItemId: unsalvageableDialog.itemId, reason });
+          setUnsalvageableDialog({ open: false });
+          toast({
+            title: 'Routed to write-off',
+            description: 'A write-off draft is awaiting approval.',
+            action: (
+              <ToastAction altText="Open write-off draft" onClick={() => navigate(`/inventory/write-offs/${writeOffId}`)}>
+                Open
+              </ToastAction>
+            ),
+          });
+        }}
+      />
     </AppLayout>
   );
 }
@@ -361,6 +394,39 @@ function QCDialog({
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button onClick={() => onSubmit(passed, notes)}>Record QC</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function UnsalvageableDialog({
+  open, onClose, onSubmit,
+}: { open: boolean; onClose: () => void; onSubmit: (reason: string) => Promise<void> }) {
+  const [reason, setReason] = useState('');
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Mark Item Unsalvageable</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            This routes the unit to a write-off draft for Super Admin approval and resolves it on
+            this correction order. State why it cannot be repaired or refunded.
+          </p>
+          <div>
+            <div className="text-xs text-muted-foreground mb-1">Reason</div>
+            <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Cracked casing, vendor declined refund" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button
+            variant="destructive"
+            disabled={!reason.trim()}
+            onClick={() => onSubmit(reason.trim())}
+          >
+            Route to Write-off
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { addToScanQueue } from '@/lib/services/barcode/api';
+import { createWriteOffDraft, addItemsToWriteOff } from '@/lib/services/inventory/writeOffs';
 import { logStatusChange, logRecordCreated, logFieldChange } from '@/lib/services/activityLog';
 
 const sb = supabase as any;
@@ -254,6 +255,66 @@ export async function recordVendorRefund(input: {
   try {
     await logRecordCreated('correction_order_refund' as any, item.correction_order_id);
   } catch { /* noop */ }
+}
+
+/**
+ * The third §3.4 resolution: an item the vendor can't fix and won't refund is
+ * unsalvageable. Route it to a write-off *draft* (Super Admin still approves the
+ * write-off separately), then mark the CO item closed so the order can close.
+ *
+ * All unsalvageable items from one CO collect into a single draft — a second
+ * item reuses the CO's existing open draft rather than starting another.
+ * Returns the write-off record id so the caller can link straight to it.
+ */
+export async function markCorrectionItemUnsalvageable(input: {
+  coItemId: string;
+  reason: string;
+}): Promise<{ writeOffId: string }> {
+  const { data: item, error: ie } = await sb.from('correction_order_items')
+    .select('id, correction_order_id, goods_receipt_serial_id, correction_order:correction_orders(id,co_number)')
+    .eq('id', input.coItemId).maybeSingle();
+  if (ie) throw ie;
+  if (!item) throw new Error('Item not found');
+
+  const coId = item.correction_order_id as string;
+  const coNumber = item.correction_order?.co_number ?? null;
+
+  // Reuse an existing open write-off draft for this CO, if one is already going.
+  const { data: existing, error: ee } = await sb.from('write_off_records')
+    .select('id')
+    .eq('source_type', 'correction_order')
+    .eq('source_document_id', coId)
+    .eq('status', 'draft')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (ee) throw ee;
+
+  let writeOffId: string;
+  if (existing?.id) {
+    writeOffId = existing.id as string;
+    await addItemsToWriteOff(writeOffId, [item.goods_receipt_serial_id], input.reason);
+  } else {
+    writeOffId = await createWriteOffDraft({
+      writeOffType: 'qc_unsalvageable',
+      sourceType: 'correction_order',
+      sourceDocumentId: coId,
+      sourceDocumentReference: coNumber ?? undefined,
+      reason: input.reason,
+      serialIds: [item.goods_receipt_serial_id],
+      notes: input.reason,
+    });
+  }
+
+  const { error: ue } = await sb.from('correction_order_items')
+    .update({ current_status: 'closed', notes: `Unsalvageable — write-off ${input.reason}` })
+    .eq('id', input.coItemId);
+  if (ue) throw ue;
+  try {
+    await logStatusChange('correction_order_item' as any, input.coItemId, item.current_status ?? null, 'closed');
+  } catch { /* noop */ }
+
+  return { writeOffId };
 }
 
 export async function closeCorrectionOrder(coId: string): Promise<{ success: boolean; reason?: string }> {

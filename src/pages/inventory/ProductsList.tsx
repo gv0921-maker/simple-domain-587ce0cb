@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -19,9 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Search,
   Plus,
-  Filter,
   MoreHorizontal,
   Edit,
   Trash2,
@@ -34,6 +31,10 @@ import {
 import { useProducts, useDeleteProduct } from '@/hooks/inventory';
 import type { Product } from '@/lib/services/inventory';
 import { INVENTORY_NAV } from '@/lib/navigation';
+import { FilterBar } from '@/components/filters/FilterBar';
+import { inventoryProductsFilterConfig } from '@/lib/filters/modules/inventoryProducts';
+import { applyFilterState } from '@/lib/filters/clientFilter';
+import { EMPTY_FILTER_STATE, type FilterState } from '@/lib/filters/types';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ProductsList() {
@@ -41,40 +42,28 @@ export default function ProductsList() {
   const { toast } = useToast();
   const { data: products = [] } = useProducts();
   const deleteMut = useDeleteProduct();
-  const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState<keyof Product>('name');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [filterState, setFilterState] = useState<FilterState>({
+    groups: [],
+    sort_by: { field: 'name', direction: 'asc' },
+  });
 
-  const filteredProducts = useMemo(() => {
-    let result = products.filter(
-      (p) =>
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.sku.toLowerCase().includes(search.toLowerCase()) ||
-        p.category.toLowerCase().includes(search.toLowerCase())
-    );
+  const filteredProducts = useMemo(
+    () => applyFilterState(
+      products as unknown as Record<string, unknown>[],
+      filterState,
+      ['name', 'sku', 'category'],
+    ) as unknown as Product[],
+    [products, filterState],
+  );
 
-    result.sort((a, b) => {
-      const aVal = a[sortBy];
-      const bVal = b[sortBy];
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-      }
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
-      }
-      return 0;
-    });
-
-    return result;
-  }, [products, search, sortBy, sortDir]);
-
+  // Column-header clicks drive the same sort the FilterBar owns, so the two
+  // never disagree: first click ascending, second toggles to descending.
   const handleSort = (column: keyof Product) => {
-    if (sortBy === column) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortBy(column);
-      setSortDir('asc');
-    }
+    setFilterState((s) => {
+      const cur = s.sort_by;
+      const direction = cur && cur.field === column && cur.direction === 'asc' ? 'desc' : 'asc';
+      return { ...s, sort_by: { field: column as string, direction } };
+    });
   };
 
   const handleDelete = (id: string) => {
@@ -94,18 +83,13 @@ export default function ProductsList() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="relative flex-1 sm:w-64 sm:flex-initial">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder=""
-                className="pl-9"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+            <div className="flex-1 sm:w-80 sm:flex-initial">
+              <FilterBar
+                config={inventoryProductsFilterConfig}
+                value={filterState}
+                onChange={setFilterState}
               />
             </div>
-            <Button variant="outline" size="icon" className="shrink-0">
-              <Filter className="h-4 w-4" />
-            </Button>
             <Button onClick={() => navigate('/inventory/products/new')} className="gap-1 shrink-0">
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">New Product</span>

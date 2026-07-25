@@ -98,6 +98,18 @@ export function useRecordVendorRefund(coId: string) {
   });
 }
 
+export function useMarkCorrectionItemUnsalvageable(coId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { coItemId: string; reason: string }) =>
+      co.markCorrectionItemUnsalvageable(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: correctionOrderKeys.detail(coId) });
+      qc.invalidateQueries({ queryKey: ['writeOffs'] });
+    },
+  });
+}
+
 export function useCloseCorrectionOrder(coId: string) {
   const qc = useQueryClient();
   return useMutation({

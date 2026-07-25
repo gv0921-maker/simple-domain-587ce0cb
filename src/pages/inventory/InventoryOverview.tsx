@@ -18,11 +18,14 @@ import {
 } from 'lucide-react';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useInventoryOverview } from '@/hooks/inventory/useInventoryOverview';
+import { useOperationTypes } from '@/hooks/inventory/config';
+import type { OperationKind } from '@/lib/services/inventory/operationTypes';
 import { useIsSuperAdmin } from '@/hooks/useIsSuperAdmin';
 
 export default function InventoryOverview() {
   const navigate = useNavigate();
   const { data, isLoading } = useInventoryOverview();
+  const { data: operationTypes = [], isLoading: typesLoading } = useOperationTypes();
   const { isAdmin } = useIsSuperAdmin();
 
   const gr = data?.goodsReceipts;
@@ -43,33 +46,59 @@ export default function InventoryOverview() {
     admin?: boolean;
   }
 
-  const opCards: OpCard[] = [
-    {
-      key: 'gr',
-      title: 'Goods Receipts',
+  // Each operation kind maps to the document pipeline that backs it, so the
+  // count and destination follow the kind rather than being hardcoded per card.
+  // Documents don't yet reliably carry operation_type_id (see coverage note in
+  // the plan), so counts are aggregated at the kind level — accurate today, and
+  // a custom operation type still surfaces its own card the moment it's created.
+  const kindMeta: Record<OperationKind, { icon: any; count: number; hint: string; href: string; subtle?: string }> = {
+    receipt: {
       icon: PackageCheck,
       count: (gr?.draft ?? 0) + (gr?.pending ?? 0),
       hint: 'to process',
       href: '/inventory/goods-receipts',
       subtle: gr ? `${gr.completed} completed` : undefined,
     },
-    {
-      key: 'ito',
-      title: 'Internal Transfers',
+    internal_transfer: {
       icon: Repeat,
       count: ito,
       hint: 'in transit / scanning',
       href: '/inventory/operations',
     },
-    {
-      key: 'dn',
-      title: 'Deliveries',
+    delivery: {
       icon: Truck,
       count: dn?.waiting ?? 0,
       hint: 'waiting for handoff',
       href: '/inventory/delivery-notes',
       subtle: dn ? `${dn.delivered} delivered` : undefined,
     },
+    manufacturing: {
+      icon: Boxes,
+      count: 0,
+      hint: 'operations',
+      href: '/inventory/operations',
+    },
+  };
+
+  // Operation-type-backed cards, generated from config so new types appear
+  // without a code change. Corrections / Stock Counts / Write-offs are separate
+  // document lifecycles, not operation types, so they stay as fixed cards below.
+  const dynamicOpCards: OpCard[] = operationTypes
+    .filter((t) => t.isActive)
+    .map((t) => {
+      const meta = kindMeta[t.operationKind] ?? kindMeta.manufacturing;
+      return {
+        key: `ot-${t.id}`,
+        title: t.name,
+        icon: meta.icon,
+        count: meta.count,
+        hint: meta.hint,
+        href: meta.href,
+        subtle: meta.subtle,
+      };
+    });
+
+  const lifecycleCards: OpCard[] = [
     {
       key: 'co',
       title: 'Corrections',
@@ -97,7 +126,7 @@ export default function InventoryOverview() {
     },
   ];
 
-  const visibleOpCards = opCards.filter((c) => !c.admin || isAdmin);
+  const visibleOpCards = [...dynamicOpCards, ...lifecycleCards].filter((c) => !c.admin || isAdmin);
 
   const utilityTiles: OpCard[] = [
     {
@@ -159,7 +188,7 @@ export default function InventoryOverview() {
           <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
             Operations
           </h2>
-          {isLoading ? (
+          {isLoading || typesLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-28 w-full" />
