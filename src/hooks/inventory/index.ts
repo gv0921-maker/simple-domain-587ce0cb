@@ -7,7 +7,7 @@ import * as inv from '@/lib/services/inventory/api';
 import { inventoryKeys } from './keys';
 import type {
   Product, Warehouse, Location, Lot, SerialNumber,
-  StockMove, InventoryTransfer, ReorderRule, InventoryAdjustment, StockMoveState,
+  StockMove, ReorderRule, InventoryAdjustment, StockMoveState,
 } from '@/lib/data/inventory/types';
 
 export { inventoryKeys };
@@ -193,30 +193,6 @@ export function useValidateStockMove() {
       qc.invalidateQueries({ queryKey: inventoryKeys.products() });
       qc.invalidateQueries({ queryKey: inventoryKeys.valuation() });
     },
-  });
-}
-
-// ---------- Transfers ----------
-export const useTransfers = () =>
-  useQuery({ queryKey: inventoryKeys.transfers(), queryFn: inv.getTransfersAsync });
-export const useTransfer = (id: string | undefined) =>
-  useQuery({
-    queryKey: id ? inventoryKeys.transfer(id) : ['noop'],
-    queryFn: () => inv.getTransferAsync(id!),
-    enabled: !!id,
-  });
-export function useSaveTransfer() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (t: InventoryTransfer) => inv.saveTransferAsync(t),
-    onSuccess: () => qc.invalidateQueries({ queryKey: inventoryKeys.transfers() }),
-  });
-}
-export function useDeleteTransfer() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => inv.deleteTransferAsync(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: inventoryKeys.transfers() }),
   });
 }
 

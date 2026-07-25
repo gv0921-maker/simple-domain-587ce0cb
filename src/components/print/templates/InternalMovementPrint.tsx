@@ -5,9 +5,12 @@ interface Props {
   movement: InternalMovement;
   items: InternalMovementItem[];
   isDraft?: boolean;
+  /** Resolved location names; fall back to the category type when absent. */
+  fromName?: string;
+  toName?: string;
 }
 
-export function InternalMovementPrint({ movement, items, isDraft = false }: Props) {
+export function InternalMovementPrint({ movement, items, isDraft = false, fromName, toName }: Props) {
   return (
     <PrintableDocument
       documentType="internal_movement"
@@ -23,7 +26,7 @@ export function InternalMovementPrint({ movement, items, isDraft = false }: Prop
         <div>
           <div className="text-gray-500 uppercase tracking-wide mb-1">From → To</div>
           <div className="font-semibold capitalize">
-            {movement.from_location_type ?? '—'} → {movement.to_location_type ?? '—'}
+            {fromName ?? movement.from_location_type ?? '—'} → {toName ?? movement.to_location_type ?? '—'}
           </div>
         </div>
         {movement.reason && (

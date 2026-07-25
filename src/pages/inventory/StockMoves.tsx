@@ -329,8 +329,9 @@ export default function StockMoves() {
                   return (
                     <TableRow
                       key={move.id}
-                      className="hover:bg-muted/50 animate-fade-in"
+                      className="cursor-pointer hover:bg-muted/50 animate-fade-in"
                       style={{ animationDelay: `${index * 30}ms` }}
+                      onClick={() => navigate(`/inventory/stock-moves/${move.id}`)}
                     >
                       <TableCell>
                         <div className={cn('h-9 w-9 rounded-lg flex items-center justify-center', colorClass)}>

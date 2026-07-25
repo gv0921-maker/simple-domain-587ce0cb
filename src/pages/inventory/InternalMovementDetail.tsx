@@ -9,6 +9,7 @@ import { Printer, ScanLine, Play, CheckCircle2, XCircle, ArrowLeft } from 'lucid
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useInternalMovement, useStartMovement, useCompleteMovement, useCancelMovement, useMovementQueueId } from '@/hooks/inventory/internalMovements';
 import { MOVEMENT_TYPE_LABEL } from '@/lib/services/inventory/internalMovements';
+import { useLocationsQuery } from '@/hooks/inventory/useLocations';
 import { toast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 
@@ -17,6 +18,7 @@ export default function InternalMovementDetail() {
   const navigate = useNavigate();
   const { data, isLoading } = useInternalMovement(id);
   const { data: queueId } = useMovementQueueId(id);
+  const { data: locations = [] } = useLocationsQuery();
   const startMut = useStartMovement();
   const completeMut = useCompleteMovement();
   const cancelMut = useCancelMovement();
@@ -25,6 +27,14 @@ export default function InternalMovementDetail() {
   if (!data) return <AppLayout title="Inventory" moduleNav={INVENTORY_NAV}><div className="p-6">Not found</div></AppLayout>;
 
   const { movement, items } = data;
+
+  // Prefer the real location name; fall back to the category label the row
+  // used to show, then a dash.
+  const byId = new Map(locations.map((l) => [l.id, l.name]));
+  const fromName = (movement.from_location_id && byId.get(movement.from_location_id))
+    || movement.from_location_type || '—';
+  const toName = (movement.to_location_id && byId.get(movement.to_location_id))
+    || movement.to_location_type || '—';
 
   const handleComplete = async () => {
     try {
@@ -65,8 +75,8 @@ export default function InternalMovementDetail() {
             </div>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-4 text-sm">
-            <div><div className="text-muted-foreground">From</div><div className="capitalize">{movement.from_location_type ?? '—'}</div></div>
-            <div><div className="text-muted-foreground">To</div><div className="capitalize">{movement.to_location_type ?? '—'}</div></div>
+            <div><div className="text-muted-foreground">From</div><div className="capitalize">{fromName}</div></div>
+            <div><div className="text-muted-foreground">To</div><div className="capitalize">{toName}</div></div>
             {movement.reason && <div className="col-span-2"><div className="text-muted-foreground">Reason</div><div>{movement.reason}</div></div>}
             {movement.notes && <div className="col-span-2"><div className="text-muted-foreground">Notes</div><div>{movement.notes}</div></div>}
             <div><div className="text-muted-foreground">Created</div><div>{format(parseISO(movement.created_at), 'dd MMM yyyy, HH:mm')}</div></div>

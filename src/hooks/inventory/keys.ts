@@ -26,8 +26,6 @@ export const inventoryKeys = {
   stockMove: (id: string) => [...inventoryKeys.stockMoves(), id] as const,
   stockMovesByState: (state: string) => [...inventoryKeys.stockMoves(), 'state', state] as const,
 
-  transfers: () => [...inventoryKeys.all, 'transfers'] as const,
-  transfer: (id: string) => [...inventoryKeys.transfers(), id] as const,
 
   reorderRules: () => [...inventoryKeys.all, 'reorder-rules'] as const,
   reorderRule: (id: string) => [...inventoryKeys.reorderRules(), id] as const,

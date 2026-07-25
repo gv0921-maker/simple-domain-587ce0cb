@@ -22,6 +22,7 @@ const ProductDetail = lazy(() => import("@/pages/inventory/ProductDetail"));
 const WarehousesList = lazy(() => import("@/pages/inventory/WarehousesList"));
 const WarehouseLocations = lazy(() => import("@/pages/inventory/WarehouseLocations"));
 const StockMoves = lazy(() => import("@/pages/inventory/StockMoves"));
+const StockMoveDetail = lazy(() => import("@/pages/inventory/StockMoveDetail"));
 const InventoryConfiguration = lazy(() => import("@/pages/inventory/InventoryConfiguration"));
 const InventorySetupCategories = lazy(() => import("@/pages/inventory/setup/InventorySetupCategories"));
 const InventorySetupAttributes = lazy(() => import("@/pages/inventory/setup/InventorySetupAttributes"));
@@ -279,6 +280,7 @@ const App = () => (
             <Route path="/inventory/warehouses" element={<ProtectedRoute><WarehousesList /></ProtectedRoute>} />
             <Route path="/inventory/locations" element={<ProtectedRoute><WarehouseLocations /></ProtectedRoute>} />
             <Route path="/inventory/stock-moves" element={<ProtectedRoute><StockMoves /></ProtectedRoute>} />
+            <Route path="/inventory/stock-moves/:id" element={<ProtectedRoute><StockMoveDetail /></ProtectedRoute>} />
             <Route path="/inventory/reporting" element={<ProtectedRoute><InventoryReporting /></ProtectedRoute>} />
             <Route path="/inventory/configuration" element={<ProtectedRoute><InventoryConfiguration /></ProtectedRoute>} />
             <Route path="/inventory/setup/categories" element={<ProtectedRoute><InventorySetupCategories /></ProtectedRoute>} />

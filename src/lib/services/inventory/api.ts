@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { generateDocumentNumber } from '@/lib/services/numbering/api';
 import type {
   Product, Warehouse, Location, Lot, SerialNumber,
-  StockMove, StockMoveLine, InventoryTransfer, LegacyStockMove,
+  StockMove, StockMoveLine,
   InventoryAdjustment, AdjustmentLine, ReorderRule, StockMoveState,
 } from '@/lib/data/inventory/types';
 
@@ -263,73 +263,6 @@ function stockMoveToRow(m: Partial<StockMove>): any {
   if (m.backOrderId !== undefined) out.back_order_id = m.backOrderId || null;
   if (m.notes !== undefined) out.notes = m.notes || null;
   if (m.createdBy !== undefined) out.created_by = m.createdBy || null;
-  return out;
-}
-
-function mapTransferLine(r: Row<any>): LegacyStockMove {
-  return {
-    productId: r.product_id,
-    productName: r.product_name,
-    demand: Number(r.demand_qty ?? 0),
-    quantity: Number(r.done_qty ?? 0),
-    unit: r.unit,
-    available: !!r.available,
-  };
-}
-function transferLineToRow(transferId: string, l: LegacyStockMove): any {
-  return {
-    transfer_id: transferId,
-    product_id: l.productId,
-    product_name: l.productName,
-    demand_qty: l.demand,
-    done_qty: l.quantity,
-    unit: l.unit,
-    available: l.available,
-  };
-}
-
-function mapTransfer(r: Row<any>, moves: LegacyStockMove[] = []): InventoryTransfer {
-  return {
-    id: r.id,
-    reference: r.reference,
-    contact: r.contact ?? '',
-    contactPhone: r.contact_phone ?? undefined,
-    operationType: r.operation_type ?? '',
-    sourceLocation: r.source_location ?? '',
-    destinationLocation: r.destination_location ?? '',
-    scheduledDate: toISO(r.scheduled_date)!,
-    estimateDate: toISO(r.estimate_date),
-    status: r.state,
-    productAvailability: r.product_availability,
-    sourceDocument: r.source_document ?? undefined,
-    backOrderOf: r.back_order_of ?? undefined,
-    moves,
-    notes: r.notes ?? [],
-    activities: r.activities ?? [],
-    createdBy: r.created_by ?? '',
-    createdAt: toISO(r.created_at)!,
-    updatedAt: toISO(r.updated_at)!,
-  };
-}
-function transferToRow(t: Partial<InventoryTransfer> & { fromWarehouseId?: string; toWarehouseId?: string }): any {
-  const out: Record<string, any> = {};
-  if (t.reference !== undefined) out.reference = t.reference;
-  if (t.contact !== undefined) out.contact = t.contact;
-  if (t.contactPhone !== undefined) out.contact_phone = t.contactPhone || null;
-  if (t.operationType !== undefined) out.operation_type = t.operationType;
-  if (t.sourceLocation !== undefined) out.source_location = t.sourceLocation;
-  if (t.destinationLocation !== undefined) out.destination_location = t.destinationLocation;
-  if (t.scheduledDate !== undefined) out.scheduled_date = t.scheduledDate;
-  if (t.estimateDate !== undefined) out.estimate_date = t.estimateDate || null;
-  if (t.status !== undefined) out.state = t.status;
-  if (t.productAvailability !== undefined) out.product_availability = t.productAvailability;
-  if (t.sourceDocument !== undefined) out.source_document = t.sourceDocument || null;
-  if (t.backOrderOf !== undefined) out.back_order_of = t.backOrderOf || null;
-  if (t.notes !== undefined) out.notes = t.notes;
-  if (t.activities !== undefined) out.activities = t.activities;
-  if (t.createdBy !== undefined) out.created_by = t.createdBy || null;
-  if (t.fromWarehouseId !== undefined) out.from_warehouse_id = t.fromWarehouseId || null;
-  if (t.toWarehouseId !== undefined) out.to_warehouse_id = t.toWarehouseId || null;
   return out;
 }
 
@@ -663,58 +596,6 @@ export async function deleteStockMoveAsync(id: string): Promise<void> {
 }
 export async function validateStockMoveAsync(moveId: string): Promise<void> {
   const { error } = await supabase.rpc('inv_validate_stock_move' as any, { _move_id: moveId });
-  if (error) throw error;
-}
-
-// ----------------------------------------------------------------------------
-// TRANSFERS (legacy shape)
-// ----------------------------------------------------------------------------
-export async function getTransfersAsync(): Promise<InventoryTransfer[]> {
-  const { data, error } = await supabase
-    .from('transfers')
-    .select('*, transfer_lines(*)')
-    .order('scheduled_date', { ascending: false });
-  if (error) throw error;
-  return (data ?? []).map((r: any) => mapTransfer(r, (r.transfer_lines ?? []).map(mapTransferLine)));
-}
-export async function getTransferAsync(id: string): Promise<InventoryTransfer | undefined> {
-  const { data, error } = await supabase
-    .from('transfers')
-    .select('*, transfer_lines(*)')
-    .eq('id', id)
-    .maybeSingle();
-  if (error) throw error;
-  if (!data) return undefined;
-  return mapTransfer(data, ((data as any).transfer_lines ?? []).map(mapTransferLine));
-}
-export async function saveTransferAsync(t: InventoryTransfer): Promise<InventoryTransfer> {
-  const headerRow = transferToRow(t);
-  // Auto-assign FY-based internal_transfer reference on first save when missing or legacy TRF/...
-  const isNewSave = !t.id || t.id.startsWith('new-');
-  if (isNewSave && (!t.reference || /^TRF\//.test(t.reference))) {
-    headerRow.reference = await generateDocumentNumber('internal_transfer');
-  }
-  let id = t.id;
-  if (id && !id.startsWith('new-')) {
-    const { error } = await supabase.from('transfers').update(headerRow).eq('id', id);
-    if (error) throw error;
-    const del = await supabase.from('transfer_lines').delete().eq('transfer_id', id);
-    if (del.error) throw del.error;
-  } else {
-    const { data, error } = await supabase.from('transfers').insert(headerRow).select('id').single();
-    if (error) throw error;
-    id = data.id;
-  }
-  if (t.moves?.length) {
-    const { error: linesErr } = await supabase
-      .from('transfer_lines')
-      .insert(t.moves.map((l) => transferLineToRow(id!, l)));
-    if (linesErr) throw linesErr;
-  }
-  return (await getTransferAsync(id!))!;
-}
-export async function deleteTransferAsync(id: string): Promise<void> {
-  const { error } = await supabase.from('transfers').delete().eq('id', id);
   if (error) throw error;
 }
 

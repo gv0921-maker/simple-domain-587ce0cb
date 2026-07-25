@@ -11,6 +11,7 @@ import { Search, Plus } from 'lucide-react';
 import { INVENTORY_NAV } from '@/lib/navigation';
 import { useInternalMovements } from '@/hooks/inventory/internalMovements';
 import { MOVEMENT_TYPE_LABEL, type MovementType, type MovementStatus } from '@/lib/services/inventory/internalMovements';
+import { useLocationsQuery } from '@/hooks/inventory/useLocations';
 import { format, parseISO, isToday } from 'date-fns';
 
 const STATUS_STYLES: Record<MovementStatus, string> = {
@@ -26,6 +27,14 @@ export default function InternalMovementsList() {
   const [status, setStatus] = useState<MovementStatus | 'all'>('all');
   const [search, setSearch] = useState('');
   const { data: movements = [] } = useInternalMovements({ movementType: type, status });
+  const { data: locations = [] } = useLocationsQuery();
+
+  // Resolve a location id to its real name, falling back to the category label.
+  const locName = useMemo(() => {
+    const byId = new Map(locations.map((l) => [l.id, l.name]));
+    return (locId?: string | null, category?: string | null) =>
+      (locId && byId.get(locId)) || category || '—';
+  }, [locations]);
 
   const filtered = useMemo(
     () => movements.filter((m) => m.movement_number.toLowerCase().includes(search.toLowerCase())),
@@ -100,7 +109,7 @@ export default function InternalMovementsList() {
                   <TableCell className="font-medium text-primary">{m.movement_number}</TableCell>
                   <TableCell><Badge variant="outline">{MOVEMENT_TYPE_LABEL[m.movement_type]}</Badge></TableCell>
                   <TableCell className="text-sm text-muted-foreground capitalize">
-                    {m.from_location_type ?? '—'} → {m.to_location_type ?? '—'}
+                    {locName(m.from_location_id, m.from_location_type)} → {locName(m.to_location_id, m.to_location_type)}
                   </TableCell>
                   <TableCell><Badge className={STATUS_STYLES[m.status]}>{m.status.replace('_', ' ')}</Badge></TableCell>
                   <TableCell className="text-sm">{format(parseISO(m.created_at), 'dd MMM yyyy, HH:mm')}</TableCell>

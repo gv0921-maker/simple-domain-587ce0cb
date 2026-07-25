@@ -17,6 +17,7 @@ import { useInvoice } from '@/hooks/invoicing';
 import { useDeliveryNote } from '@/hooks/inventory/deliveryNotes';
 import { useCorrectionOrder } from '@/hooks/inventory/correctionOrders';
 import { useInternalMovement } from '@/hooks/inventory/internalMovements';
+import { useLocationsQuery } from '@/hooks/inventory/useLocations';
 import { useStockCount } from '@/hooks/inventory/stockCounts';
 import { useWriteOff } from '@/hooks/inventory/writeOffs';
 import { useWorkOrderV2 } from '@/hooks/manufacturing/workOrders';
@@ -96,6 +97,7 @@ export default function PrintRoute() {
   const payment = usePayment(type === 'payment_receipt' ? documentId : undefined);
   const correction = useCorrectionOrder(type === 'correction_order' ? documentId : undefined);
   const movement = useInternalMovement(type === 'internal_movement' ? documentId : undefined);
+  const locations = useLocationsQuery();
   const stockCount = useStockCount(type === 'stock_count' ? documentId : undefined);
   const writeOff = useWriteOff(type === 'write_off' ? documentId : undefined);
   const workOrder = useWorkOrderV2(type === 'work_order' ? documentId : undefined);
@@ -166,7 +168,10 @@ export default function PrintRoute() {
   } else if (type === 'internal_movement' && movement.data?.movement) {
     const m = movement.data.movement as any;
     docNumber = m.movement_number ?? docNumber;
-    body = <InternalMovementPrint movement={m} items={movement.data.items} isDraft={m.status === 'draft'} />;
+    const byId = new Map((locations.data ?? []).map((l) => [l.id, l.name]));
+    const fromName = (m.from_location_id && byId.get(m.from_location_id)) || m.from_location_type || undefined;
+    const toName = (m.to_location_id && byId.get(m.to_location_id)) || m.to_location_type || undefined;
+    body = <InternalMovementPrint movement={m} items={movement.data.items} isDraft={m.status === 'draft'} fromName={fromName} toName={toName} />;
   } else if (type === 'stock_count' && stockCount.data?.count) {
     const c = stockCount.data.count as any;
     docNumber = c.count_number ?? docNumber;
