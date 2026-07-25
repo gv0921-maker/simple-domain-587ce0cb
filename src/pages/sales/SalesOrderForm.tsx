@@ -115,7 +115,6 @@ export default function SalesOrderForm() {
   const [confirmAction, setConfirmAction] = useState<'cancel' | null>(null);
   const [overrideOpen, setOverrideOpen] = useState(false);
   const [overrideReason, setOverrideReason] = useState('');
-  const generateInvoiceMut = useGenerateInvoiceFromOrder();
   const { data: deliveryQC } = useDeliveryQC(!isNew ? id : undefined);
   const qcPassed = deliveryQC?.status === 'passed';
   const billingRef = useRef<HTMLDivElement | null>(null);
