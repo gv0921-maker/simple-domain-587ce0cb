@@ -109,14 +109,6 @@ export function useUpdateInvoiceLineApproval() {
   });
 }
 
-// -------- Generate invoice from sales order --------
-export function useGenerateInvoiceFromOrder() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (orderId: string) => api.generateInvoiceFromOrder(orderId),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: invoicingKeys.all });
-      qc.invalidateQueries({ queryKey: ['sales'] });
-    },
-  });
-}
+// Removed useGenerateInvoiceFromOrder — the underlying inserter has been
+// retired in favour of the create_partial_invoice RPC exposed through
+// useCreatePartialInvoice (see @/hooks/sales/invoices).
