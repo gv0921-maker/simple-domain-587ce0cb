@@ -22,7 +22,6 @@ import { Workflow1Tracker } from '@/components/sales/Workflow1Tracker';
 import { InvoicingSection } from '@/components/sales/InvoicingSection';
 import { usePaymentSummary } from '@/hooks/sales/payments';
 import { confirmSalesOrder, overrideAdvanceGate } from '@/lib/services/sales/api';
-import { useGenerateInvoiceFromOrder } from '@/hooks/invoicing';
 import { useDeliveryQC } from '@/hooks/qc';
 import { PreDeliveryQCSection } from '@/components/sales/PreDeliveryQCSection';
 import {
