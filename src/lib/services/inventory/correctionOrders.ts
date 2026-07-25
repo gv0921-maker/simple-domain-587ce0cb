@@ -131,6 +131,23 @@ export async function findCorrectionOrderForGR(grId: string): Promise<Correction
   return (data ?? null) as CorrectionOrder | null;
 }
 
+/**
+ * All correction orders raised from a goods receipt. QC failures create one CO
+ * per failed unit (§3.4), so a receipt with multiple rejects has several — the
+ * GR banner needs the count and the most recent to link to.
+ */
+export async function listCorrectionOrdersForGR(
+  grId: string,
+): Promise<CorrectionOrder[]> {
+  const { data, error } = await sb.from('correction_orders')
+    .select('*')
+    .eq('source_type', 'goods_receipt')
+    .eq('source_document_id', grId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as CorrectionOrder[];
+}
+
 export async function updateCorrectionOrderHeader(
   coId: string,
   patch: { addressedToName?: string; addressedToType?: COAddressedToType; correctionType?: COCorrectionType; notes?: string | null },

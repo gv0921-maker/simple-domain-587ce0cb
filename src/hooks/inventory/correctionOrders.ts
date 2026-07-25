@@ -26,6 +26,13 @@ export const useCorrectionOrderForGR = (grId: string | undefined) =>
     enabled: !!grId,
   });
 
+export const useCorrectionOrdersForGR = (grId: string | undefined) =>
+  useQuery({
+    queryKey: grId ? [...correctionOrderKeys.byGr(grId), 'all'] : ['noop'],
+    queryFn: () => co.listCorrectionOrdersForGR(grId!),
+    enabled: !!grId,
+  });
+
 export const useUnderCorrectionCount = (productId: string | undefined) =>
   useQuery({
     queryKey: productId ? correctionOrderKeys.underCorrection(productId) : ['noop'],

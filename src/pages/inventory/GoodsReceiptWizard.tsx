@@ -24,7 +24,7 @@ import {
   useCompleteGRLineQC,
 } from '@/hooks/inventory/goodsReceipts';
 import { useIsSuperAdmin } from '@/hooks/useIsSuperAdmin';
-import { useCorrectionOrderForGR } from '@/hooks/inventory/correctionOrders';
+import { useCorrectionOrdersForGR } from '@/hooks/inventory/correctionOrders';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { recordLabelPrints, generateLabel } from '@/lib/services/barcode/api';
@@ -349,16 +349,25 @@ function StepBar({ current }: { current: 1 | 2 | 3 | 4 }) {
 }
 
 function CorrectionOrderBanner({ grId }: { grId: string }) {
-  const { data: co } = useCorrectionOrderForGR(grId);
-  if (!co) return null;
+  const { data: cos = [] } = useCorrectionOrdersForGR(grId);
+  if (cos.length === 0) return null;
+  const latest = cos[0];
+  const many = cos.length > 1;
   return (
     <Alert>
       <AlertTriangle className="h-4 w-4" />
-      <AlertTitle>Correction Order {co.co_number} created</AlertTitle>
+      <AlertTitle>
+        {many
+          ? `${cos.length} correction orders created`
+          : `Correction Order ${latest.co_number} created`}
+      </AlertTitle>
       <AlertDescription>
-        QC failures from this receipt were sent to a correction order.{' '}
-        <Link to={`/inventory/correction-orders/${co.id}`} className="underline text-primary">
-          Open correction order
+        Each QC-failed unit from this receipt has its own correction order.{' '}
+        <Link
+          to={many ? '/inventory/correction-orders' : `/inventory/correction-orders/${latest.id}`}
+          className="underline text-primary"
+        >
+          {many ? 'View correction orders' : 'Open correction order'}
         </Link>
       </AlertDescription>
     </Alert>
