@@ -127,49 +127,24 @@ export interface RecordScanInput {
 }
 
 export async function recordScan(input: RecordScanInput): Promise<ScanRecord> {
-  const me = await uid();
-  let result: ScanResult = 'valid';
-  const code = input.barcode.trim();
-  if (input.alreadyScanned?.includes(code)) result = 'duplicate';
-  else if (input.expectedBarcodes && input.expectedBarcodes.length > 0 && !input.expectedBarcodes.includes(code)) {
-    result = 'not_expected';
-  } else if (!code) {
-    result = 'invalid';
-  }
-
-  const { data, error } = await supabase.from('scan_records' as any).insert({
-    scan_queue_id: input.scanQueueId,
-    barcode: code,
-    serial_number: input.serialNumber ?? null,
-    product_id: input.productId ?? null,
-    scanned_by: me,
-    scan_result: result,
-  }).select('*').single();
+  const { data, error } = await supabase.rpc('record_scan' as any, {
+    p_queue_id: input.scanQueueId,
+    p_barcode: input.barcode.trim(),
+    p_serial: input.serialNumber ?? null,
+    p_product_id: input.productId ?? null,
+    p_expected: input.expectedBarcodes ?? null,
+    p_already_scanned: input.alreadyScanned ?? null,
+  });
   if (error) throw error;
-
-  // bump queue counts if valid
-  if (result === 'valid') {
-    const { data: q } = await supabase.from('scan_queue' as any)
-      .select('scanned_items_count, expected_items_count, scan_status')
-      .eq('id', input.scanQueueId).maybeSingle();
-    if (q) {
-      const nextCount = (((q as any).scanned_items_count as number) ?? 0) + 1;
-      const nextStatus: ScanStatus =
-        (q as any).scan_status === 'pending' ? 'in_progress' : (q as any).scan_status;
-      await supabase.from('scan_queue' as any).update({
-        scanned_items_count: nextCount,
-        scan_status: nextStatus,
-      }).eq('id', input.scanQueueId);
-    }
-  }
-
   return (data as unknown) as ScanRecord;
 }
 
 export async function completeScanQueue(scanQueueId: string, force = false, reason?: string): Promise<void> {
-  const update: Record<string, unknown> = { scan_status: 'completed' };
-  if (force && reason) update.notes = reason;
-  const { error } = await supabase.from('scan_queue' as any).update(update).eq('id', scanQueueId);
+  const { error } = await supabase.rpc('complete_scan_queue' as any, {
+    p_queue_id: scanQueueId,
+    p_force: force,
+    p_reason: reason ?? null,
+  });
   if (error) throw error;
 }
 
@@ -187,24 +162,22 @@ function yymm(d = new Date()): string {
   return `${yy}${mm}`;
 }
 
-/** Generate a sequential serial number for a product: SKU-YYMM-#### */
-export async function generateSerialNumber(productSku: string): Promise<string> {
+/** Allocate N sequential serials atomically via RPC. */
+export async function allocateSerialNumbers(productSku: string, count: number): Promise<string[]> {
   const prefix = `${productSku}-${yymm()}-`;
-  const { data, error } = await supabase
-    .from('label_prints' as any)
-    .select('serial_number')
-    .ilike('serial_number', `${prefix}%`)
-    .order('serial_number', { ascending: false })
-    .limit(1);
+  const { data, error } = await supabase.rpc('allocate_serial_numbers' as any, {
+    p_prefix: prefix,
+    p_count: count,
+  });
   if (error) throw error;
-  let next = 1;
-  const last = (data?.[0] as any)?.serial_number as string | undefined;
-  if (last) {
-    const tail = last.split('-').pop() ?? '';
-    const n = parseInt(tail, 10);
-    if (!Number.isNaN(n)) next = n + 1;
-  }
-  return `${prefix}${String(next).padStart(4, '0')}`;
+  return (data ?? []) as string[];
+}
+
+/** Generate a single sequential serial number atomically. */
+export async function generateSerialNumber(productSku: string): Promise<string> {
+  const [s] = await allocateSerialNumbers(productSku, 1);
+  if (!s) throw new Error('failed to allocate serial number');
+  return s;
 }
 
 export interface LabelData {
@@ -235,15 +208,16 @@ export interface BatchLabelItem {
 export async function batchGenerateLabels(items: BatchLabelItem[]): Promise<LabelData[]> {
   const out: LabelData[] = [];
   for (const it of items) {
-    for (let i = 0; i < it.quantity; i++) {
-      const serial = await generateSerialNumber(it.productSku);
-      const barcode = generateBarcode(it.productSku, serial);
+    if (it.quantity < 1) continue;
+    // One RPC call allocates the full batch atomically.
+    const serials = await allocateSerialNumbers(it.productSku, it.quantity);
+    for (const serial of serials) {
       out.push({
         productId: it.productId,
         productSku: it.productSku,
         productName: it.productName,
         serialNumber: serial,
-        barcodeValue: barcode,
+        barcodeValue: generateBarcode(it.productSku, serial),
         format: it.format ?? 'standard',
       });
     }
