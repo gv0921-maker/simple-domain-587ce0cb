@@ -142,6 +142,14 @@ export function FulfillmentSection({ salesOrderId, salesOrderStatus, salesOrderC
   const { data: readyToInvoice } = useSOReadyToInvoice(salesOrderId);
   const { data: factoryWOs = [] } = useFactoryProgressForSO(salesOrderId);
   const { data: vendorOrders = [] } = useVendorOrdersForSO(salesOrderId);
+  // Duplicate-invoice guard: if any invoice already exists for this SO, the
+  // "Generate Invoice" convenience button on this page opens the most recent
+  // one instead of firing another create dialog. Partial invoicing is still
+  // reachable via the "Create Invoice" button inside <InvoicingSection/>.
+  const { data: existingInvoices = [] } = useInvoicesForSO(salesOrderId);
+  const latestInvoice = existingInvoices.length > 0
+    ? existingInvoices[existingInvoices.length - 1]
+    : null;
 
   const suggestMut = useSuggestITO();
   const createMut = useCreateITO();
