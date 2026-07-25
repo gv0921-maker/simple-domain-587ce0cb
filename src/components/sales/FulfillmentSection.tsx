@@ -361,9 +361,16 @@ export function FulfillmentSection({ salesOrderId, salesOrderStatus, salesOrderC
                 <Button
                   size="sm"
                   onClick={() => {
-                    // Trigger the InvoicingSection's Create Invoice dialog on this same page.
-                    // Never navigate to a non-existent invoice — creation happens via the
-                    // create_partial_invoice RPC and only then do we route to the invoice.
+                    // Dedup: if an invoice already exists for this SO, open it
+                    // instead of creating another. Otherwise trigger the
+                    // InvoicingSection's Create Invoice dialog on this same
+                    // page — creation only happens through the
+                    // create_partial_invoice RPC and we route to the invoice
+                    // only after it returns a real id.
+                    if (latestInvoice) {
+                      navigate(`/invoicing/invoices/${latestInvoice.id}`);
+                      return;
+                    }
                     window.dispatchEvent(
                       new CustomEvent('so:open-create-invoice', { detail: { salesOrderId } }),
                     );
@@ -372,7 +379,8 @@ export function FulfillmentSection({ salesOrderId, salesOrderStatus, salesOrderC
                       ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }}
                 >
-                  <Receipt className="h-4 w-4 mr-2" /> Generate Invoice
+                  <Receipt className="h-4 w-4 mr-2" />
+                  {latestInvoice ? 'View Invoice' : 'Generate Invoice'}
                 </Button>
               )}
             </div>
