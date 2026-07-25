@@ -236,6 +236,19 @@ export function validateReadyToComplete(
   const reasons: string[] = [];
   const progress = computeProgress(expectedLines, inspections);
 
+  // §6.2 rule 2: an empty pool must never read as "ready". Without this,
+  // expectedLines = [] gives totalExpected = 0, missing = 0, no pending, and
+  // the function returned ready:true — enabling Complete with zero units
+  // scanned. Treat "nothing to complete" as blocked, matching the same guard
+  // recordScan applies to the scanner input.
+  const anySerialsReserved = expectedLines.some(l => (l.serials?.length ?? 0) > 0);
+  if (progress.totalExpected === 0 || !anySerialsReserved) {
+    return {
+      ready: false,
+      reasons: ['No stock is available or expected for this operation. Ensure goods have been received and stock exists.'],
+    };
+  }
+
   const missing = progress.totalExpected - progress.scanned;
   if (missing > 0) reasons.push(`${missing} unit${missing === 1 ? '' : 's'} not yet scanned`);
 

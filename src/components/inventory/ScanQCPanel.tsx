@@ -70,6 +70,16 @@ export function ScanQCPanel({
     [expectedLines, inspections, requireQC, requirePhotos],
   );
 
+  // §6.2 rule 2: no scannable pool → lock the scanner rather than let it accept
+  // arbitrary input. Matches the guard recordScan and validateReadyToComplete
+  // apply, so the input, the camera and the message all agree.
+  const poolEmpty = useMemo(
+    () =>
+      expectedLines.length === 0 ||
+      !expectedLines.some(l => (l.serials?.length ?? 0) > 0),
+    [expectedLines],
+  );
+
   const lineById = useMemo(() => {
     const m = new Map<string, QCExpectedLine>();
     expectedLines.forEach(l => m.set(l.lineId, l));
@@ -174,6 +184,15 @@ export function ScanQCPanel({
       {/* Scan input */}
       <Card>
         <CardContent className="p-4">
+          {poolEmpty ? (
+            <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>
+                No stock is available or expected for this operation. Ensure goods
+                have been received and stock exists before scanning.
+              </span>
+            </div>
+          ) : (
           <form
             onSubmit={e => { e.preventDefault(); void handleScanSubmit(scanValue); }}
             className="flex flex-col sm:flex-row gap-2"
@@ -205,6 +224,7 @@ export function ScanQCPanel({
               </Button>
             </div>
           </form>
+          )}
         </CardContent>
       </Card>
 
