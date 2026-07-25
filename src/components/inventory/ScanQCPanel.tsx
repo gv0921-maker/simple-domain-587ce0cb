@@ -358,7 +358,7 @@ export function ScanQCPanel({
                         </li>
                       ));
                     }
-                    const remaining = (p as any).remainingCount as number;
+                    const remaining = (p).remainingCount as number;
                     if (!remaining) return [];
                     return [
                       <li key={p.line.lineId} className="flex items-center justify-between text-sm text-muted-foreground">

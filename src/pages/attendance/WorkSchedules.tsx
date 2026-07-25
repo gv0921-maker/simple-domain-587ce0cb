@@ -20,7 +20,7 @@ export default function WorkSchedulesPage() {
   const upsert = useUpsertSchedule();
 
   const map = useMemo(() => {
-    const m: Record<number, typeof schedules[number]> = {} as any;
+    const m: Record<number, typeof schedules[number]> = {};
     for (const s of schedules) m[s.day_of_week] = s;
     return m;
   }, [schedules]);

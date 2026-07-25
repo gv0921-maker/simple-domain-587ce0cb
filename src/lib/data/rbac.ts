@@ -368,7 +368,7 @@ export async function hydrateRbacFromSupabase(): Promise<void> {
       supabase.from('app_role_permissions').select('*'),
       supabase.from('app_user_role_assignments').select('*'),
       supabase.from('app_audit_logs').select('*').order('created_at', { ascending: false }).limit(500),
-      supabase.from('user_roles' as any).select('user_id, role'),
+      supabase.from('user_roles').select('user_id, role'),
     ]);
     if (rolesRes.error) throw rolesRes.error;
     if (permsRes.error) throw permsRes.error;

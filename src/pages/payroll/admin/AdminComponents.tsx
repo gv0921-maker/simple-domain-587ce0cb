@@ -31,7 +31,7 @@ export default function AdminComponents() {
               <option value="fixed">Fixed</option><option value="percentage_of_basic">% of Basic</option><option value="percentage_of_gross">% of Gross</option><option value="formula">Formula</option>
             </select></div>
           <div><label className="text-xs">Default</label><Input type="number" value={form.default_value} onChange={(e) => setForm({ ...form, default_value: parseFloat(e.target.value) || 0 })} className="w-28" /></div>
-          <Button onClick={() => { if (form.code && form.name) { create.mutate(form as any); setForm({ ...form, code: '', name: '' }); } }}>Add</Button>
+          <Button onClick={() => { if (form.code && form.name) { create.mutate(form); setForm({ ...form, code: '', name: '' }); } }}>Add</Button>
         </Card>
 
         <Card>

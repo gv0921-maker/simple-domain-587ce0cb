@@ -14,7 +14,7 @@ export interface AppUserLite {
 async function fetchAppUsers(): Promise<AppUserLite[]> {
   const { data, error } = await supabase.functions.invoke('list-app-users', { method: 'GET' });
   if (error) throw error;
-  const list = (data as any)?.users;
+  const list = (data)?.users;
   if (!Array.isArray(list)) return [];
   return list.map((u) => ({
     user_id: u.user_id,

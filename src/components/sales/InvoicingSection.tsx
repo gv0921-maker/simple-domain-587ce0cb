@@ -41,7 +41,7 @@ function useCurrentRoles() {
       const { data: u } = await supabase.auth.getUser();
       const uid = u.user?.id;
       if (!uid) return [] as string[];
-      const { data } = await supabase.from('user_roles' as any).select('role').eq('user_id', uid);
+      const { data } = await supabase.from('user_roles').select('role').eq('user_id', uid);
       return (((data ?? []) as unknown) as Array<{ role: string }>).map((r) => r.role);
     },
   });

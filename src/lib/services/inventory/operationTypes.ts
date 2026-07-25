@@ -46,7 +46,7 @@ const map = (r): OperationType => ({
 });
 
 export async function listOperationTypes(): Promise<OperationType[]> {
-  const { data, error } = await supabase.from('operation_types' as any).select('*').order('name');
+  const { data, error } = await supabase.from('operation_types').select('*').order('name');
   if (error) throw error;
   return (data ?? []).map(map);
 }
@@ -72,16 +72,16 @@ export async function saveOperationType(input: Partial<OperationType> & { name: 
     allow_extra_products: input.allowExtraProducts ?? true,
   };
   if (input.id) {
-    const { data, error } = await supabase.from('operation_types' as any).update(payload).eq('id', input.id).select('*').single();
+    const { data, error } = await supabase.from('operation_types').update(payload).eq('id', input.id).select('*').single();
     if (error) throw error;
     return map(data);
   }
-  const { data, error } = await supabase.from('operation_types' as any).insert(payload).select('*').single();
+  const { data, error } = await supabase.from('operation_types').insert(payload).select('*').single();
   if (error) throw error;
   return map(data);
 }
 
 export async function deleteOperationType(id: string): Promise<void> {
-  const { error } = await supabase.from('operation_types' as any).delete().eq('id', id);
+  const { error } = await supabase.from('operation_types').delete().eq('id', id);
   if (error) throw error;
 }

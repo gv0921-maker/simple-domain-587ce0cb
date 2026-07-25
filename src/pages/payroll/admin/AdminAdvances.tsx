@@ -29,7 +29,7 @@ export default function AdminAdvances() {
             </select></div>
           <div><label className="text-xs">Amount</label><Input type="number" value={form.advance_amount} onChange={(e) => setForm({ ...form, advance_amount: parseFloat(e.target.value) || 0 })} /></div>
           <div><label className="text-xs">Deduct From</label><Input type="date" value={form.deduction_month} onChange={(e) => setForm({ ...form, deduction_month: e.target.value })} /></div>
-          <Button onClick={async () => { if (!form.employee_id) return; await add.mutateAsync(form as any); toast({ title: 'Advance granted' }); }}>Grant</Button>
+          <Button onClick={async () => { if (!form.employee_id) return; await add.mutateAsync(form); toast({ title: 'Advance granted' }); }}>Grant</Button>
         </Card>
 
         <Card>

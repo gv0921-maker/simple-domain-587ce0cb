@@ -40,7 +40,7 @@ export default function WorkSchedulePage() {
   const byDate = useMemo(() => {
     const m: Record<string, typeof rosters> = {};
     for (const r of rosters) {
-      (m[r.roster_date] ??= [] as any).push(r);
+      (m[r.roster_date] ??= []).push(r);
     }
     return m;
   }, [rosters]);

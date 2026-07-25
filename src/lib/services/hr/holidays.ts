@@ -44,7 +44,7 @@ export async function updateHoliday(id: string, patch: HolidayUpdate): Promise<H
 }
 
 export async function deactivateHoliday(id: string): Promise<void> {
-  const { error } = await supabase.from('holidays').update({ is_active: false } as any).eq('id', id);
+  const { error } = await supabase.from('holidays').update({ is_active: false }).eq('id', id);
   if (error) throw error;
 }
 

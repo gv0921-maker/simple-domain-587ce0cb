@@ -22,7 +22,7 @@ export async function listProductCustomizationOptions(
   productId: string,
 ): Promise<ProductCustomizationOption[]> {
   const { data, error } = await supabase
-    .from('product_customization_options' as any)
+    .from('product_customization_options')
     .select('*')
     .eq('product_id', productId)
     .order('option_type', { ascending: true })
@@ -48,7 +48,7 @@ export async function saveProductCustomizationOption(
   };
   if (input.id) {
     const { data, error } = await supabase
-      .from('product_customization_options' as any)
+      .from('product_customization_options')
       .update(payload)
       .eq('id', input.id)
       .select('*')
@@ -57,7 +57,7 @@ export async function saveProductCustomizationOption(
     return mapRow(data);
   }
   const { data, error } = await supabase
-    .from('product_customization_options' as any)
+    .from('product_customization_options')
     .insert(payload)
     .select('*')
     .single();
@@ -67,7 +67,7 @@ export async function saveProductCustomizationOption(
 
 export async function deleteProductCustomizationOption(id: string): Promise<void> {
   const { error } = await supabase
-    .from('product_customization_options' as any)
+    .from('product_customization_options')
     .delete()
     .eq('id', id);
   if (error) throw error;

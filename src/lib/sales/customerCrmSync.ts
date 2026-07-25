@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 /** Resolve (or create on demand) the `customers.id` linked to a CRM contact. */
 export async function resolveCustomerIdForContact(contactId: string): Promise<string | null> {
-  const { data, error } = await supabase.rpc('get_or_create_customer_for_contact' as any, {
+  const { data, error } = await supabase.rpc('get_or_create_customer_for_contact', {
     p_contact_id: contactId,
   });
   if (error) {

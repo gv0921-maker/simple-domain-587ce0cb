@@ -14,9 +14,9 @@ export interface OperationTypeCounts {
 type Row = { operation_type_id: string | null; status: string | null };
 
 async function fetchTable(table: 'goods_receipts' | 'delivery_notes' | 'internal_movements'): Promise<Row[]> {
-  const { data, error } = await supabase.from(table as any).select('operation_type_id,status').limit(5000);
+  const { data, error } = await supabase.from(table).select('operation_type_id,status').limit(5000);
   if (error) throw error;
-  return (data ?? []) as any;
+  return (data ?? []);
 }
 
 function tally(rows: Row[]): Map<string, OperationTypeCounts> {

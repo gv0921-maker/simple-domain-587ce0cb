@@ -48,7 +48,7 @@ export default function HRReview() {
               <div>
                 <Label className="text-xs">Final</Label>
                 <Input type="number" step="0.5" defaultValue={r.final_rating ?? r.manager_rating ?? ''}
-                  onBlur={(e) => upsert.mutate({ appraisal_id: id, criterion_id: r.criterion_id, final_rating: e.target.value ? Number(e.target.value) : null } as any)} />
+                  onBlur={(e) => upsert.mutate({ appraisal_id: id, criterion_id: r.criterion_id, final_rating: e.target.value ? Number(e.target.value) : null })} />
               </div>
             </div>
           ))}

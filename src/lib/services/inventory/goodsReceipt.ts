@@ -150,7 +150,7 @@ export async function createGoodsReceipt(input: CreateGoodsReceiptInput): Promis
   }
 
   try {
-    await logRecordCreated('goods_receipt' as any, gr.id);
+    await logRecordCreated('goods_receipt', gr.id);
   } catch { /* noop */ }
   return gr as GoodsReceipt;
 }
@@ -184,13 +184,13 @@ export async function approveDiscrepancy(grId: string, reason: string): Promise<
     status: 'labels_pending',
   }).eq('id', grId);
   if (error) throw error;
-  try { await logFieldChange('goods_receipt' as any, grId, 'discrepancy_approved', null, reason); } catch { /* noop */ }
+  try { await logFieldChange('goods_receipt', grId, 'discrepancy_approved', null, reason); } catch { /* noop */ }
 }
 
 export async function advanceToLabelsStep(grId: string): Promise<void> {
   const { error } = await sb.from('goods_receipts').update({ status: 'labels_pending' }).eq('id', grId);
   if (error) throw error;
-  try { await logStatusChange('goods_receipt' as any, grId, 'quantity_pending', 'labels_pending'); } catch { /* noop */ }
+  try { await logStatusChange('goods_receipt', grId, 'quantity_pending', 'labels_pending'); } catch { /* noop */ }
 }
 
 export async function generateSerialsForLine(grLineId: string): Promise<string[]> {
@@ -206,7 +206,7 @@ export async function markLabelsGenerated(grId: string): Promise<void> {
     status: 'qc_pending',
   }).eq('id', grId);
   if (error) throw error;
-  try { await logStatusChange('goods_receipt' as any, grId, 'labels_pending', 'qc_pending'); } catch { /* noop */ }
+  try { await logStatusChange('goods_receipt', grId, 'labels_pending', 'qc_pending'); } catch { /* noop */ }
 }
 
 export async function recordItemQC(

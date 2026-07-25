@@ -64,7 +64,7 @@ export default function ReportPage() {
           onSchedule={async ({ schedule: s, email }) => {
             if (!mostRecentSaved) {
               const created = await save.mutateAsync({ report_key: report.key, name: `${report.title} schedule`, filters_json: filters });
-              await schedule.mutateAsync({ saved_report_id: (created as any).id, schedule: s, delivery_email: email });
+              await schedule.mutateAsync({ saved_report_id: (created).id, schedule: s, delivery_email: email });
             } else {
               await schedule.mutateAsync({ saved_report_id: mostRecentSaved.id, schedule: s, delivery_email: email });
             }

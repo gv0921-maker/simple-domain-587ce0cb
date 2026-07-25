@@ -185,7 +185,7 @@ export async function rejectReturnRequest(rtId: string, reason: string): Promise
 export async function cancelReturnRequest(rtId: string, reason: string): Promise<void> {
   const { data: current } = await sb
     .from('return_requests').select('request_status').eq('id', rtId).maybeSingle();
-  const prev = (current as any)?.request_status ?? null;
+  const prev = (current)?.request_status ?? null;
   const { error } = await sb
     .from('return_requests')
     .update({ request_status: 'cancelled' })
@@ -212,8 +212,8 @@ export async function recordReturnQC(
     .from('return_request_items').select('return_request_id, serial_number').eq('id', itemId).maybeSingle();
   if (item) {
     await logFieldChange(
-      'return_request', (item as any).return_request_id,
-      `qc:${(item as any).serial_number}`, null, conditionGrade,
+      'return_request', (item).return_request_id,
+      `qc:${(item).serial_number}`, null, conditionGrade,
     );
   }
 }
@@ -226,11 +226,11 @@ export async function uploadReturnPhoto(
   const { error } = await sb.storage.from('return-photos').upload(path, file, { upsert: false });
   if (error) throw error;
   const { data } = sb.storage.from('return-photos').getPublicUrl(path);
-  const url = (data as any).publicUrl as string;
+  const url = (data).publicUrl as string;
 
   if (type === 'customer') {
     const { data: row } = await sb.from('return_requests').select('customer_photos').eq('id', rtId).maybeSingle();
-    const photos = ((row as any)?.customer_photos ?? []) as string[];
+    const photos = ((row)?.customer_photos ?? []) as string[];
     photos.push(url);
     await sb.from('return_requests').update({ customer_photos: photos }).eq('id', rtId);
   }
@@ -274,7 +274,7 @@ export async function getReturnableItemsForInvoice(invoiceId: string): Promise<I
     .maybeSingle();
   if (invErr) throw invErr;
   if (!invoice) return [];
-  const lines = ((invoice as any).invoice_lines ?? []) as Array<any>;
+  const lines = ((invoice).invoice_lines ?? []) as Array<any>;
   if (lines.length === 0) return [];
 
   const soLineIds = lines.map((l) => l.sales_order_line_id).filter(Boolean);

@@ -65,7 +65,7 @@ export async function savePaymentAccount(
   patch: Partial<PaymentAccount> & { account_name: string; account_type: 'cash' | 'bank' },
 ): Promise<PaymentAccount> {
   if (patch.id) {
-    const { id, created_at, updated_at, ...rest } = patch as any;
+    const { id, created_at, updated_at, ...rest } = patch;
     const { data, error } = await sb.from('payment_accounts').update(rest).eq('id', id).select('*').single();
     if (error) throw error;
     return data;
@@ -93,7 +93,7 @@ export async function getSalesOrderPayments(salesOrderId: string): Promise<Sales
 }
 
 export async function getPaymentSummary(salesOrderId: string): Promise<PaymentSummary> {
-  const { data, error } = await supabase.rpc('get_sales_order_payment_summary' as any, { p_so_id: salesOrderId });
+  const { data, error } = await supabase.rpc('get_sales_order_payment_summary', { p_so_id: salesOrderId });
   if (error) throw error;
   return (data as unknown) as PaymentSummary;
 }
@@ -131,7 +131,7 @@ export async function recordPayment(input: RecordPaymentInput): Promise<SalesOrd
 
   // Recompute SO advance percent and auto-advance status
   try {
-    await supabase.rpc('calculate_so_advance_percent' as any, { p_so_id: input.salesOrderId });
+    await supabase.rpc('calculate_so_advance_percent', { p_so_id: input.salesOrderId });
   } catch { /* ignore */ }
 
   try {
@@ -190,7 +190,7 @@ export async function voidPayment(paymentId: string, reason: string): Promise<Sa
   const p = data as SalesOrderPayment;
 
   try {
-    await supabase.rpc('calculate_so_advance_percent' as any, { p_so_id: p.sales_order_id });
+    await supabase.rpc('calculate_so_advance_percent', { p_so_id: p.sales_order_id });
     const summary = await getPaymentSummary(p.sales_order_id);
     await sb.from('sales_orders').update({ advance_percent_received: summary.advance_percent }).eq('id', p.sales_order_id);
     await logFieldChange(

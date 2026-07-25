@@ -31,7 +31,7 @@ export default function SelfReview() {
   if (!id || !appraisal) return <AppLayout title="Appraisals" moduleNav={APPRAISALS_NAV}><div className="p-6">Loading…</div></AppLayout>;
 
   const handleRate = async (criterionId: string, field: 'self_rating' | 'self_comments', val) => {
-    await upsert.mutateAsync({ appraisal_id: id, criterion_id: criterionId, [field]: val } as any);
+    await upsert.mutateAsync({ appraisal_id: id, criterion_id: criterionId, [field]: val });
   };
   const saveDraft = async () => {
     await updateA.mutateAsync({ id, patch: { strengths, areas_of_improvement: improvements } });

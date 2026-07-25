@@ -16,9 +16,9 @@ export default function PayslipDetail() {
   const { data: psl } = usePayslip(id);
   if (!psl) return <AppLayout title="Payslip" moduleNav={PAYROLL_NAV}><div className="p-6">Loading…</div></AppLayout>;
 
-  const emp: any = (psl as any).employees;
-  const period: any = (psl as any).payroll_periods;
-  const comps: any[] = (psl as any).payslip_components ?? [];
+  const emp: any = (psl).employees;
+  const period: any = (psl).payroll_periods;
+  const comps: any[] = (psl).payslip_components ?? [];
   const earnings = comps.filter((c) => c.salary_components?.type === 'earning');
   const deductions = comps.filter((c) => c.salary_components?.type === 'deduction');
   const employer = comps.filter((c) => c.salary_components?.type === 'employer_contribution');
@@ -29,7 +29,7 @@ export default function PayslipDetail() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-semibold">GLF Payslip</h1>
-            <p className="text-sm text-muted-foreground">{(psl as any).payslip_number} · <Badge variant="outline">{(psl as any).status}</Badge></p>
+            <p className="text-sm text-muted-foreground">{(psl).payslip_number} · <Badge variant="outline">{(psl).status}</Badge></p>
           </div>
           <Button onClick={() => generatePayslipPDF(psl)} className="gap-2"><Download className="h-4 w-4" />Download PDF</Button>
         </div>
@@ -43,10 +43,10 @@ export default function PayslipDetail() {
           <Info label="UAN" value={emp?.uan_number} />
           <Info label="Bank" value={emp?.bank_name} />
           <Info label="Account" value={emp?.bank_account_number} />
-          <Info label="Working Days" value={String((psl as any).total_working_days)} />
-          <Info label="Paid Days" value={String((psl as any).paid_days ?? '')} />
-          <Info label="LOP Days" value={String((psl as any).lop_days)} />
-          <Info label="Overtime" value={`${(psl as any).overtime_hours} hrs`} />
+          <Info label="Working Days" value={String((psl).total_working_days)} />
+          <Info label="Paid Days" value={String((psl).paid_days ?? '')} />
+          <Info label="LOP Days" value={String((psl).lop_days)} />
+          <Info label="Overtime" value={`${(psl).overtime_hours} hrs`} />
         </Card>
 
         <div className="grid md:grid-cols-2 gap-4">
@@ -57,7 +57,7 @@ export default function PayslipDetail() {
                 {earnings.map((c) => (
                   <tr key={c.id} className="border-b"><td className="py-1">{c.salary_components.name}</td><td className="py-1 text-right">{fmt(Number(c.amount))}</td></tr>
                 ))}
-                <tr className="font-semibold"><td className="py-2">Gross</td><td className="py-2 text-right">{fmt(Number((psl as any).gross_earnings))}</td></tr>
+                <tr className="font-semibold"><td className="py-2">Gross</td><td className="py-2 text-right">{fmt(Number((psl).gross_earnings))}</td></tr>
               </tbody>
             </table>
           </Card>
@@ -68,15 +68,15 @@ export default function PayslipDetail() {
                 {deductions.map((c) => (
                   <tr key={c.id} className="border-b"><td className="py-1">{c.salary_components.name}</td><td className="py-1 text-right">{fmt(Number(c.amount))}</td></tr>
                 ))}
-                <tr className="font-semibold"><td className="py-2">Total Deductions</td><td className="py-2 text-right">{fmt(Number((psl as any).total_deductions))}</td></tr>
+                <tr className="font-semibold"><td className="py-2">Total Deductions</td><td className="py-2 text-right">{fmt(Number((psl).total_deductions))}</td></tr>
               </tbody>
             </table>
           </Card>
         </div>
 
         <Card className="p-6 bg-primary/5 flex justify-between items-center">
-          <div><div className="text-xs text-muted-foreground">NET PAY</div><div className="text-3xl font-bold">{fmt(Number((psl as any).net_pay))}</div></div>
-          <div className="text-right text-sm text-muted-foreground">CTC for period: {fmt(Number((psl as any).ctc_for_period))}</div>
+          <div><div className="text-xs text-muted-foreground">NET PAY</div><div className="text-3xl font-bold">{fmt(Number((psl).net_pay))}</div></div>
+          <div className="text-right text-sm text-muted-foreground">CTC for period: {fmt(Number((psl).ctc_for_period))}</div>
         </Card>
 
         {employer.length > 0 && (

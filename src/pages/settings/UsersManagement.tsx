@@ -38,7 +38,7 @@ interface AppUser {
 async function fetchAppUsers(): Promise<AppUser[]> {
   const { data, error } = await supabase.functions.invoke('list-app-users', { method: 'GET' });
   if (error) throw error;
-  const list = (data as any)?.users;
+  const list = (data)?.users;
   if (!Array.isArray(list)) throw new Error('Unexpected response from list-app-users');
   return list as AppUser[];
 }

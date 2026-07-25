@@ -172,8 +172,8 @@ export default function QuotationForm() {
   // After customers load, re-populate from the newly created one.
   useEffect(() => {
     const newCustomerId =
-      (location.state as any)?.newCustomerId ||
-      (location.state as any)?.newContactId;
+      (location.state)?.newCustomerId ||
+      (location.state)?.newContactId;
     if (newCustomerId && customers.length > 0) {
       const c = customers.find((x) => x.id === newCustomerId);
       if (c) populateFromCustomer(c);
@@ -496,11 +496,11 @@ export default function QuotationForm() {
 
             {/* Billing */}
             <div ref={billingRef}>
-              <BillingSection value={formData as any} onChange={(v) => setFormData(v as any)} disabled={!isEditable} />
+              <BillingSection value={formData} onChange={(v) => setFormData(v)} disabled={!isEditable} />
             </div>
 
             {/* Delivery */}
-            <DeliverySection value={formData as any} onChange={(v) => setFormData(v as any)} disabled={!isEditable} />
+            <DeliverySection value={formData} onChange={(v) => setFormData(v)} disabled={!isEditable} />
 
             {/* Order Lines */}
             <Card>

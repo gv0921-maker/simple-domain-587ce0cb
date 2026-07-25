@@ -36,9 +36,9 @@ export default function HolidaysSettings() {
     setEditing(h);
     setForm({
       holiday_date: h.holiday_date, name: h.name,
-      type: (h as any).type ?? 'national',
-      description: (h as any).description ?? '',
-      is_optional: h.is_optional, is_active: (h as any).is_active ?? true,
+      type: (h).type ?? 'national',
+      description: (h).description ?? '',
+      is_optional: h.is_optional, is_active: (h).is_active ?? true,
     });
     setOpen(true);
   }
@@ -113,16 +113,16 @@ export default function HolidaysSettings() {
                   <div>
                     <p className="font-medium flex items-center gap-2">
                       {h.name}
-                      {!(h as any).is_active && <Badge variant="secondary">Inactive</Badge>}
+                      {!(h).is_active && <Badge variant="secondary">Inactive</Badge>}
                     </p>
-                    <p className="text-xs text-muted-foreground">{h.holiday_date} • {(h as any).type}</p>
-                    {(h as any).description && <p className="text-xs text-muted-foreground mt-1">{(h as any).description}</p>}
+                    <p className="text-xs text-muted-foreground">{h.holiday_date} • {(h).type}</p>
+                    {(h).description && <p className="text-xs text-muted-foreground mt-1">{(h).description}</p>}
                   </div>
                   <div className="flex items-center gap-1">
                     <Button size="icon" variant="ghost" onClick={() => openEdit(h)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    {(h as any).is_active && (
+                    {(h).is_active && (
                       <Button size="sm" variant="outline" onClick={() => deactivate.mutate(h.id)}>
                         Deactivate
                       </Button>

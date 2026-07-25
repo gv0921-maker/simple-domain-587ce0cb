@@ -21,7 +21,7 @@ const map = (r): UnitOfMeasure => ({
 });
 
 export async function listUnitsOfMeasure(): Promise<UnitOfMeasure[]> {
-  const { data, error } = await supabase.from('units_of_measure' as any).select('*').order('name');
+  const { data, error } = await supabase.from('units_of_measure').select('*').order('name');
   if (error) throw error;
   return (data ?? []).map(map);
 }
@@ -35,16 +35,16 @@ export async function saveUnitOfMeasure(input: Partial<UnitOfMeasure> & { name: 
     is_active: input.isActive ?? true,
   };
   if (input.id) {
-    const { data, error } = await supabase.from('units_of_measure' as any).update(payload).eq('id', input.id).select('*').single();
+    const { data, error } = await supabase.from('units_of_measure').update(payload).eq('id', input.id).select('*').single();
     if (error) throw error;
     return map(data);
   }
-  const { data, error } = await supabase.from('units_of_measure' as any).insert(payload).select('*').single();
+  const { data, error } = await supabase.from('units_of_measure').insert(payload).select('*').single();
   if (error) throw error;
   return map(data);
 }
 
 export async function deleteUnitOfMeasure(id: string): Promise<void> {
-  const { error } = await supabase.from('units_of_measure' as any).delete().eq('id', id);
+  const { error } = await supabase.from('units_of_measure').delete().eq('id', id);
   if (error) throw error;
 }

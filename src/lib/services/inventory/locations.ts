@@ -17,7 +17,7 @@ export const getLocationsByWarehouse = getLocationsByWarehouseAsync;
 
 /** Insert (id undefined) or update (id set). */
 export async function createLocation(input: Omit<Location, 'id'>): Promise<Location> {
-  return saveLocationAsync({ ...(input as Location), id: '' as any });
+  return saveLocationAsync({ ...(input as Location), id: '' });
 }
 export async function updateLocation(id: string, patch: Partial<Location>): Promise<Location> {
   return saveLocationAsync({ ...(patch as Location), id });

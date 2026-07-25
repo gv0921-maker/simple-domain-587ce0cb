@@ -26,7 +26,7 @@ describe('hook ordering across guard transitions', () => {
   let errorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    (globalThis as any).ResizeObserver = ResizeObserverStub;
+    (globalThis).ResizeObserver = ResizeObserverStub;
     // jsdom implements neither of these; ModuleNav scrolls the active tab
     // into view on mount.
     Element.prototype.scrollTo = () => {};

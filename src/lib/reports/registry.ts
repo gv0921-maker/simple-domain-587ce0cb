@@ -138,7 +138,7 @@ const topProducts: ReportDef = {
       const name = (l.product_name as string) || "Unknown";
       const e = agg.get(name) || { product_name: name, qty_sold: 0, revenue: 0 };
       e.qty_sold += Number(l.quantity || 0);
-      e.revenue += Number((l as any).subtotal ?? Number(l.quantity || 0) * Number((l as any).unit_price || 0));
+      e.revenue += Number((l).subtotal ?? Number(l.quantity || 0) * Number((l).unit_price || 0));
       agg.set(name, e);
     });
     return Array.from(agg.values()).sort((a, b) => b.revenue - a.revenue).slice(0, limit);
@@ -161,12 +161,12 @@ const salesBySalesperson: ReportDef = {
     const { data: quotes } = await supabase.from("quotations").select("salesperson_id,salesperson_name");
     const agg = new Map<string, { salesperson: string; orders: number; revenue: number; quotations: number }>();
     (orders || []).forEach((o) => {
-      const name = ((o as any).salesperson_name as string) || "Unassigned";
+      const name = ((o).salesperson_name as string) || "Unassigned";
       const e = agg.get(name) || { salesperson: name, orders: 0, revenue: 0, quotations: 0 };
       e.orders += 1; e.revenue += Number(o.total || 0); agg.set(name, e);
     });
     (quotes || []).forEach((q) => {
-      const name = ((q as any).salesperson_name as string) || "Unassigned";
+      const name = ((q).salesperson_name as string) || "Unassigned";
       const e = agg.get(name) || { salesperson: name, orders: 0, revenue: 0, quotations: 0 };
       e.quotations += 1; agg.set(name, e);
     });

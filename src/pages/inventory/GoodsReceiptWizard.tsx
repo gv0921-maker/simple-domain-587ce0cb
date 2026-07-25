@@ -66,8 +66,8 @@ export default function GoodsReceiptWizard() {
   const [workOrders, setWorkOrders] = useState<Array<{ id: string; reference: string }>>([]);
   useEffect(() => {
     if (sourceType !== 'work_order' || isEdit) return;
-    supabase.from('work_orders' as any).select('id, reference, state').eq('state', 'in_progress').then(({ data }) => {
-      setWorkOrders((data ?? []) as any);
+    supabase.from('work_orders').select('id, reference, state').eq('state', 'in_progress').then(({ data }) => {
+      setWorkOrders((data ?? []));
     });
   }, [sourceType, isEdit]);
 
@@ -251,7 +251,7 @@ export default function GoodsReceiptWizard() {
               const needsApproval = gr.discrepancy_status !== 'matched' && !gr.discrepancy_approved_at;
               if (needsApproval) { toast.error('Discrepancy must be approved first'); return; }
               if (gr.status === 'quantity_pending') {
-                await supabase.from('goods_receipts' as any).update({ status: 'labels_pending' }).eq('id', gr.id);
+                await supabase.from('goods_receipts').update({ status: 'labels_pending' }).eq('id', gr.id);
               }
               toast.success('Moved to Labels step');
               window.location.reload();

@@ -39,8 +39,8 @@ export async function trackChanges(
   const keys = options.only ?? Object.keys(newValues);
   for (const key of keys) {
     if (ignore.has(key)) continue;
-    const next = (newValues as any)[key];
-    const prev = oldValues ? (oldValues as any)[key] : undefined;
+    const next = (newValues)[key];
+    const prev = oldValues ? (oldValues)[key] : undefined;
     if (isEqual(prev, next)) continue;
     try {
       await logFieldChange(recordType, recordId, key, prev, next);

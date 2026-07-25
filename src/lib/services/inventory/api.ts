@@ -569,7 +569,7 @@ export async function getStockMoveAsync(id: string): Promise<StockMove | undefin
     .maybeSingle();
   if (error) throw error;
   if (!data) return undefined;
-  return mapStockMove(data, ((data as any).stock_move_lines ?? []).map(mapStockMoveLine));
+  return mapStockMove(data, ((data).stock_move_lines ?? []).map(mapStockMoveLine));
 }
 export async function getStockMovesByStateAsync(state: StockMoveState): Promise<StockMove[]> {
   const { data, error } = await supabase
@@ -585,8 +585,8 @@ export async function saveStockMoveAsync(move: StockMove): Promise<StockMove> {
   const lines = move.lines.map((l) => stockMoveLineToRow('__placeholder__', l));
   const { data: id, error } = await db.rpc('inv_save_stock_move', {
     _move_id: isNew ? null : move.id,
-    _header: headerRow as any,
-    _lines: lines as any,
+    _header: headerRow,
+    _lines: lines,
   });
   if (error) throw new Error(error.message);
   return (await getStockMoveAsync(id as string))!;
@@ -596,7 +596,7 @@ export async function deleteStockMoveAsync(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 export async function validateStockMoveAsync(moveId: string): Promise<void> {
-  const { error } = await supabase.rpc('inv_validate_stock_move' as any, { _move_id: moveId });
+  const { error } = await supabase.rpc('inv_validate_stock_move', { _move_id: moveId });
   if (error) throw error;
 }
 
@@ -663,7 +663,7 @@ export async function getAdjustmentAsync(id: string): Promise<InventoryAdjustmen
     .maybeSingle();
   if (error) throw error;
   if (!data) return undefined;
-  return mapAdjustment(data, ((data as any).adjustment_lines ?? []).map(mapAdjustmentLine));
+  return mapAdjustment(data, ((data).adjustment_lines ?? []).map(mapAdjustmentLine));
 }
 export async function saveAdjustmentAsync(a: InventoryAdjustment): Promise<InventoryAdjustment> {
   const headerRow = adjustmentToRow(a);
@@ -691,7 +691,7 @@ export async function saveAdjustmentAsync(a: InventoryAdjustment): Promise<Inven
   return (await getAdjustmentAsync(id!))!;
 }
 export async function approveAdjustmentAsync(adjustmentId: string, userId: string): Promise<void> {
-  const { error } = await supabase.rpc('inv_approve_adjustment' as any, {
+  const { error } = await supabase.rpc('inv_approve_adjustment', {
     _adjustment_id: adjustmentId,
     _approved_by: userId,
   });

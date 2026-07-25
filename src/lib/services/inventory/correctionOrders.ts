@@ -161,7 +161,7 @@ export async function updateCorrectionOrderHeader(
   if (patch.notes !== undefined) update.notes = patch.notes;
   const { error } = await sb.from('correction_orders').update(update).eq('id', coId);
   if (error) throw error;
-  try { await logFieldChange('correction_order' as any, coId, 'header', null, JSON.stringify(update)); } catch { /* noop */ }
+  try { await logFieldChange('correction_order', coId, 'header', null, JSON.stringify(update)); } catch { /* noop */ }
 }
 
 export async function sendCorrectionOrder(coId: string) {
@@ -169,7 +169,7 @@ export async function sendCorrectionOrder(coId: string) {
     .update({ status: 'sent', sent_at: new Date().toISOString() })
     .eq('id', coId);
   if (error) throw error;
-  try { await logStatusChange('correction_order' as any, coId, 'draft', 'sent'); } catch { /* noop */ }
+  try { await logStatusChange('correction_order', coId, 'draft', 'sent'); } catch { /* noop */ }
 }
 
 export async function recordItemReturnedToVendor(coItemId: string, notes?: string) {
@@ -177,7 +177,7 @@ export async function recordItemReturnedToVendor(coItemId: string, notes?: strin
     .update({ current_status: 'returned_to_vendor', notes: notes ?? null })
     .eq('id', coItemId);
   if (error) throw error;
-  try { await logStatusChange('correction_order_item' as any, coItemId, 'awaiting_correction', 'returned_to_vendor'); } catch { /* noop */ }
+  try { await logStatusChange('correction_order_item', coItemId, 'awaiting_correction', 'returned_to_vendor'); } catch { /* noop */ }
 }
 
 export async function recordItemReceivedBack(coItemId: string) {
@@ -202,7 +202,7 @@ export async function recordItemReceivedBack(coItemId: string) {
       'normal',
     );
   } catch { /* noop */ }
-  try { await logStatusChange('correction_order_item' as any, coItemId, 'returned_to_vendor', 'received_back'); } catch { /* noop */ }
+  try { await logStatusChange('correction_order_item', coItemId, 'returned_to_vendor', 'received_back'); } catch { /* noop */ }
 }
 
 export async function completeQCCycle(
@@ -216,7 +216,7 @@ export async function completeQCCycle(
   });
   if (error) throw error;
   try {
-    await logFieldChange('correction_order_item' as any, coItemId, 'qc_cycle', null, passed ? 'passed' : 'failed');
+    await logFieldChange('correction_order_item', coItemId, 'qc_cycle', null, passed ? 'passed' : 'failed');
   } catch { /* noop */ }
 }
 
@@ -254,7 +254,7 @@ export async function recordVendorRefund(input: {
     .eq('id', input.coItemId);
   if (ue) throw ue;
   try {
-    await logRecordCreated('correction_order_refund' as any, item.correction_order_id);
+    await logRecordCreated('correction_order_refund', item.correction_order_id);
   } catch { /* noop */ }
 }
 
@@ -312,7 +312,7 @@ export async function markCorrectionItemUnsalvageable(input: {
     .eq('id', input.coItemId);
   if (ue) throw ue;
   try {
-    await logStatusChange('correction_order_item' as any, input.coItemId, item.current_status ?? null, 'closed');
+    await logStatusChange('correction_order_item', input.coItemId, item.current_status ?? null, 'closed');
   } catch { /* noop */ }
 
   return { writeOffId };
@@ -323,7 +323,7 @@ export async function closeCorrectionOrder(coId: string): Promise<{ success: boo
   if (error) throw error;
   const result = (data ?? {}) as { success: boolean; reason?: string };
   if (result.success) {
-    try { await logStatusChange('correction_order' as any, coId, 'sent', 'closed'); } catch { /* noop */ }
+    try { await logStatusChange('correction_order', coId, 'sent', 'closed'); } catch { /* noop */ }
   }
   return result;
 }
@@ -333,7 +333,7 @@ export async function cancelCorrectionOrder(coId: string, reason: string) {
     .update({ status: 'cancelled', notes: reason })
     .eq('id', coId);
   if (error) throw error;
-  try { await logStatusChange('correction_order' as any, coId, 'sent', 'cancelled'); } catch { /* noop */ }
+  try { await logStatusChange('correction_order', coId, 'sent', 'cancelled'); } catch { /* noop */ }
 }
 
 export async function getUnderCorrectionCountByProduct(productId: string): Promise<number> {

@@ -87,7 +87,7 @@ export default function ClockIn() {
       if (!fence.inside) {
         const ok = confirm(
           `You appear to be outside the allowed geofence` +
-          (fence.location ? ` (nearest: ${fence.location.name}, ~${Math.round((fence as any).distance ?? 0)}m away)` : '') +
+          (fence.location ? ` (nearest: ${fence.location.name}, ~${Math.round((fence).distance ?? 0)}m away)` : '') +
           `. Continue anyway?`
         );
         if (!ok) return null;

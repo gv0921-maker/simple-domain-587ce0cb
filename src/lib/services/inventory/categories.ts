@@ -24,7 +24,7 @@ const map = (r): ProductCategory => ({
 
 export async function listCategories(): Promise<ProductCategory[]> {
   const { data, error } = await supabase
-    .from('product_categories' as any)
+    .from('product_categories')
     .select('*')
     .order('sort_order', { ascending: true })
     .order('name', { ascending: true });
@@ -41,16 +41,16 @@ export async function saveCategory(input: Partial<ProductCategory> & { name: str
     sort_order: input.sortOrder ?? 0,
   };
   if (input.id) {
-    const { data, error } = await supabase.from('product_categories' as any).update(payload).eq('id', input.id).select('*').single();
+    const { data, error } = await supabase.from('product_categories').update(payload).eq('id', input.id).select('*').single();
     if (error) throw error;
     return map(data);
   }
-  const { data, error } = await supabase.from('product_categories' as any).insert(payload).select('*').single();
+  const { data, error } = await supabase.from('product_categories').insert(payload).select('*').single();
   if (error) throw error;
   return map(data);
 }
 
 export async function deleteCategory(id: string): Promise<void> {
-  const { error } = await supabase.from('product_categories' as any).delete().eq('id', id);
+  const { error } = await supabase.from('product_categories').delete().eq('id', id);
   if (error) throw error;
 }

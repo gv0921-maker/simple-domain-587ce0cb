@@ -15,7 +15,7 @@ export interface SundayRosterRow {
 export async function assignSundayDuty(
   employeeId: string, sundayDate: string, compOffDate: string,
 ) {
-  const { data, error } = await supabase.rpc('assign_sunday_duty' as any, {
+  const { data, error } = await supabase.rpc('assign_sunday_duty', {
     p_employee_id: employeeId,
     p_sunday_date: sundayDate,
     p_comp_off_date: compOffDate,
@@ -37,7 +37,7 @@ export async function bulkAssignSundayDuty(
 export async function getRosters(
   from: string, to: string, employeeIds?: string[],
 ): Promise<SundayRosterRow[]> {
-  let q = supabase.from('employee_rosters' as any)
+  let q = supabase.from('employee_rosters')
     .select('*').gte('roster_date', from).lte('roster_date', to);
   if (employeeIds && employeeIds.length > 0) q = q.in('employee_id', employeeIds);
   const { data, error } = await q;
@@ -55,6 +55,6 @@ export async function getMyRoster(from: string, to: string): Promise<SundayRoste
 }
 
 export async function clearRosterAssignment(rosterId: string) {
-  const { error } = await supabase.from('employee_rosters' as any).delete().eq('id', rosterId);
+  const { error } = await supabase.from('employee_rosters').delete().eq('id', rosterId);
   if (error) throw error;
 }

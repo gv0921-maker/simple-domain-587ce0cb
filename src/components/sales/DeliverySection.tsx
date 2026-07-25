@@ -32,7 +32,7 @@ export function DeliverySection({ value, onChange, disabled }: Props) {
       const billing = pickBilling(value);
       const updated = applyDelivery(value, billing);
       // avoid infinite loop: only patch if any delivery key actually differs
-      const changed = Object.keys(updated).some((k) => updated[k] !== (value as any)[k]);
+      const changed = Object.keys(updated).some((k) => updated[k] !== (value)[k]);
       if (changed) onChange({ ...updated, deliverySameAsBilling: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

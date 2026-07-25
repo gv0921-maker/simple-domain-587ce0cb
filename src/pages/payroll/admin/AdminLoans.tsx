@@ -31,7 +31,7 @@ export default function AdminLoans() {
           <div><label className="text-xs">EMI</label><Input type="number" value={form.monthly_emi} onChange={(e) => setForm({ ...form, monthly_emi: parseFloat(e.target.value) || 0 })} /></div>
           <div><label className="text-xs">Total EMIs</label><Input type="number" value={form.total_emis} onChange={(e) => setForm({ ...form, total_emis: parseInt(e.target.value) || 1 })} /></div>
           <div><label className="text-xs">Start</label><Input type="date" value={form.start_month} onChange={(e) => setForm({ ...form, start_month: e.target.value })} /></div>
-          <Button className="md:col-span-6" onClick={async () => { if (!form.employee_id) return; await add.mutateAsync(form as any); toast({ title: 'Loan added' }); }}>Add Loan</Button>
+          <Button className="md:col-span-6" onClick={async () => { if (!form.employee_id) return; await add.mutateAsync(form); toast({ title: 'Loan added' }); }}>Add Loan</Button>
         </Card>
 
         <Card>

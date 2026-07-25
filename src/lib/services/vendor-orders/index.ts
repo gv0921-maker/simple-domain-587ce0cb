@@ -127,7 +127,7 @@ export async function createVendorOrderDraft(args: {
     .select('id')
     .single();
   if (error) throw error;
-  const voId = (vo as any).id as string;
+  const voId = (vo).id as string;
 
   if (args.lines.length) {
     const rows = args.lines.map((l) => ({
