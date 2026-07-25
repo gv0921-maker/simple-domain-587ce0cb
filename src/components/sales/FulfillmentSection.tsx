@@ -19,6 +19,7 @@ import { db } from '@/integrations/supabase/db';
 import {
   useITOsForSO, useITODetail, useSuggestITO, useCreateITO, useSOReadyToInvoice,
 } from '@/hooks/inventory/internalTransfers';
+import { useInvoicesForSO } from '@/hooks/sales/invoices';
 import type { ITOSuggestionLine, ProductSource, ITOLineStatus } from '@/lib/services/inventory/internalTransfers';
 import { logFieldChange } from '@/lib/services/activityLog';
 import { useFactoryProgressForSO } from '@/hooks/shopfloor';
