@@ -2,7 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { lazy, Suspense } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, MutationCache, QueryCache } from "@tanstack/react-query";
+import { toast as sonnerToast } from "sonner";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CustomizationProvider } from "@/contexts/CustomizationContext";
@@ -244,7 +245,51 @@ const CRMReportsLanding = lazy(() => import("@/pages/reports/modulePages").then(
 const NotificationsPage = lazy(() => import("@/pages/notifications/NotificationsPage"));
 const NotificationSettings = lazy(() => import("@/pages/settings/NotificationSettings"));
 
-const queryClient = new QueryClient();
+/**
+ * Global error surfacing for TanStack Query.
+ *
+ * Class-level rule (see reliability sweep): NO mutation or query failure is
+ * allowed to be silent. Individual hooks/components can still add their own
+ * onError for custom UX. Opt out of the global toast by setting
+ * `meta: { silent: true }` on the mutation/query.
+ *
+ * Postgres/Supabase RPC errors are surfaced verbatim because our RPCs raise
+ * human-readable messages (e.g. "Serial X has no location").
+ */
+function extractMessage(error: unknown): string {
+  if (!error) return 'Unknown error';
+  if (typeof error === 'string') return error;
+  const e = error as { message?: string; hint?: string; details?: string };
+  return e.message || e.hint || e.details || 'Something went wrong';
+}
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Prevent silent infinite loading on failed reads — one retry then surface.
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+  mutationCache: new MutationCache({
+    onError: (error, _vars, _ctx, mutation) => {
+      if ((mutation.meta as { silent?: boolean } | undefined)?.silent) return;
+      sonnerToast.error(extractMessage(error));
+    },
+  }),
+  queryCache: new QueryCache({
+    onError: (error, query) => {
+      if ((query.meta as { silent?: boolean } | undefined)?.silent) return;
+      // Only toast once the query has actually surfaced data at least once
+      // (background refetch failure) OR when there are observers waiting on it.
+      // For first-time failures the consuming component will render an error
+      // state via `isError`; the toast reinforces it without being spammy.
+      if (query.getObserversCount() > 0) {
+        sonnerToast.error(extractMessage(error));
+      }
+    },
+  }),
+});
 
 // Shown while a route's chunk is being fetched. Deliberately plain: it appears
 // for a few hundred milliseconds at most on a warm cache, and a heavier
