@@ -26,7 +26,7 @@ export interface ProductAttributeAssignment {
   attributeId: string;
 }
 
-const mapAttr = (r: any): ProductAttribute => ({
+const mapAttr = (r): ProductAttribute => ({
   id: r.id,
   name: r.name,
   displayType: (r.display_type ?? 'radio') as AttributeDisplayType,
@@ -34,7 +34,7 @@ const mapAttr = (r: any): ProductAttribute => ({
   sortOrder: Number(r.sort_order ?? 0),
 });
 
-const mapVal = (r: any): ProductAttributeValue => ({
+const mapVal = (r): ProductAttributeValue => ({
   id: r.id,
   attributeId: r.attribute_id,
   value: r.value,
@@ -51,12 +51,12 @@ export async function listAttributes(): Promise<ProductAttribute[]> {
   if (e1) throw e1;
   if (e2) throw e2;
   const valuesByAttr = new Map<string, ProductAttributeValue[]>();
-  (vals ?? []).forEach((v: any) => {
+  (vals ?? []).forEach((v) => {
     const arr = valuesByAttr.get(v.attribute_id) ?? [];
     arr.push(mapVal(v));
     valuesByAttr.set(v.attribute_id, arr);
   });
-  return (attrs ?? []).map((a: any) => ({ ...mapAttr(a), values: valuesByAttr.get(a.id) ?? [] }));
+  return (attrs ?? []).map((a) => ({ ...mapAttr(a), values: valuesByAttr.get(a.id) ?? [] }));
 }
 
 export async function saveAttribute(input: Partial<ProductAttribute> & { name: string }): Promise<ProductAttribute> {
@@ -110,7 +110,7 @@ export async function listAssignmentsForProduct(productId: string): Promise<Prod
     .select('*')
     .eq('product_id', productId);
   if (error) throw error;
-  return (data ?? []).map((r: any) => ({ id: r.id, productId: r.product_id, attributeId: r.attribute_id }));
+  return (data ?? []).map((r) => ({ id: r.id, productId: r.product_id, attributeId: r.attribute_id }));
 }
 
 export async function setAssignmentsForProduct(productId: string, attributeIds: string[]): Promise<void> {
@@ -137,10 +137,10 @@ export async function listAttributesForProduct(productId: string): Promise<Produ
   if (e1) throw e1;
   if (e2) throw e2;
   const byAttr = new Map<string, ProductAttributeValue[]>();
-  (vals ?? []).forEach((v: any) => {
+  (vals ?? []).forEach((v) => {
     const arr = byAttr.get(v.attribute_id) ?? [];
     arr.push(mapVal(v));
     byAttr.set(v.attribute_id, arr);
   });
-  return (attrs ?? []).map((a: any) => ({ ...mapAttr(a), values: byAttr.get(a.id) ?? [] }));
+  return (attrs ?? []).map((a) => ({ ...mapAttr(a), values: byAttr.get(a.id) ?? [] }));
 }
