@@ -148,6 +148,9 @@ const PrintRoute = lazy(() => import("@/pages/print/PrintRoute"));
 
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
+// Design system preview (dummy data only — see src/design-system/)
+const DesignPreview = lazy(() => import("@/design-system/DesignPreview"));
+
 // Dashboards module
 const DashboardsHome = lazy(() => import("@/pages/dashboards/DashboardsHome"));
 const SuperAdminDashboard = lazy(() => import("@/pages/dashboards/SuperAdminDashboard"));
@@ -575,6 +578,9 @@ const App = () => (
             <Route path="/appraisals/reports/:reportKey" element={<SuperAdminRoute label="Appraisals"><ReportPage /></SuperAdminRoute>} />
             <Route path="/crm/reports" element={<ProtectedRoute><CRMReportsLanding /></ProtectedRoute>} />
             <Route path="/crm/reports/:reportKey" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
+
+            {/* Design system preview (dummy data only, intentionally unguarded) */}
+            <Route path="/design-preview" element={<DesignPreview />} />
 
             {/* Catch-all */}
             <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
