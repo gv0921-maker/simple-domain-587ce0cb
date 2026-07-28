@@ -29,7 +29,7 @@ export { Chatter } from './components/Chatter';
 export type { ChatterEntry, ChatterKind } from './components/Chatter';
 
 export { DocumentList } from './components/DocumentList';
-export type { DocumentListProps, DocumentRow, ListFilter, ListViewMode } from './components/DocumentList';
+export type { DocumentListProps, DocumentRow, ListColumn, ListFilter, ListViewMode } from './components/DocumentList';
 
 export { CogMenu } from './components/CogMenu';
 export type { CogMenuProps, CogMenuItem } from './components/CogMenu';

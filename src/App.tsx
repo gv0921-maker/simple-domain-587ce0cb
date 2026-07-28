@@ -22,6 +22,10 @@ const ProductsList = lazy(() => import("@/pages/inventory/ProductsList"));
 const ProductDetail = lazy(() => import("@/pages/inventory/ProductDetail"));
 const WarehousesList = lazy(() => import("@/pages/inventory/WarehousesList"));
 const WarehouseLocations = lazy(() => import("@/pages/inventory/WarehouseLocations"));
+// Rebuilt warehouse config (design system). The legacy WarehousesList above
+// stays routed at /inventory/warehouses until this is signed off.
+const WarehousesConfigList = lazy(() => import("@/pages/inventory/config/WarehousesConfigList"));
+const WarehouseConfigForm = lazy(() => import("@/pages/inventory/config/WarehouseConfigForm"));
 const StockMoves = lazy(() => import("@/pages/inventory/StockMoves"));
 const StockMoveDetail = lazy(() => import("@/pages/inventory/StockMoveDetail"));
 const InventoryConfiguration = lazy(() => import("@/pages/inventory/InventoryConfiguration"));
@@ -329,6 +333,8 @@ const App = () => (
             <Route path="/inventory/products/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
             <Route path="/inventory/ito/:id" element={<ProtectedRoute><ItoDetail /></ProtectedRoute>} />
             <Route path="/inventory/warehouses" element={<ProtectedRoute><WarehousesList /></ProtectedRoute>} />
+            <Route path="/inventory/config/warehouses" element={<ProtectedRoute><WarehousesConfigList /></ProtectedRoute>} />
+            <Route path="/inventory/config/warehouses/:id" element={<ProtectedRoute><WarehouseConfigForm /></ProtectedRoute>} />
             <Route path="/inventory/locations" element={<ProtectedRoute><WarehouseLocations /></ProtectedRoute>} />
             <Route path="/inventory/stock-moves" element={<ProtectedRoute><StockMoves /></ProtectedRoute>} />
             <Route path="/inventory/stock-moves/:id" element={<ProtectedRoute><StockMoveDetail /></ProtectedRoute>} />
