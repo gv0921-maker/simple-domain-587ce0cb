@@ -26,6 +26,8 @@ const WarehouseLocations = lazy(() => import("@/pages/inventory/WarehouseLocatio
 // stays routed at /inventory/warehouses until this is signed off.
 const WarehousesConfigList = lazy(() => import("@/pages/inventory/config/WarehousesConfigList"));
 const WarehouseConfigForm = lazy(() => import("@/pages/inventory/config/WarehouseConfigForm"));
+const LocationsConfigList = lazy(() => import("@/pages/inventory/config/LocationsConfigList"));
+const LocationConfigForm = lazy(() => import("@/pages/inventory/config/LocationConfigForm"));
 const StockMoves = lazy(() => import("@/pages/inventory/StockMoves"));
 const StockMoveDetail = lazy(() => import("@/pages/inventory/StockMoveDetail"));
 const InventoryConfiguration = lazy(() => import("@/pages/inventory/InventoryConfiguration"));
@@ -336,6 +338,8 @@ const App = () => (
             <Route path="/inventory/config/warehouses" element={<ProtectedRoute><WarehousesConfigList /></ProtectedRoute>} />
             <Route path="/inventory/config/warehouses/:id" element={<ProtectedRoute><WarehouseConfigForm /></ProtectedRoute>} />
             <Route path="/inventory/locations" element={<ProtectedRoute><WarehouseLocations /></ProtectedRoute>} />
+            <Route path="/inventory/config/locations" element={<ProtectedRoute><LocationsConfigList /></ProtectedRoute>} />
+            <Route path="/inventory/config/locations/:id" element={<ProtectedRoute><LocationConfigForm /></ProtectedRoute>} />
             <Route path="/inventory/stock-moves" element={<ProtectedRoute><StockMoves /></ProtectedRoute>} />
             <Route path="/inventory/stock-moves/:id" element={<ProtectedRoute><StockMoveDetail /></ProtectedRoute>} />
             <Route path="/inventory/reporting" element={<ProtectedRoute><InventoryReporting /></ProtectedRoute>} />
