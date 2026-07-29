@@ -2657,6 +2657,7 @@ export type Database = {
           delivered_at: string | null
           delivered_by_user_id: string | null
           delivery_date: string | null
+          dest_location_id: string | null
           dispatched_at: string | null
           dn_sequence_in_invoice: number
           id: string
@@ -2669,6 +2670,7 @@ export type Database = {
           reference: string | null
           sales_order_id: string | null
           signature_collected: boolean
+          source_location_id: string | null
           status: string
           updated_at: string
           warehouse_id: string | null
@@ -2685,6 +2687,7 @@ export type Database = {
           delivered_at?: string | null
           delivered_by_user_id?: string | null
           delivery_date?: string | null
+          dest_location_id?: string | null
           dispatched_at?: string | null
           dn_sequence_in_invoice?: number
           id?: string
@@ -2697,6 +2700,7 @@ export type Database = {
           reference?: string | null
           sales_order_id?: string | null
           signature_collected?: boolean
+          source_location_id?: string | null
           status?: string
           updated_at?: string
           warehouse_id?: string | null
@@ -2713,6 +2717,7 @@ export type Database = {
           delivered_at?: string | null
           delivered_by_user_id?: string | null
           delivery_date?: string | null
+          dest_location_id?: string | null
           dispatched_at?: string | null
           dn_sequence_in_invoice?: number
           id?: string
@@ -2725,6 +2730,7 @@ export type Database = {
           reference?: string | null
           sales_order_id?: string | null
           signature_collected?: boolean
+          source_location_id?: string | null
           status?: string
           updated_at?: string
           warehouse_id?: string | null
@@ -2735,6 +2741,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_dest_location_id_fkey"
+            columns: ["dest_location_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_locations"
             referencedColumns: ["id"]
           },
           {
@@ -2756,6 +2769,13 @@ export type Database = {
             columns: ["sales_order_id"]
             isOneToOne: false
             referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_source_location_id_fkey"
+            columns: ["source_location_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_locations"
             referencedColumns: ["id"]
           },
           {
@@ -3736,6 +3756,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          dest_location_id: string | null
           discrepancy_approved_at: string | null
           discrepancy_approved_by: string | null
           discrepancy_reason: string | null
@@ -3750,6 +3771,7 @@ export type Database = {
           received_by: string | null
           source_document_id: string | null
           source_document_reference: string | null
+          source_location_id: string | null
           source_type: string
           status: string
           updated_at: string
@@ -3758,6 +3780,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          dest_location_id?: string | null
           discrepancy_approved_at?: string | null
           discrepancy_approved_by?: string | null
           discrepancy_reason?: string | null
@@ -3772,6 +3795,7 @@ export type Database = {
           received_by?: string | null
           source_document_id?: string | null
           source_document_reference?: string | null
+          source_location_id?: string | null
           source_type?: string
           status?: string
           updated_at?: string
@@ -3780,6 +3804,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          dest_location_id?: string | null
           discrepancy_approved_at?: string | null
           discrepancy_approved_by?: string | null
           discrepancy_reason?: string | null
@@ -3794,6 +3819,7 @@ export type Database = {
           received_by?: string | null
           source_document_id?: string | null
           source_document_reference?: string | null
+          source_location_id?: string | null
           source_type?: string
           status?: string
           updated_at?: string
@@ -3801,10 +3827,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "goods_receipts_dest_location_id_fkey"
+            columns: ["dest_location_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_locations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "goods_receipts_operation_type_id_fkey"
             columns: ["operation_type_id"]
             isOneToOne: false
             referencedRelation: "operation_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipts_source_location_id_fkey"
+            columns: ["source_location_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_locations"
             referencedColumns: ["id"]
           },
           {
@@ -4117,10 +4157,13 @@ export type Database = {
           confirmed_by: string | null
           created_at: string
           created_by: string | null
+          dest_location_id: string | null
           id: string
           ito_number: string
           notes: string | null
+          operation_type_id: string | null
           sales_order_id: string
+          source_location_id: string | null
           status: string
           updated_at: string
         }
@@ -4129,10 +4172,13 @@ export type Database = {
           confirmed_by?: string | null
           created_at?: string
           created_by?: string | null
+          dest_location_id?: string | null
           id?: string
           ito_number: string
           notes?: string | null
+          operation_type_id?: string | null
           sales_order_id: string
+          source_location_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -4141,19 +4187,43 @@ export type Database = {
           confirmed_by?: string | null
           created_at?: string
           created_by?: string | null
+          dest_location_id?: string | null
           id?: string
           ito_number?: string
           notes?: string | null
+          operation_type_id?: string | null
           sales_order_id?: string
+          source_location_id?: string | null
           status?: string
           updated_at?: string
         }
         Relationships: [
           {
+            foreignKeyName: "internal_transfer_orders_dest_location_id_fkey"
+            columns: ["dest_location_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_transfer_orders_operation_type_id_fkey"
+            columns: ["operation_type_id"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "internal_transfer_orders_sales_order_id_fkey"
             columns: ["sales_order_id"]
             isOneToOne: false
             referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_transfer_orders_source_location_id_fkey"
+            columns: ["source_location_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_locations"
             referencedColumns: ["id"]
           },
         ]
@@ -4907,14 +4977,18 @@ export type Database = {
       operation_types: {
         Row: {
           allow_extra_products: boolean | null
+          allow_full_picking_validation: boolean | null
+          barcode: string | null
           card_color: string | null
           create_backorder: string | null
           create_new_lots: boolean | null
           created_at: string
           default_dest_location_id: string | null
           default_source_location_id: string | null
+          force_dest_all_products: boolean | null
           id: string
           is_active: boolean
+          mandatory_scan_dest_location: boolean | null
           mandatory_scan_lot_serial: boolean | null
           mandatory_scan_product: boolean | null
           name: string
@@ -4922,21 +4996,27 @@ export type Database = {
           print_delivery_slip: boolean | null
           print_lot_serial_labels: boolean | null
           print_product_labels: boolean | null
+          print_return_slip: boolean | null
           returns_operation_type_id: string | null
           sequence_prefix: string | null
+          show_reserved_lots: boolean | null
           updated_at: string
           use_existing_lots: boolean | null
         }
         Insert: {
           allow_extra_products?: boolean | null
+          allow_full_picking_validation?: boolean | null
+          barcode?: string | null
           card_color?: string | null
           create_backorder?: string | null
           create_new_lots?: boolean | null
           created_at?: string
           default_dest_location_id?: string | null
           default_source_location_id?: string | null
+          force_dest_all_products?: boolean | null
           id?: string
           is_active?: boolean
+          mandatory_scan_dest_location?: boolean | null
           mandatory_scan_lot_serial?: boolean | null
           mandatory_scan_product?: boolean | null
           name: string
@@ -4944,21 +5024,27 @@ export type Database = {
           print_delivery_slip?: boolean | null
           print_lot_serial_labels?: boolean | null
           print_product_labels?: boolean | null
+          print_return_slip?: boolean | null
           returns_operation_type_id?: string | null
           sequence_prefix?: string | null
+          show_reserved_lots?: boolean | null
           updated_at?: string
           use_existing_lots?: boolean | null
         }
         Update: {
           allow_extra_products?: boolean | null
+          allow_full_picking_validation?: boolean | null
+          barcode?: string | null
           card_color?: string | null
           create_backorder?: string | null
           create_new_lots?: boolean | null
           created_at?: string
           default_dest_location_id?: string | null
           default_source_location_id?: string | null
+          force_dest_all_products?: boolean | null
           id?: string
           is_active?: boolean
+          mandatory_scan_dest_location?: boolean | null
           mandatory_scan_lot_serial?: boolean | null
           mandatory_scan_product?: boolean | null
           name?: string
@@ -4966,8 +5052,10 @@ export type Database = {
           print_delivery_slip?: boolean | null
           print_lot_serial_labels?: boolean | null
           print_product_labels?: boolean | null
+          print_return_slip?: boolean | null
           returns_operation_type_id?: string | null
           sequence_prefix?: string | null
+          show_reserved_lots?: boolean | null
           updated_at?: string
           use_existing_lots?: boolean | null
         }
