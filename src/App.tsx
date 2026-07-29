@@ -30,6 +30,8 @@ const LocationsConfigList = lazy(() => import("@/pages/inventory/config/Location
 const LocationConfigForm = lazy(() => import("@/pages/inventory/config/LocationConfigForm"));
 const OperationTypesConfigList = lazy(() => import("@/pages/inventory/config/OperationTypesConfigList"));
 const OperationTypeConfigForm = lazy(() => import("@/pages/inventory/config/OperationTypeConfigForm"));
+const NumberingConfigList = lazy(() => import("@/pages/inventory/config/NumberingConfigList"));
+const NumberingConfigForm = lazy(() => import("@/pages/inventory/config/NumberingConfigForm"));
 const StockMoves = lazy(() => import("@/pages/inventory/StockMoves"));
 const StockMoveDetail = lazy(() => import("@/pages/inventory/StockMoveDetail"));
 const InventoryConfiguration = lazy(() => import("@/pages/inventory/InventoryConfiguration"));
@@ -344,6 +346,9 @@ const App = () => (
             <Route path="/inventory/config/locations/:id" element={<ProtectedRoute><LocationConfigForm /></ProtectedRoute>} />
             <Route path="/inventory/config/operation-types" element={<ProtectedRoute><OperationTypesConfigList /></ProtectedRoute>} />
             <Route path="/inventory/config/operation-types/:id" element={<ProtectedRoute><OperationTypeConfigForm /></ProtectedRoute>} />
+            {/* Numbering keeps the Super Admin restriction the legacy /settings/numbering route has. */}
+            <Route path="/inventory/config/numbering" element={<RouteGuard superAdmin denyMessage="Numbering settings are restricted to Super Admin."><NumberingConfigList /></RouteGuard>} />
+            <Route path="/inventory/config/numbering/:id" element={<RouteGuard superAdmin denyMessage="Numbering settings are restricted to Super Admin."><NumberingConfigForm /></RouteGuard>} />
             <Route path="/inventory/stock-moves" element={<ProtectedRoute><StockMoves /></ProtectedRoute>} />
             <Route path="/inventory/stock-moves/:id" element={<ProtectedRoute><StockMoveDetail /></ProtectedRoute>} />
             <Route path="/inventory/reporting" element={<ProtectedRoute><InventoryReporting /></ProtectedRoute>} />

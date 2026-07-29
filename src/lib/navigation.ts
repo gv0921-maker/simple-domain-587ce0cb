@@ -35,6 +35,10 @@ export const INVENTORY_NAV = [
       { label: 'Warehouses', href: '/inventory/config/warehouses' },
       { label: 'Locations', href: '/inventory/config/locations' },
       { label: 'Operation Types', href: '/inventory/config/operation-types' },
+      // New entry — the inventory Setup menu had no Numbering link before; the
+      // only one lives in SETTINGS_NAV and still points at /settings/numbering.
+      // Route is Super Admin-gated, matching the legacy page.
+      { label: 'Numbering', href: '/inventory/config/numbering' },
       { heading: true, label: 'Products' },
       { label: 'Product Categories', href: '/inventory/setup/categories' },
       { label: 'Product Attributes', href: '/inventory/setup/attributes' },

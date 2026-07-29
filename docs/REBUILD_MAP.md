@@ -296,10 +296,23 @@ deleted only when the module is explicitly signed off.
 | `/inventory/warehouses` | `src/pages/inventory/WarehousesList.tsx` | `/inventory/config/warehouses` |
 | `/inventory/locations` | `src/pages/inventory/WarehouseLocations.tsx` | `/inventory/config/locations` |
 | `/inventory/setup/operation-types` | `src/pages/inventory/setup/InventorySetupOperationTypes.tsx` → `src/components/inventory/config/OperationTypesConfig.tsx` | `/inventory/config/operation-types` |
+| `/settings/numbering` | `src/pages/settings/NumberingSettings.tsx` | `/inventory/config/numbering` |
 
 At sign-off, deleting each of these means: removing the route + lazy import from
 `App.tsx`, and archiving the page file under `src/_archive/` rather than deleting it
 outright.
+
+Numbering is a partial exception: the rebuilt page is additive in the Inventory
+**Setup** menu (that menu had no Numbering link before), while `SETTINGS_NAV` still
+lists `/settings/numbering` at `src/lib/navigation/settings.ts:42`. Both menu paths are
+live until you decide whether the Settings entry should also be repointed. Both routes
+are Super Admin-gated.
+
+Note the rebuilt Numbering page cannot fully replace the legacy one's remit: prefixes
+are a hardcoded `CASE` in `generate_document_number` and `preview_next_document_number`,
+not columns, so they are surfaced read-only. Making them configurable needs an approved
+migration plus a rewrite of both functions — the numbering path 9 triggers and ~20
+functions depend on.
 
 Still pointing at their existing pages, to be repointed as each is rebuilt:
 Settings, Product Categories, Product Attributes, Units & Packagings, Reorder Rules,
