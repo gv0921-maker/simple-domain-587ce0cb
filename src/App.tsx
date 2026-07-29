@@ -28,6 +28,8 @@ const WarehousesConfigList = lazy(() => import("@/pages/inventory/config/Warehou
 const WarehouseConfigForm = lazy(() => import("@/pages/inventory/config/WarehouseConfigForm"));
 const LocationsConfigList = lazy(() => import("@/pages/inventory/config/LocationsConfigList"));
 const LocationConfigForm = lazy(() => import("@/pages/inventory/config/LocationConfigForm"));
+const OperationTypesConfigList = lazy(() => import("@/pages/inventory/config/OperationTypesConfigList"));
+const OperationTypeConfigForm = lazy(() => import("@/pages/inventory/config/OperationTypeConfigForm"));
 const StockMoves = lazy(() => import("@/pages/inventory/StockMoves"));
 const StockMoveDetail = lazy(() => import("@/pages/inventory/StockMoveDetail"));
 const InventoryConfiguration = lazy(() => import("@/pages/inventory/InventoryConfiguration"));
@@ -340,6 +342,8 @@ const App = () => (
             <Route path="/inventory/locations" element={<ProtectedRoute><WarehouseLocations /></ProtectedRoute>} />
             <Route path="/inventory/config/locations" element={<ProtectedRoute><LocationsConfigList /></ProtectedRoute>} />
             <Route path="/inventory/config/locations/:id" element={<ProtectedRoute><LocationConfigForm /></ProtectedRoute>} />
+            <Route path="/inventory/config/operation-types" element={<ProtectedRoute><OperationTypesConfigList /></ProtectedRoute>} />
+            <Route path="/inventory/config/operation-types/:id" element={<ProtectedRoute><OperationTypeConfigForm /></ProtectedRoute>} />
             <Route path="/inventory/stock-moves" element={<ProtectedRoute><StockMoves /></ProtectedRoute>} />
             <Route path="/inventory/stock-moves/:id" element={<ProtectedRoute><StockMoveDetail /></ProtectedRoute>} />
             <Route path="/inventory/reporting" element={<ProtectedRoute><InventoryReporting /></ProtectedRoute>} />
