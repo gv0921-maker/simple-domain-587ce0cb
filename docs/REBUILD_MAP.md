@@ -281,3 +281,26 @@ Dependency-driven, lowest-risk first:
    `INVENTORY_PLAN.md`, `RBAC_AUDIT.md`, `SETTINGS_AUDIT.md`,
    `SETTINGS_DEAD_CODE_REMOVED.md`, `WORKFLOW_AUDIT.md`) predate this re-scaffold and
    may contradict it. Left in place per the no-delete rule; treat as historical.
+
+---
+
+## Legacy pages pending removal
+
+Rebuilt config pages are live and the Inventory **Setup** menu now points at them
+(`src/lib/navigation.ts`). The legacy pages below are **still routed in `App.tsx`** and
+reachable by direct URL — bypassed by the menu, not removed. Per rule 4 they are
+deleted only when the module is explicitly signed off.
+
+| Legacy route | Legacy file | Superseded by |
+| --- | --- | --- |
+| `/inventory/warehouses` | `src/pages/inventory/WarehousesList.tsx` | `/inventory/config/warehouses` |
+| `/inventory/locations` | `src/pages/inventory/WarehouseLocations.tsx` | `/inventory/config/locations` |
+| `/inventory/setup/operation-types` | `src/pages/inventory/setup/InventorySetupOperationTypes.tsx` → `src/components/inventory/config/OperationTypesConfig.tsx` | `/inventory/config/operation-types` |
+
+At sign-off, deleting each of these means: removing the route + lazy import from
+`App.tsx`, and archiving the page file under `src/_archive/` rather than deleting it
+outright.
+
+Still pointing at their existing pages, to be repointed as each is rebuilt:
+Settings, Product Categories, Product Attributes, Units & Packagings, Reorder Rules,
+Adjustments.

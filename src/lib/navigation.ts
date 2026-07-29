@@ -29,9 +29,12 @@ export const INVENTORY_NAV = [
     children: [
       { label: 'Settings', href: '/inventory/configuration' },
       { heading: true, label: 'Warehouse Management' },
-      { label: 'Warehouses', href: '/inventory/warehouses' },
-      { label: 'Locations', href: '/inventory/locations' },
-      { label: 'Operation Types', href: '/inventory/setup/operation-types' },
+      // Rebuilt config pages (design system). The legacy pages stay routed and
+      // reachable by direct URL until sign-off — see "Legacy pages pending
+      // removal" in docs/REBUILD_MAP.md.
+      { label: 'Warehouses', href: '/inventory/config/warehouses' },
+      { label: 'Locations', href: '/inventory/config/locations' },
+      { label: 'Operation Types', href: '/inventory/config/operation-types' },
       { heading: true, label: 'Products' },
       { label: 'Product Categories', href: '/inventory/setup/categories' },
       { label: 'Product Attributes', href: '/inventory/setup/attributes' },
