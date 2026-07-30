@@ -297,6 +297,7 @@ deleted only when the module is explicitly signed off.
 | `/inventory/locations` | `src/pages/inventory/WarehouseLocations.tsx` | `/inventory/config/locations` |
 | `/inventory/setup/operation-types` | `src/pages/inventory/setup/InventorySetupOperationTypes.tsx` → `src/components/inventory/config/OperationTypesConfig.tsx` | `/inventory/config/operation-types` |
 | `/settings/numbering` | `src/pages/settings/NumberingSettings.tsx` | `/inventory/config/numbering` |
+| `/inventory/setup/categories` | `src/pages/inventory/setup/InventorySetupCategories.tsx` → `src/components/inventory/config/CategoriesConfig.tsx` | `/inventory/config/categories` |
 
 At sign-off, deleting each of these means: removing the route + lazy import from
 `App.tsx`, and archiving the page file under `src/_archive/` rather than deleting it
@@ -314,6 +315,11 @@ not columns, so they are surfaced read-only. Making them configurable needs an a
 migration plus a rewrite of both functions — the numbering path 9 triggers and ~20
 functions depend on.
 
+Product Categories are **organisational only** — nothing reads the table yet. The product
+form's category dropdown is a hardcoded array (`CATEGORIES` in `ProductDetail.tsx`),
+`products.category` is free text, and `products.category_id` is NULL on every row. Making
+categories real means repointing the product form, which pulls Products into scope and
+needs a decision on the `category` text vs `category_id` FK duality. Deliberately deferred.
+
 Still pointing at their existing pages, to be repointed as each is rebuilt:
-Settings, Product Categories, Product Attributes, Units & Packagings, Reorder Rules,
-Adjustments.
+Settings, Product Attributes, Units & Packagings, Reorder Rules, Adjustments.

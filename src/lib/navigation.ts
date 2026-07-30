@@ -40,7 +40,8 @@ export const INVENTORY_NAV = [
       // Route is Super Admin-gated, matching the legacy page.
       { label: 'Numbering', href: '/inventory/config/numbering' },
       { heading: true, label: 'Products' },
-      { label: 'Product Categories', href: '/inventory/setup/categories' },
+      // Rebuilt config page; legacy /inventory/setup/categories stays routed by URL.
+      { label: 'Product Categories', href: '/inventory/config/categories' },
       { label: 'Product Attributes', href: '/inventory/setup/attributes' },
       { label: 'Units & Packagings', href: '/inventory/setup/units' },
       { heading: true, label: 'Replenishment' },

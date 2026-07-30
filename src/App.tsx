@@ -32,6 +32,8 @@ const OperationTypesConfigList = lazy(() => import("@/pages/inventory/config/Ope
 const OperationTypeConfigForm = lazy(() => import("@/pages/inventory/config/OperationTypeConfigForm"));
 const NumberingConfigList = lazy(() => import("@/pages/inventory/config/NumberingConfigList"));
 const NumberingConfigForm = lazy(() => import("@/pages/inventory/config/NumberingConfigForm"));
+const CategoriesConfigList = lazy(() => import("@/pages/inventory/config/CategoriesConfigList"));
+const CategoryConfigForm = lazy(() => import("@/pages/inventory/config/CategoryConfigForm"));
 const StockMoves = lazy(() => import("@/pages/inventory/StockMoves"));
 const StockMoveDetail = lazy(() => import("@/pages/inventory/StockMoveDetail"));
 const InventoryConfiguration = lazy(() => import("@/pages/inventory/InventoryConfiguration"));
@@ -349,6 +351,8 @@ const App = () => (
             {/* Numbering keeps the Super Admin restriction the legacy /settings/numbering route has. */}
             <Route path="/inventory/config/numbering" element={<RouteGuard superAdmin denyMessage="Numbering settings are restricted to Super Admin."><NumberingConfigList /></RouteGuard>} />
             <Route path="/inventory/config/numbering/:id" element={<RouteGuard superAdmin denyMessage="Numbering settings are restricted to Super Admin."><NumberingConfigForm /></RouteGuard>} />
+            <Route path="/inventory/config/categories" element={<ProtectedRoute><CategoriesConfigList /></ProtectedRoute>} />
+            <Route path="/inventory/config/categories/:id" element={<ProtectedRoute><CategoryConfigForm /></ProtectedRoute>} />
             <Route path="/inventory/stock-moves" element={<ProtectedRoute><StockMoves /></ProtectedRoute>} />
             <Route path="/inventory/stock-moves/:id" element={<ProtectedRoute><StockMoveDetail /></ProtectedRoute>} />
             <Route path="/inventory/reporting" element={<ProtectedRoute><InventoryReporting /></ProtectedRoute>} />
