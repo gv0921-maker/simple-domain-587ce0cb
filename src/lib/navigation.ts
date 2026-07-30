@@ -43,7 +43,8 @@ export const INVENTORY_NAV = [
       // Rebuilt config page; legacy /inventory/setup/categories stays routed by URL.
       { label: 'Product Categories', href: '/inventory/config/categories' },
       { label: 'Product Attributes', href: '/inventory/setup/attributes' },
-      { label: 'Units & Packagings', href: '/inventory/setup/units' },
+      // Rebuilt config page; legacy /inventory/setup/units stays routed by URL.
+      { label: 'Units & Packagings', href: '/inventory/config/uom' },
       { heading: true, label: 'Replenishment' },
       { label: 'Reorder Rules', href: '/inventory/reorder-rules' },
       { label: 'Adjustments', href: '/inventory/adjustments' },
