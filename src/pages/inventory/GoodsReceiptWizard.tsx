@@ -18,6 +18,8 @@ import { AlertTriangle, ArrowLeft, ArrowRight, Plus, Printer, ShieldCheck, Trash
 import { toast } from 'sonner';
 
 import { useProducts, useWarehouses } from '@/hooks/inventory';
+import { useOperationTypes } from '@/hooks/inventory/config';
+import { useLocationsQuery } from '@/hooks/inventory/useLocations';
 import {
   useGoodsReceipt, useCreateGoodsReceipt, useUpdateReceivedQuantities,
   useApproveDiscrepancy, useGenerateSerialsForLine, useMarkLabelsGenerated,
@@ -48,6 +50,37 @@ export default function GoodsReceiptWizard() {
   const { data: warehouses = [] } = useWarehouses();
   const { data: detail } = useGoodsReceipt(id);
   const { isAdmin } = useIsSuperAdmin();
+  const { data: operationTypes = [] } = useOperationTypes();
+  const { data: locations = [] } = useLocationsQuery();
+
+  /**
+   * The operation type this receipt is created under.
+   *
+   * Prefers the `?operation_type_id=` parameter emitted by the Operations
+   * overview cards (InventoryOperationsOverview.tsx:98) — the `useSearchParams`
+   * import was already here for exactly this and had never been used. Falls back
+   * to the single active `receipt` operation type so a wizard opened directly,
+   * from the menu or by URL, still tags correctly.
+   *
+   * Resolves to null only if no active receipt operation type exists, in which
+   * case the receipt is created untagged and behaves exactly as before.
+   */
+  const operationTypeId = useMemo(() => {
+    const fromUrl = search.get('operation_type_id');
+    if (fromUrl && operationTypes.some((t) => t.id === fromUrl)) return fromUrl;
+    const receiptTypes = operationTypes.filter(
+      (t) => t.operationKind === 'receipt' && t.isActive,
+    );
+    return receiptTypes.length === 1 ? receiptTypes[0].id : null;
+  }, [search, operationTypes]);
+
+  const operationType = operationTypes.find((t) => t.id === operationTypeId) ?? null;
+
+  /** Destination is derived from the operation type and is not staff-editable. */
+  const destinationLocation = useMemo(() => {
+    const destId = detail?.gr?.dest_location_id ?? operationType?.defaultDestLocationId ?? null;
+    return destId ? locations.find((l) => l.id === destId) ?? null : null;
+  }, [detail, operationType, locations]);
 
   const createGR = useCreateGoodsReceipt();
   const updateQty = useUpdateReceivedQuantities(id ?? '');
@@ -90,6 +123,9 @@ export default function GoodsReceiptWizard() {
         source_document_id: null,
         source_document_reference: sourceRef || null,
         warehouse_id: warehouseId || null,
+        // Tags the receipt. The database derives its source/dest locations from
+        // this, and its number too once the operation type owns a sequence.
+        operation_type_id: operationTypeId,
         lines: draftLines.map(l => ({
           product_id: l.product_id,
           product_name: l.product_name,
@@ -233,6 +269,17 @@ export default function GoodsReceiptWizard() {
             <div className="text-sm text-muted-foreground mt-1">
               Source: {gr.source_type.replace('_', ' ')}{gr.source_document_reference ? ` — ${gr.source_document_reference}` : ''}
             </div>
+            {/*
+              Destination is set from the operation type at creation and is
+              intentionally read-only — no edit control. A super-admin override
+              arrives with the roles work.
+            */}
+            {destinationLocation && (
+              <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
+                <span>Destination: {destinationLocation.name}</span>
+                <Badge variant="outline" className="text-[10px]">Set by operation type</Badge>
+              </div>
+            )}
           </div>
         </div>
 

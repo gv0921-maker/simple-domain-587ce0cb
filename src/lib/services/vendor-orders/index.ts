@@ -5,6 +5,24 @@ import { createGoodsReceipt } from '@/lib/services/inventory/goodsReceipt';
 
 const sb = db;
 
+/**
+ * The single active `receipt` operation type, or null.
+ *
+ * Mirrors the wizard's fallback: exactly one match tags the receipt, zero or
+ * several leaves it untagged rather than guessing. Untagged is safe — the
+ * receipt numbers from the global sequence and gets no derived locations, which
+ * is how every receipt behaved before operation types were wired in.
+ */
+async function resolveReceiptOperationTypeId(): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('operation_types')
+    .select('id')
+    .eq('operation_kind', 'receipt')
+    .eq('is_active', true);
+  if (error) throw error;
+  return data?.length === 1 ? data[0].id : null;
+}
+
 export type VOStatus = 'draft' | 'pending_approval' | 'approved' | 'placed' | 'partial' | 'received' | 'cancelled';
 export type VOMode = 'individual' | 'bulk';
 
@@ -235,10 +253,18 @@ export async function recordReceipt(voId: string, lineReceipts: LineReceipt[]): 
       };
     });
 
+  // Tag the receipt with the receipt operation type, exactly as the wizard does,
+  // so a vendor-order receipt gets the same numbering and routing. Resolved here
+  // rather than passed in because this path has no UI to choose from; if no
+  // single active receipt type exists the receipt is created untagged and
+  // behaves as it did before.
+  const operationTypeId = await resolveReceiptOperationTypeId();
+
   const gr = await createGoodsReceipt({
     source_type: 'vendor_order',
     source_document_id: voId,
     source_document_reference: vo.vo_number,
+    operation_type_id: operationTypeId,
     lines: grLines,
   });
 

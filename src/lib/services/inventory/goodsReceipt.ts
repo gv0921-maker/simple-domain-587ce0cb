@@ -24,6 +24,15 @@ export interface GoodsReceipt {
   labels_generated: boolean;
   labels_generated_at: string | null;
   warehouse_id: string | null;
+  /** Which operation type this receipt belongs to; drives numbering and routing. */
+  operation_type_id: string | null;
+  /**
+   * Derived from the operation type's defaults at creation by
+   * trg_gr_fill_default_locations, then fixed. Editing the operation type later
+   * does not move an existing receipt.
+   */
+  source_location_id: string | null;
+  dest_location_id: string | null;
   received_by: string | null;
   received_at: string | null;
   notes: string | null;
@@ -118,16 +127,34 @@ export interface CreateGoodsReceiptInput {
   source_document_reference?: string | null;
   warehouse_id?: string | null;
   notes?: string | null;
+  /**
+   * Which operation type this receipt belongs to.
+   *
+   * Must be supplied by the caller — a trigger cannot invent it, and
+   * `trg_gr_set_number` needs it on NEW to number the receipt. Once present it
+   * drives two things in the database:
+   *   * numbering, if that operation type has owns_sequence = true
+   *   * source/dest locations, via trg_gr_fill_default_locations
+   *
+   * Left NULL, the receipt numbers from the global sequence and gets no
+   * locations, which is exactly how every receipt behaved before this.
+   */
+  operation_type_id?: string | null;
   lines: CreateGRLineInput[];
 }
 
 export async function createGoodsReceipt(input: CreateGoodsReceiptInput): Promise<GoodsReceipt> {
   const me = await uid();
+  // source_location_id / dest_location_id are deliberately NOT sent: the
+  // BEFORE INSERT trigger derives them from the operation type. Sending an
+  // explicit value would override that, which is the intended mechanism for the
+  // future super-admin override but is not something this path should do.
   const { data: gr, error } = await sb.from('goods_receipts').insert({
     source_type: input.source_type,
     source_document_id: input.source_document_id ?? null,
     source_document_reference: input.source_document_reference ?? null,
     warehouse_id: input.warehouse_id ?? null,
+    operation_type_id: input.operation_type_id ?? null,
     notes: input.notes ?? null,
     status: 'quantity_pending',
     created_by: me,
