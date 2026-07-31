@@ -299,6 +299,7 @@ deleted only when the module is explicitly signed off.
 | `/settings/numbering` | `src/pages/settings/NumberingSettings.tsx` | `/inventory/config/numbering` |
 | `/inventory/setup/categories` | `src/pages/inventory/setup/InventorySetupCategories.tsx` → `src/components/inventory/config/CategoriesConfig.tsx` | `/inventory/config/categories` |
 | `/inventory/setup/units` | `src/pages/inventory/setup/InventorySetupUnits.tsx` → `src/components/inventory/config/UnitsConfig.tsx` | `/inventory/config/uom` |
+| `/inventory/setup/attributes` | `src/pages/inventory/setup/InventorySetupAttributes.tsx` → `src/components/inventory/config/AttributesConfig.tsx` | `/inventory/config/attributes` |
 
 At sign-off, deleting each of these means: removing the route + lazy import from
 `App.tsx`, and archiving the page file under `src/_archive/` rather than deleting it
@@ -316,8 +317,8 @@ not columns, so they are surfaced read-only. Making them configurable needs an a
 migration plus a rewrite of both functions — the numbering path 9 triggers and ~20
 functions depend on.
 
-Product Categories and Units of Measure are **organisational only** — nothing reads either
-table yet. The product form's category and unit dropdowns are hardcoded arrays
+Product Categories, Product Attributes and Units of Measure are **organisational only** —
+nothing reads them yet. The product form's category and unit dropdowns are hardcoded arrays
 (`CATEGORIES` and `UNITS` in `ProductDetail.tsx`), `products.category` is free text with
 `products.category_id` NULL on every row, and stock move lines store the unit as text.
 Making them real means repointing the product form, which pulls Products into scope and
@@ -326,5 +327,13 @@ needs a decision on the `category` text vs `category_id` FK duality. Deliberatel
 There is no UoM category table on this database, so the rebuilt Units page shows no
 category column — Odoo groups units by category and this schema does not.
 
+Attributes are one step further along than the other two: `ProductDetail.tsx:737` already
+renders `ProductAttributesAssignment`, so a product *can* be given attributes. But
+`product_attribute_assignments` has 0 rows and the one product's `variants` jsonb carries
+`attributes: {}`, so the machinery exists and has never been used. There is **no**
+`product_variants` table and **nothing** references `product_attribute_values` — no foreign
+key, and `goods_receipt_serials` links only to `product_id`. Deleting an attribute value is
+therefore referentially inert, which is why the rebuilt page needs no delete-guards.
+
 Still pointing at their existing pages, to be repointed as each is rebuilt:
-Settings, Product Attributes, Reorder Rules, Adjustments.
+Settings, Reorder Rules, Adjustments.
