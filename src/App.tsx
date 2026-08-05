@@ -65,6 +65,7 @@ const DeliveryNoteDetail = lazy(() => import("@/pages/inventory/DeliveryNoteDeta
 const DeliveryNotePrint = lazy(() => import("@/pages/inventory/DeliveryNotePrint"));
 const GoodsReceiptsList = lazy(() => import("@/pages/inventory/GoodsReceiptsList"));
 const GoodsReceiptWizard = lazy(() => import("@/pages/inventory/GoodsReceiptWizard"));
+const GoodsReceiptDetail = lazy(() => import("@/pages/inventory/GoodsReceiptDetail"));
 const CorrectionOrdersList = lazy(() => import("@/pages/inventory/CorrectionOrdersList"));
 const CorrectionOrderDetail = lazy(() => import("@/pages/inventory/CorrectionOrderDetail"));
 const InternalMovementsList = lazy(() => import("@/pages/inventory/InternalMovementsList"));
@@ -382,7 +383,10 @@ const App = () => (
             <Route path="/inventory/delivery-notes/:id/print" element={<ProtectedRoute><DeliveryNotePrint /></ProtectedRoute>} />
             <Route path="/inventory/goods-receipts" element={<ProtectedRoute><GoodsReceiptsList /></ProtectedRoute>} />
             <Route path="/inventory/goods-receipts/new" element={<ProtectedRoute><GoodsReceiptWizard /></ProtectedRoute>} />
-            <Route path="/inventory/goods-receipts/:id" element={<ProtectedRoute><GoodsReceiptWizard /></ProtectedRoute>} />
+            {/* Detail rebuilt on the design system (Pass 1). /new still uses the
+                legacy wizard until Pass 2; the old detail path is archived at
+                src/_archive/GoodsReceiptWizard.detail.legacy.tsx */}
+            <Route path="/inventory/goods-receipts/:id" element={<ProtectedRoute><GoodsReceiptDetail /></ProtectedRoute>} />
             <Route path="/inventory/correction-orders" element={<ProtectedRoute><CorrectionOrdersList /></ProtectedRoute>} />
             <Route path="/inventory/correction-orders/:id" element={<ProtectedRoute><CorrectionOrderDetail /></ProtectedRoute>} />
             <Route path="/inventory/internal-movements" element={<ProtectedRoute><InternalMovementsList /></ProtectedRoute>} />

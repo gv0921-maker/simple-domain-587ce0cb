@@ -305,6 +305,38 @@ At sign-off, deleting each of these means: removing the route + lazy import from
 `App.tsx`, and archiving the page file under `src/_archive/` rather than deleting it
 outright.
 
+### Archived code (rule 4 — moved aside, not deleted)
+
+| Archived file | What it was | Superseded by |
+| --- | --- | --- |
+| `src/_archive/GoodsReceiptWizard.detail.legacy.tsx` | Verbatim copy of `GoodsReceiptWizard.tsx` at the GR detail rebuild (Pass 1). Preserves the legacy **detail** path — the `stepIndex` branch that, at `stepIndex === 4` (completed/cancelled), rendered only a "Completed" card and **hid the receipt's own fields once Done**. | `src/pages/inventory/GoodsReceiptDetail.tsx` at `/inventory/goods-receipts/:id` |
+
+`GoodsReceiptWizard.tsx` itself is **untouched** and still serves
+`/inventory/goods-receipts/new`. The create wizard is Pass 2; only the `:id` route was
+repointed. Nothing routes to the archived copy — it exists to be restored or diffed.
+
+**Goods Receipt rebuild passes:** 1 = detail view (done), 2 = create wizard,
+3 = barcode/scan screen, 4 = list. The detail page's Barcode toggle deliberately links
+out to the existing `/barcode` scan flow rather than rebuilding it.
+
+#### GR detail header actions — backend gaps (open, Pass 1)
+
+Of the four spec'd state-dependent actions, only **Cancel** had anything to call.
+The other three render disabled with the reason in their tooltip; each needs a
+**backend decision** before it can be wired, and none was made in Pass 1:
+
+| Action | Why it is not wired |
+| --- | --- |
+| Check Availability | No reservation step exists for receipts. `reserve_serials` is sales-order-keyed (`_so_id`) and does not apply. |
+| Validate | Completion runs per-serial through `complete_gr_line_qc`, which posts the stock ledger. A blanket Validate would have to invent QC results for every serial, or set `status='completed'` directly and leave a Done receipt with no stock moves. |
+| Return | `create_return_request` takes `p_invoice_id`; there is no goods-receipt return path. |
+
+**Cancel** is wired and needs no backend change: `cancelGoodsReceipt()` writes
+`status='cancelled'` (already a `GRStatus`), passes the `gr_update_warehouse` RLS
+policy, and is unaffected by `enforce_gr_discrepancy_approval` (which only guards
+`discrepancy_approved_by`). It refuses on a `completed` receipt, whose ledger rows
+are already posted.
+
 Numbering is a partial exception: the rebuilt page is additive in the Inventory
 **Setup** menu (that menu had no Numbering link before), while `SETTINGS_NAV` still
 lists `/settings/numbering` at `src/lib/navigation/settings.ts:42`. Both menu paths are

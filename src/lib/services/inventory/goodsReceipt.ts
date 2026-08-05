@@ -112,6 +112,91 @@ export async function getGoodsReceiptSerials(grId: string): Promise<GoodsReceipt
   return (data ?? []) as GoodsReceiptSerial[];
 }
 
+/**
+ * One ledger row per serial that this receipt moved into stock.
+ *
+ * Written by the QC RPCs (`record_gr_item_qc` / `complete_gr_line_qc`), which
+ * tag every move with `reference_document_type = 'goods_receipt'` and the GR id
+ * — so this is the receipt's own slice of `stock_moves`, not a guess by
+ * reference-string matching.
+ *
+ * Feeds both the Moves and the Traceability views on the detail page; they are
+ * two presentations of the same rows, so they share one fetch.
+ */
+export interface GoodsReceiptMoveLine {
+  move_id: string;
+  reference: string | null;
+  state: string | null;
+  scheduled_date: string | null;
+  effective_date: string | null;
+  source_location_name: string | null;
+  destination_location_name: string | null;
+  line_id: string;
+  product_id: string | null;
+  product_name: string | null;
+  product_sku: string | null;
+  serial_numbers: string[];
+  done_qty: number;
+  unit_of_measure: string | null;
+}
+
+/** Shape of the nested select below — the generated client does not infer it. */
+interface StockMoveLineRow {
+  id: string;
+  product_id: string | null;
+  product_name: string | null;
+  product_sku: string | null;
+  serial_numbers: string[] | null;
+  done_qty: number | string | null;
+  unit_of_measure: string | null;
+}
+
+interface StockMoveRow {
+  id: string;
+  reference: string | null;
+  state: string | null;
+  scheduled_date: string | null;
+  effective_date: string | null;
+  source_location_name: string | null;
+  destination_location_name: string | null;
+  created_at: string | null;
+  stock_move_lines: StockMoveLineRow[] | null;
+}
+
+export async function getGoodsReceiptMoves(grId: string): Promise<GoodsReceiptMoveLine[]> {
+  const { data, error } = await sb
+    .from('stock_moves')
+    .select('id, reference, state, scheduled_date, effective_date, source_location_name, destination_location_name, created_at, stock_move_lines(*)')
+    .eq('reference_document_type', 'goods_receipt')
+    .eq('reference_document_id', grId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+
+  const out: GoodsReceiptMoveLine[] = [];
+  for (const m of (data ?? []) as unknown as StockMoveRow[]) {
+    for (const l of m.stock_move_lines ?? []) {
+      out.push({
+        move_id: m.id,
+        reference: m.reference ?? null,
+        state: m.state ?? null,
+        // `effective_date` is null on GR-QC moves; created_at is the real stamp.
+        scheduled_date: m.scheduled_date ?? m.created_at ?? null,
+        effective_date: m.effective_date ?? null,
+        source_location_name: m.source_location_name ?? null,
+        destination_location_name: m.destination_location_name ?? null,
+        line_id: l.id,
+        product_id: l.product_id ?? null,
+        product_name: l.product_name ?? null,
+        product_sku: l.product_sku ?? null,
+        serial_numbers: Array.isArray(l.serial_numbers) ? l.serial_numbers : [],
+        done_qty: Number(l.done_qty ?? 0),
+        unit_of_measure: l.unit_of_measure ?? null,
+      });
+    }
+  }
+  return out;
+}
+
 export async function getGoodsReceiptWithSerials(grId: string) {
   const [gr, lines, serials] = await Promise.all([
     getGoodsReceipt(grId),
@@ -218,6 +303,38 @@ export async function advanceToLabelsStep(grId: string): Promise<void> {
   const { error } = await sb.from('goods_receipts').update({ status: 'labels_pending' }).eq('id', grId);
   if (error) throw error;
   try { await logStatusChange('goods_receipt', grId, 'quantity_pending', 'labels_pending'); } catch { /* noop */ }
+}
+
+/**
+ * Cancel a receipt — a plain status write, no RPC and no schema change.
+ *
+ * `cancelled` is already a member of GRStatus and the UPDATE passes the
+ * `gr_update_warehouse` RLS policy (`can_write_inventory()`); the
+ * `enforce_gr_discrepancy_approval` trigger only guards
+ * `discrepancy_approved_by`, so a status-only write is unaffected.
+ *
+ * Deliberately refuses once the receipt is `completed`: completion has already
+ * written stock-ledger rows, and flipping the status afterwards would leave
+ * those moves orphaned against a cancelled document. Reversing a completed
+ * receipt is a Return, which has no backend support yet — see the header
+ * actions in GoodsReceiptDetail.tsx.
+ */
+export async function cancelGoodsReceipt(grId: string): Promise<void> {
+  const current = await getGoodsReceipt(grId);
+  if (!current) throw new Error(`Goods receipt ${grId} not found`);
+  if (current.status === 'completed') {
+    throw new Error(
+      'This goods receipt is already completed and cannot be cancelled — its stock moves have been posted. Use a Return to reverse it.',
+    );
+  }
+  if (current.status === 'cancelled') return;
+
+  const { error } = await sb
+    .from('goods_receipts')
+    .update({ status: 'cancelled' })
+    .eq('id', grId);
+  if (error) throw error;
+  try { await logStatusChange('goods_receipt', grId, current.status, 'cancelled'); } catch { /* noop */ }
 }
 
 export async function generateSerialsForLine(grLineId: string): Promise<string[]> {

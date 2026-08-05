@@ -12,13 +12,17 @@ import * as React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/cn';
 import { Button, StatusRibbon, type RibbonStage } from './primitives';
-import { CogMenu } from './CogMenu';
+import { CogMenu, type CogMenuProps } from './CogMenu';
 
 export interface HeaderAction {
   key: string;
   label: string;
   variant?: 'primary' | 'outline' | 'subtle' | 'danger';
   onClick?: () => void;
+  /** Renders the button greyed and inert — for actions not yet wired. */
+  disabled?: boolean;
+  /** Native tooltip. Use it to say *why* a disabled action is disabled. */
+  title?: string;
 }
 
 export interface SegmentOption {
@@ -37,6 +41,12 @@ export interface DocumentHeaderProps {
   stages: RibbonStage[];
   currentStage: string;
   pager?: { index: number; total: number; onPrev?: () => void; onNext?: () => void };
+  /**
+   * Cog dropdown contents. Omitted, the cog renders its own demo defaults —
+   * fine for previews, wrong for a real record, so pass real items (or `[]`)
+   * on any page wired to data. Pass `false` to drop the cog entirely.
+   */
+  cog?: CogMenuProps | false;
   className?: string;
 }
 
@@ -50,6 +60,7 @@ export function DocumentHeader({
   stages,
   currentStage,
   pager,
+  cog,
   className,
 }: DocumentHeaderProps) {
   return (
@@ -126,6 +137,8 @@ export function DocumentHeader({
               size="sm"
               variant={a.variant ?? 'outline'}
               onClick={a.onClick}
+              disabled={a.disabled}
+              title={a.title}
             >
               {a.label}
             </Button>
@@ -162,9 +175,11 @@ export function DocumentHeader({
           </div>
         )}
 
-        <div className="ml-auto">
-          <CogMenu />
-        </div>
+        {cog !== false && (
+          <div className="ml-auto">
+            <CogMenu {...(cog ?? {})} />
+          </div>
+        )}
       </div>
 
       {/* row 3 — title + status ribbon */}

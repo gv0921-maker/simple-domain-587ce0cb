@@ -44,6 +44,12 @@ export interface CogMenuProps {
   align?: 'left' | 'right';
   /** Renders a bordered button instead of a bare icon. */
   bordered?: boolean;
+  /**
+   * Greys out the Print row and stops it opening its submenu — for pages where
+   * printing is not built yet. `printDisabledTitle` says why, as a tooltip.
+   */
+  printDisabled?: boolean;
+  printDisabledTitle?: string;
 }
 
 const DEFAULT_PRINT: CogMenuItem[] = [
@@ -66,6 +72,8 @@ export function CogMenu({
   items = DEFAULT_ITEMS,
   align = 'right',
   bordered = false,
+  printDisabled = false,
+  printDisabledTitle,
 }: CogMenuProps) {
   const [open, setOpen] = React.useState(false);
   const [printOpen, setPrintOpen] = React.useState(false);
@@ -225,6 +233,9 @@ export function CogMenu({
       danger
         ? 'text-[hsl(var(--ds-red))] hover:bg-[hsl(var(--ds-red-bg))]'
         : 'text-[hsl(var(--ds-ink))] hover:bg-[hsl(var(--ds-surface-sunken))]',
+      // Not `pointer-events-none`: a disabled row still needs to surface its
+      // `title` tooltip explaining why it is unavailable.
+      'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent',
     );
 
   return (
@@ -265,14 +276,16 @@ export function CogMenu({
           <div
             ref={submenuAnchorRef}
             className="relative"
-            onMouseEnter={openSubmenu}
-            onMouseLeave={scheduleCloseSubmenu}
+            onMouseEnter={printDisabled ? undefined : openSubmenu}
+            onMouseLeave={printDisabled ? undefined : scheduleCloseSubmenu}
           >
             <button
               type="button"
               role="menuitem"
               aria-haspopup="menu"
               aria-expanded={printOpen}
+              disabled={printDisabled}
+              title={printDisabled ? printDisabledTitle : undefined}
               onClick={() => {
                 cancelScheduledClose();
                 // Click pins it open; clicking again unpins and closes.
@@ -293,7 +306,7 @@ export function CogMenu({
               <ChevronRight className="h-[13px] w-[13px] opacity-60" />
             </button>
 
-            {printOpen && (
+            {printOpen && !printDisabled && (
               <div
                 ref={submenuRef}
                 role="menu"
@@ -343,7 +356,7 @@ export function CogMenu({
             )}
           </div>
 
-          <div className="my-1 h-px bg-[hsl(var(--ds-border))]" />
+          {items.length > 0 && <div className="my-1 h-px bg-[hsl(var(--ds-border))]" />}
 
           {items.map((it) => (
             <button

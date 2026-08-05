@@ -5,6 +5,7 @@ export const goodsReceiptKeys = {
   all: ['goodsReceipts'] as const,
   list: () => [...goodsReceiptKeys.all, 'list'] as const,
   detail: (id: string) => [...goodsReceiptKeys.all, 'detail', id] as const,
+  moves: (id: string) => [...goodsReceiptKeys.all, 'moves', id] as const,
 };
 
 export const useGoodsReceipts = () =>
@@ -14,6 +15,14 @@ export const useGoodsReceipt = (id: string | undefined) =>
   useQuery({
     queryKey: id ? goodsReceiptKeys.detail(id) : ['noop'],
     queryFn: () => gr.getGoodsReceiptWithSerials(id!),
+    enabled: !!id,
+  });
+
+/** Stock-ledger rows this receipt produced — powers the Moves + Traceability views. */
+export const useGoodsReceiptMoves = (id: string | undefined) =>
+  useQuery({
+    queryKey: id ? goodsReceiptKeys.moves(id) : ['noop'],
+    queryFn: () => gr.getGoodsReceiptMoves(id!),
     enabled: !!id,
   });
 
@@ -51,6 +60,18 @@ export function useAdvanceToLabels(grId: string) {
     mutationFn: () => gr.advanceToLabelsStep(grId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: goodsReceiptKeys.detail(grId) });
+      qc.invalidateQueries({ queryKey: ['activity-log', 'goods_receipt', grId] });
+    },
+  });
+}
+
+export function useCancelGoodsReceipt(grId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => gr.cancelGoodsReceipt(grId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: goodsReceiptKeys.detail(grId) });
+      qc.invalidateQueries({ queryKey: goodsReceiptKeys.list() });
       qc.invalidateQueries({ queryKey: ['activity-log', 'goods_receipt', grId] });
     },
   });
