@@ -10,6 +10,9 @@ export const INVENTORY_NAV = [
     children: [
       { label: 'Overview', href: '/inventory/operations' },
       { label: 'Goods Receipts', href: '/inventory/goods-receipts' },
+      // Inventory 2 preview — the rebuilt module on the inv_ schema, read-only.
+      // Runs alongside the entry above; neither replaces the other yet.
+      { label: 'Goods Receipts (v2)', href: '/inventory2/receipts' },
       { label: 'Delivery Notes', href: '/inventory/delivery-notes' },
       { label: 'Internal Movements', href: '/inventory/internal-movements' },
     ],

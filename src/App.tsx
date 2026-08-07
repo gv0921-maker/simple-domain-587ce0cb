@@ -66,6 +66,10 @@ const DeliveryNotePrint = lazy(() => import("@/pages/inventory/DeliveryNotePrint
 const GoodsReceiptsList = lazy(() => import("@/pages/inventory/GoodsReceiptsList"));
 const GoodsReceiptWizard = lazy(() => import("@/pages/inventory/GoodsReceiptWizard"));
 const GoodsReceiptDetail = lazy(() => import("@/pages/inventory/GoodsReceiptDetail"));
+// Inventory 2 — the rebuilt inv_ module, running side by side with the legacy
+// one. Read-only preview; the live module stays at /inventory/*.
+const Inv2ReceiptsList = lazy(() => import("@/pages/inventory2/ReceiptsList"));
+const Inv2ReceiptDetail = lazy(() => import("@/pages/inventory2/ReceiptDetail"));
 const CorrectionOrdersList = lazy(() => import("@/pages/inventory/CorrectionOrdersList"));
 const CorrectionOrderDetail = lazy(() => import("@/pages/inventory/CorrectionOrderDetail"));
 const InternalMovementsList = lazy(() => import("@/pages/inventory/InternalMovementsList"));
@@ -397,6 +401,12 @@ const App = () => (
             <Route path="/inventory/stock-counts/:id" element={<ProtectedRoute><StockCountDetail /></ProtectedRoute>} />
             <Route path="/inventory/write-offs" element={<ProtectedRoute><WriteOffsList /></ProtectedRoute>} />
             <Route path="/inventory/write-offs/:id" element={<ProtectedRoute><WriteOffDetail /></ProtectedRoute>} />
+
+            {/* Inventory 2 — rebuilt module on the inv_ schema. Deliberately a
+                separate path space so the legacy /inventory/* routes above are
+                untouched and both run side by side until sign-off. */}
+            <Route path="/inventory2/receipts" element={<ProtectedRoute><Inv2ReceiptsList /></ProtectedRoute>} />
+            <Route path="/inventory2/receipts/:id" element={<ProtectedRoute><Inv2ReceiptDetail /></ProtectedRoute>} />
 
             {/* Barcode module */}
             <Route path="/barcode" element={<ProtectedRoute><ScanQueueDashboard /></ProtectedRoute>} />
