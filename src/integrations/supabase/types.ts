@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       activity_log: {
@@ -4228,6 +4253,755 @@ export type Database = {
           },
         ]
       }
+      inv_location: {
+        Row: {
+          barcode: string | null
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          parent_id: string | null
+          type: Database["public"]["Enums"]["inv_location_type"]
+          updated_at: string
+          warehouse_id: string
+        }
+        Insert: {
+          barcode?: string | null
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          parent_id?: string | null
+          type: Database["public"]["Enums"]["inv_location_type"]
+          updated_at?: string
+          warehouse_id: string
+        }
+        Update: {
+          barcode?: string | null
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          parent_id?: string | null
+          type?: Database["public"]["Enums"]["inv_location_type"]
+          updated_at?: string
+          warehouse_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_location_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "inv_location"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_location_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inv_warehouse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_move: {
+        Row: {
+          created_at: string
+          demand_qty: number
+          id: string
+          notes: string | null
+          operation_id: string
+          product_id: string
+          state: Database["public"]["Enums"]["inv_move_state"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          demand_qty?: number
+          id?: string
+          notes?: string | null
+          operation_id: string
+          product_id: string
+          state?: Database["public"]["Enums"]["inv_move_state"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          demand_qty?: number
+          id?: string
+          notes?: string | null
+          operation_id?: string
+          product_id?: string
+          state?: Database["public"]["Enums"]["inv_move_state"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_move_operation_id_fkey"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "inv_operation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_move_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_move_line: {
+        Row: {
+          created_at: string
+          done_at: string | null
+          from_location_id: string | null
+          id: string
+          move_id: string
+          stock_item_id: string
+          to_location_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          done_at?: string | null
+          from_location_id?: string | null
+          id?: string
+          move_id: string
+          stock_item_id: string
+          to_location_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          done_at?: string | null
+          from_location_id?: string | null
+          id?: string
+          move_id?: string
+          stock_item_id?: string
+          to_location_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_move_line_from_location_id_fkey"
+            columns: ["from_location_id"]
+            isOneToOne: false
+            referencedRelation: "inv_location"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_move_line_move_id_fkey"
+            columns: ["move_id"]
+            isOneToOne: false
+            referencedRelation: "inv_move"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_move_line_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "inv_stock_item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_move_line_to_location_id_fkey"
+            columns: ["to_location_id"]
+            isOneToOne: false
+            referencedRelation: "inv_location"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_number_sequence: {
+        Row: {
+          created_at: string
+          current_number: number
+          document_type: string
+          fy_label: string
+          id: string
+          is_active: boolean
+          padding: number
+          prefix: string
+          separator: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_number?: number
+          document_type: string
+          fy_label: string
+          id?: string
+          is_active?: boolean
+          padding?: number
+          prefix: string
+          separator?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_number?: number
+          document_type?: string
+          fy_label?: string
+          id?: string
+          is_active?: boolean
+          padding?: number
+          prefix?: string
+          separator?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inv_operation: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dest_location_id: string | null
+          done_at: string | null
+          id: string
+          notes: string | null
+          number: string
+          operation_type_id: string
+          partner_customer_id: string | null
+          partner_vendor_id: string | null
+          scheduled_at: string | null
+          source_document: string | null
+          source_location_id: string | null
+          source_purchase_order_id: string | null
+          state: Database["public"]["Enums"]["inv_operation_state"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dest_location_id?: string | null
+          done_at?: string | null
+          id?: string
+          notes?: string | null
+          number: string
+          operation_type_id: string
+          partner_customer_id?: string | null
+          partner_vendor_id?: string | null
+          scheduled_at?: string | null
+          source_document?: string | null
+          source_location_id?: string | null
+          source_purchase_order_id?: string | null
+          state?: Database["public"]["Enums"]["inv_operation_state"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dest_location_id?: string | null
+          done_at?: string | null
+          id?: string
+          notes?: string | null
+          number?: string
+          operation_type_id?: string
+          partner_customer_id?: string | null
+          partner_vendor_id?: string | null
+          scheduled_at?: string | null
+          source_document?: string | null
+          source_location_id?: string | null
+          source_purchase_order_id?: string | null
+          state?: Database["public"]["Enums"]["inv_operation_state"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_operation_dest_location_id_fkey"
+            columns: ["dest_location_id"]
+            isOneToOne: false
+            referencedRelation: "inv_location"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_operation_operation_type_id_fkey"
+            columns: ["operation_type_id"]
+            isOneToOne: false
+            referencedRelation: "inv_operation_type"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_operation_partner_customer_id_fkey"
+            columns: ["partner_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_operation_partner_vendor_id_fkey"
+            columns: ["partner_vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_operation_source_location_id_fkey"
+            columns: ["source_location_id"]
+            isOneToOne: false
+            referencedRelation: "inv_location"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_operation_source_purchase_order_id_fkey"
+            columns: ["source_purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "inv_purchase_order"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_operation_type: {
+        Row: {
+          allow_extra_products: boolean
+          created_at: string
+          default_dest_location_id: string | null
+          default_source_location_id: string | null
+          id: string
+          is_active: boolean
+          kind: Database["public"]["Enums"]["inv_operation_kind"]
+          locks_destination: boolean
+          locks_source: boolean
+          mandatory_scan_dest_location: boolean
+          mandatory_scan_product: boolean
+          mandatory_scan_serial: boolean
+          name: string
+          print_labels: boolean
+          sequence_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          allow_extra_products?: boolean
+          created_at?: string
+          default_dest_location_id?: string | null
+          default_source_location_id?: string | null
+          id?: string
+          is_active?: boolean
+          kind: Database["public"]["Enums"]["inv_operation_kind"]
+          locks_destination?: boolean
+          locks_source?: boolean
+          mandatory_scan_dest_location?: boolean
+          mandatory_scan_product?: boolean
+          mandatory_scan_serial?: boolean
+          name: string
+          print_labels?: boolean
+          sequence_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          allow_extra_products?: boolean
+          created_at?: string
+          default_dest_location_id?: string | null
+          default_source_location_id?: string | null
+          id?: string
+          is_active?: boolean
+          kind?: Database["public"]["Enums"]["inv_operation_kind"]
+          locks_destination?: boolean
+          locks_source?: boolean
+          mandatory_scan_dest_location?: boolean
+          mandatory_scan_product?: boolean
+          mandatory_scan_serial?: boolean
+          name?: string
+          print_labels?: boolean
+          sequence_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_operation_type_default_dest_location_id_fkey"
+            columns: ["default_dest_location_id"]
+            isOneToOne: false
+            referencedRelation: "inv_location"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_operation_type_default_source_location_id_fkey"
+            columns: ["default_source_location_id"]
+            isOneToOne: false
+            referencedRelation: "inv_location"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_operation_type_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "inv_number_sequence"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_purchase_order: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expected_at: string | null
+          id: string
+          notes: string | null
+          number: string
+          ordered_at: string | null
+          state: Database["public"]["Enums"]["inv_order_state"]
+          updated_at: string
+          vendor_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expected_at?: string | null
+          id?: string
+          notes?: string | null
+          number: string
+          ordered_at?: string | null
+          state?: Database["public"]["Enums"]["inv_order_state"]
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expected_at?: string | null
+          id?: string
+          notes?: string | null
+          number?: string
+          ordered_at?: string | null
+          state?: Database["public"]["Enums"]["inv_order_state"]
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_purchase_order_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_purchase_order_line: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          order_id: string
+          ordered_qty: number
+          product_id: string
+          received_qty: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id: string
+          ordered_qty: number
+          product_id: string
+          received_qty?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id?: string
+          ordered_qty?: number
+          product_id?: string
+          received_qty?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_purchase_order_line_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "inv_purchase_order"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_purchase_order_line_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_stock_item: {
+        Row: {
+          batch_code: string | null
+          cost: number
+          created_at: string
+          id: string
+          location_id: string
+          origin_operation_id: string | null
+          product_id: string
+          received_at: string | null
+          reserved_at: string | null
+          reserved_for_customer_id: string | null
+          serial: string
+          status: Database["public"]["Enums"]["inv_stock_status"]
+          updated_at: string
+        }
+        Insert: {
+          batch_code?: string | null
+          cost?: number
+          created_at?: string
+          id?: string
+          location_id: string
+          origin_operation_id?: string | null
+          product_id: string
+          received_at?: string | null
+          reserved_at?: string | null
+          reserved_for_customer_id?: string | null
+          serial: string
+          status?: Database["public"]["Enums"]["inv_stock_status"]
+          updated_at?: string
+        }
+        Update: {
+          batch_code?: string | null
+          cost?: number
+          created_at?: string
+          id?: string
+          location_id?: string
+          origin_operation_id?: string | null
+          product_id?: string
+          received_at?: string | null
+          reserved_at?: string | null
+          reserved_for_customer_id?: string | null
+          serial?: string
+          status?: Database["public"]["Enums"]["inv_stock_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_stock_item_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "inv_location"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_stock_item_origin_operation_id_fkey"
+            columns: ["origin_operation_id"]
+            isOneToOne: false
+            referencedRelation: "inv_operation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_stock_item_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_stock_item_reserved_for_customer_id_fkey"
+            columns: ["reserved_for_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_stock_tracking: {
+        Row: {
+          created_at: string
+          detail: Json
+          document_id: string | null
+          document_type: string | null
+          entry_type: string
+          from_location_id: string | null
+          id: string
+          stock_item_id: string
+          to_location_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          detail?: Json
+          document_id?: string | null
+          document_type?: string | null
+          entry_type: string
+          from_location_id?: string | null
+          id?: string
+          stock_item_id: string
+          to_location_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          detail?: Json
+          document_id?: string | null
+          document_type?: string | null
+          entry_type?: string
+          from_location_id?: string | null
+          id?: string
+          stock_item_id?: string
+          to_location_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_stock_tracking_from_location_id_fkey"
+            columns: ["from_location_id"]
+            isOneToOne: false
+            referencedRelation: "inv_location"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_stock_tracking_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "inv_stock_item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_stock_tracking_to_location_id_fkey"
+            columns: ["to_location_id"]
+            isOneToOne: false
+            referencedRelation: "inv_location"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_test_result: {
+        Row: {
+          attachments: Json
+          created_at: string
+          id: string
+          notes: string | null
+          result: boolean
+          seq: number
+          stock_item_id: string
+          template_id: string
+          tested_at: string
+          tested_by: string | null
+          value: string | null
+        }
+        Insert: {
+          attachments?: Json
+          created_at?: string
+          id?: string
+          notes?: string | null
+          result: boolean
+          seq?: never
+          stock_item_id: string
+          template_id: string
+          tested_at?: string
+          tested_by?: string | null
+          value?: string | null
+        }
+        Update: {
+          attachments?: Json
+          created_at?: string
+          id?: string
+          notes?: string | null
+          result?: boolean
+          seq?: never
+          stock_item_id?: string
+          template_id?: string
+          tested_at?: string
+          tested_by?: string | null
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_test_result_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "inv_stock_item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_test_result_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "inv_test_template"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_test_template: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_required: boolean
+          name: string
+          product_id: string | null
+          requires_attachment: boolean
+          requires_value: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          name: string
+          product_id?: string | null
+          requires_attachment?: boolean
+          requires_value?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          name?: string
+          product_id?: string | null
+          requires_attachment?: boolean
+          requires_value?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_test_template_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_warehouse: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inventory_adjustments: {
         Row: {
           approved_at: string | null
@@ -4993,12 +5767,17 @@ export type Database = {
           mandatory_scan_product: boolean | null
           name: string
           operation_kind: string
+          owns_sequence: boolean
           print_delivery_slip: boolean | null
           print_lot_serial_labels: boolean | null
           print_product_labels: boolean | null
           print_return_slip: boolean | null
           returns_operation_type_id: string | null
+          sequence_current_number: number
+          sequence_fy_label: string | null
+          sequence_padding: number | null
           sequence_prefix: string | null
+          sequence_separator: string | null
           show_reserved_lots: boolean | null
           updated_at: string
           use_existing_lots: boolean | null
@@ -5021,12 +5800,17 @@ export type Database = {
           mandatory_scan_product?: boolean | null
           name: string
           operation_kind: string
+          owns_sequence?: boolean
           print_delivery_slip?: boolean | null
           print_lot_serial_labels?: boolean | null
           print_product_labels?: boolean | null
           print_return_slip?: boolean | null
           returns_operation_type_id?: string | null
+          sequence_current_number?: number
+          sequence_fy_label?: string | null
+          sequence_padding?: number | null
           sequence_prefix?: string | null
+          sequence_separator?: string | null
           show_reserved_lots?: boolean | null
           updated_at?: string
           use_existing_lots?: boolean | null
@@ -5049,12 +5833,17 @@ export type Database = {
           mandatory_scan_product?: boolean | null
           name?: string
           operation_kind?: string
+          owns_sequence?: boolean
           print_delivery_slip?: boolean | null
           print_lot_serial_labels?: boolean | null
           print_product_labels?: boolean | null
           print_return_slip?: boolean | null
           returns_operation_type_id?: string | null
+          sequence_current_number?: number
+          sequence_fy_label?: string | null
+          sequence_padding?: number | null
           sequence_prefix?: string | null
+          sequence_separator?: string | null
           show_reserved_lots?: boolean | null
           updated_at?: string
           use_existing_lots?: boolean | null
@@ -9564,6 +10353,32 @@ export type Database = {
       }
     }
     Views: {
+      inv_on_hand: {
+        Row: {
+          location_id: string | null
+          product_id: string | null
+          qty: number | null
+          qty_reserved: number | null
+          qty_unreserved: number | null
+          status: Database["public"]["Enums"]["inv_stock_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_stock_item_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "inv_location"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_stock_item_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reservation_health: {
         Row: {
           issue: string | null
@@ -9975,7 +10790,7 @@ export type Database = {
       }
       expire_credit_notes: { Args: never; Returns: number }
       generate_document_number: {
-        Args: { p_document_type: string }
+        Args: { p_document_type: string; p_operation_type_id?: string }
         Returns: string
       }
       generate_serials_for_gr_line: {
@@ -10102,13 +10917,98 @@ export type Database = {
         }
         Returns: string
       }
+      inv_allocate_document_number: {
+        Args: { p_document_type: string; p_fy_label: string }
+        Returns: string
+      }
+      inv_apply_move_state: {
+        Args: {
+          p_move_id: string
+          p_target: Database["public"]["Enums"]["inv_move_state"]
+        }
+        Returns: Database["public"]["Enums"]["inv_move_state"]
+      }
+      inv_apply_operation_state: {
+        Args: {
+          p_operation_id: string
+          p_target: Database["public"]["Enums"]["inv_operation_state"]
+        }
+        Returns: Database["public"]["Enums"]["inv_operation_state"]
+      }
       inv_approve_adjustment: {
         Args: { _adjustment_id: string; _approved_by: string }
         Returns: undefined
       }
+      inv_available_qty: {
+        Args: { p_location_id?: string; p_product_id: string }
+        Returns: number
+      }
+      inv_complete_receipt: { Args: { p_operation_id: string }; Returns: Json }
       inv_delete_stock_move: { Args: { _move_id: string }; Returns: undefined }
+      inv_derive_operation_state: {
+        Args: { p_operation_id: string }
+        Returns: Database["public"]["Enums"]["inv_operation_state"]
+      }
+      inv_move_state_allowed: {
+        Args: {
+          p_new: Database["public"]["Enums"]["inv_move_state"]
+          p_old: Database["public"]["Enums"]["inv_move_state"]
+        }
+        Returns: boolean
+      }
+      inv_operation_state_allowed: {
+        Args: {
+          p_new: Database["public"]["Enums"]["inv_operation_state"]
+          p_old: Database["public"]["Enums"]["inv_operation_state"]
+        }
+        Returns: boolean
+      }
+      inv_receive_serial: {
+        Args: {
+          p_batch_code?: string
+          p_cost?: number
+          p_move_id: string
+          p_serial: string
+          p_status?: Database["public"]["Enums"]["inv_stock_status"]
+        }
+        Returns: string
+      }
+      inv_receive_serials: {
+        Args: {
+          p_cost?: number
+          p_move_id: string
+          p_serials: string[]
+          p_status?: Database["public"]["Enums"]["inv_stock_status"]
+        }
+        Returns: number
+      }
+      inv_record_qc_results: {
+        Args: { p_results: Json; p_stock_item_id: string }
+        Returns: Database["public"]["Enums"]["inv_stock_status"]
+      }
+      inv_reset_sequence_counter: {
+        Args: { p_document_type: string; p_fy_label: string }
+        Returns: undefined
+      }
       inv_save_stock_move: {
         Args: { _header: Json; _lines: Json; _move_id: string }
+        Returns: string
+      }
+      inv_sync_purchase_order_progress: {
+        Args: { p_order_id: string }
+        Returns: Database["public"]["Enums"]["inv_order_state"]
+      }
+      inv_transfer_stock_item: {
+        Args: {
+          p_detail?: Json
+          p_document_id: string
+          p_document_type: string
+          p_entry_type?: string
+          p_expected_from_location_id: string
+          p_move_id: string
+          p_stock_item_id: string
+          p_to_location_id: string
+        }
         Returns: string
       }
       inv_validate_stock_move: {
@@ -10170,7 +11070,7 @@ export type Database = {
         Returns: Json
       }
       preview_next_document_number: {
-        Args: { p_document_type: string }
+        Args: { p_document_type: string; p_operation_type_id?: string }
         Returns: string
       }
       process_credit_note_resolution: {
@@ -10386,6 +11286,39 @@ export type Database = {
         | "employment_type"
       contact_status: "active" | "archived"
       contact_type: "individual" | "company"
+      inv_location_type:
+        | "supplier"
+        | "view"
+        | "internal"
+        | "customer"
+        | "inventory_loss"
+        | "production"
+        | "transit"
+        | "scrap"
+      inv_move_state: "draft" | "confirmed" | "assigned" | "done" | "cancelled"
+      inv_operation_kind: "receipt" | "internal" | "outgoing" | "adjustment"
+      inv_operation_state:
+        | "draft"
+        | "waiting"
+        | "ready"
+        | "in_progress"
+        | "done"
+        | "cancelled"
+      inv_order_state:
+        | "draft"
+        | "sent"
+        | "confirmed"
+        | "partially_received"
+        | "received"
+        | "cancelled"
+      inv_stock_status:
+        | "ok"
+        | "attention"
+        | "damaged"
+        | "destroyed"
+        | "rejected"
+        | "lost"
+        | "quarantined"
       lead_priority: "low" | "medium" | "high" | "urgent"
       lead_source:
         | "website"
@@ -10531,6 +11464,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       activity_type: ["call", "email", "meeting", "task", "note", "follow_up"],
@@ -10591,6 +11527,43 @@ export const Constants = {
       ],
       contact_status: ["active", "archived"],
       contact_type: ["individual", "company"],
+      inv_location_type: [
+        "supplier",
+        "view",
+        "internal",
+        "customer",
+        "inventory_loss",
+        "production",
+        "transit",
+        "scrap",
+      ],
+      inv_move_state: ["draft", "confirmed", "assigned", "done", "cancelled"],
+      inv_operation_kind: ["receipt", "internal", "outgoing", "adjustment"],
+      inv_operation_state: [
+        "draft",
+        "waiting",
+        "ready",
+        "in_progress",
+        "done",
+        "cancelled",
+      ],
+      inv_order_state: [
+        "draft",
+        "sent",
+        "confirmed",
+        "partially_received",
+        "received",
+        "cancelled",
+      ],
+      inv_stock_status: [
+        "ok",
+        "attention",
+        "damaged",
+        "destroyed",
+        "rejected",
+        "lost",
+        "quarantined",
+      ],
       lead_priority: ["low", "medium", "high", "urgent"],
       lead_source: [
         "website",
