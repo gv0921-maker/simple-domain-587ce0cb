@@ -78,6 +78,7 @@
 
   /* ---- type ----------------------------------------------------------- */
   --ds-font: Inter, ui-sans-serif, system-ui, sans-serif;
+  --ds-fs-md: 14px;                    /* headings + emphasised figures */
   --ds-fs-base: 13px;                  /* Odoo-ish dense base */
   --ds-fs-sm: 12px;
   --ds-fs-xs: 11px;
