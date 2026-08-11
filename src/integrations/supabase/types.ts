@@ -10917,6 +10917,14 @@ export type Database = {
         }
         Returns: string
       }
+      inv_add_receipt_line: {
+        Args: {
+          p_demand_qty?: number
+          p_operation_id: string
+          p_product_id: string
+        }
+        Returns: string
+      }
       inv_allocate_document_number: {
         Args: { p_document_type: string; p_fy_label: string }
         Returns: string
@@ -10943,7 +10951,22 @@ export type Database = {
         Args: { p_location_id?: string; p_product_id: string }
         Returns: number
       }
+      inv_cancel_receipt: { Args: { p_operation_id: string }; Returns: Json }
       inv_complete_receipt: { Args: { p_operation_id: string }; Returns: Json }
+      inv_create_receipt: {
+        Args: {
+          p_dest_location_id?: string
+          p_fy_label?: string
+          p_notes?: string
+          p_operation_type_id: string
+          p_purchase_order_id?: string
+          p_scheduled_at?: string
+          p_source_document?: string
+          p_source_location_id?: string
+          p_vendor_id?: string
+        }
+        Returns: Json
+      }
       inv_delete_stock_move: { Args: { _move_id: string }; Returns: undefined }
       inv_derive_operation_state: {
         Args: { p_operation_id: string }
@@ -10986,6 +11009,7 @@ export type Database = {
         Args: { p_results: Json; p_stock_item_id: string }
         Returns: Database["public"]["Enums"]["inv_stock_status"]
       }
+      inv_remove_receipt_line: { Args: { p_move_id: string }; Returns: Json }
       inv_reset_sequence_counter: {
         Args: { p_document_type: string; p_fy_label: string }
         Returns: undefined
