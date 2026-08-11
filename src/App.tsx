@@ -69,6 +69,7 @@ const GoodsReceiptDetail = lazy(() => import("@/pages/inventory/GoodsReceiptDeta
 // Inventory 2 — the rebuilt inv_ module, running side by side with the legacy
 // one. Read-only preview; the live module stays at /inventory/*.
 const Inv2ReceiptsList = lazy(() => import("@/pages/inventory2/ReceiptsList"));
+const Inv2ReceiptNew = lazy(() => import("@/pages/inventory2/ReceiptNew"));
 const Inv2ReceiptDetail = lazy(() => import("@/pages/inventory2/ReceiptDetail"));
 const CorrectionOrdersList = lazy(() => import("@/pages/inventory/CorrectionOrdersList"));
 const CorrectionOrderDetail = lazy(() => import("@/pages/inventory/CorrectionOrderDetail"));
@@ -406,6 +407,8 @@ const App = () => (
                 separate path space so the legacy /inventory/* routes above are
                 untouched and both run side by side until sign-off. */}
             <Route path="/inventory2/receipts" element={<ProtectedRoute><Inv2ReceiptsList /></ProtectedRoute>} />
+            {/* /new is declared before /:id so it is not swallowed as an id. */}
+            <Route path="/inventory2/receipts/new" element={<ProtectedRoute><Inv2ReceiptNew /></ProtectedRoute>} />
             <Route path="/inventory2/receipts/:id" element={<ProtectedRoute><Inv2ReceiptDetail /></ProtectedRoute>} />
 
             {/* Barcode module */}

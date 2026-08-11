@@ -1,9 +1,9 @@
 /**
  * Inventory 2 — receipts list. Route: /inventory2/receipts
  *
- * READ-ONLY. No New button, no row actions beyond navigating to the detail
- * page. The old module at /inventory/goods-receipts is untouched and still
- * live; this mounts alongside it.
+ * The list itself is a read: it never writes. New routes to the create form,
+ * which calls inv_create_receipt. The old module at /inventory/goods-receipts
+ * is untouched and still live; this mounts alongside it.
  */
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -104,13 +104,15 @@ export default function ReceiptsList() {
             onSearchChange={setSearch}
             searchPlaceholder="Search receipts…"
             page={{ from: filtered.length ? 1 : 0, to: filtered.length, total: rows.length }}
+            onNew={() => navigate('/inventory2/receipts/new')}
+            newLabel="New"
             onRowClick={(r) => navigate(`/inventory2/receipts/${r.id}`)}
           />
         )}
 
         <p className="mt-3 text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-subtle))]">
-          Inventory 2 preview — read-only. The live module remains at{' '}
-          <code>/inventory/goods-receipts</code>.
+          Inventory 2 preview. The live module remains at{' '}
+          <code>/inventory/goods-receipts</code> and is unaffected by anything done here.
         </p>
       </div>
     </AppLayout>
