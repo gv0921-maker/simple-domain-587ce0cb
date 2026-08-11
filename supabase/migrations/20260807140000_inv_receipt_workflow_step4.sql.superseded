@@ -1,0 +1,565 @@
+-- =====================================================================
+-- INVENTORY RESET - STEP 4 PART 1: receipt workflow (inv_* ONLY)
+-- =====================================================================
+--
+-- Builds the three pieces left open at the foot of the Step 3 migration:
+--   1. receipt completion - create units and move them by the sanctioned path
+--   2. received_qty maintenance + purchase order state
+--   3. inv_operation.state derived from its moves, not set by hand
+--
+-- THIS MIGRATION DOES NOT:
+--   * drop, alter or rename ANY existing object
+--   * touch `products`, CRM, or the old inventory module
+--   * reuse the four legacy names (inv_approve_adjustment,
+--     inv_validate_stock_move, inv_save_stock_move, inv_delete_stock_move)
+--
+-- Everything below goes through inv_transfer_stock_item. Nothing here writes
+-- inv_stock_item.location_id, inv_stock_tracking or inv_move_line directly,
+-- so the Step 3 guarantees still hold for every unit received.
+--
+-- Depends on: 20260806120000_inv_schema_step2.sql
+--             20260807090000_inv_enforcement_step3.sql
+-- =====================================================================
+
+BEGIN;
+
+-- =====================================================================
+-- 0. STATE WALKERS
+-- =====================================================================
+-- The Step 3 guards only permit single legal hops, so a document that needs to
+-- go draft -> done must pass through ready. These walk the path one legal hop
+-- at a time rather than forcing an illegal jump. If no path exists they raise,
+-- which is the guard doing its job.
+
+CREATE OR REPLACE FUNCTION public.inv_apply_move_state(
+  p_move_id uuid,
+  p_target  public.inv_move_state
+) RETURNS public.inv_move_state
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_cur  public.inv_move_state;
+  v_path public.inv_move_state[];
+  v_step public.inv_move_state;
+BEGIN
+  SELECT state INTO v_cur FROM public.inv_move WHERE id = p_move_id;
+  IF v_cur IS NULL THEN
+    RAISE EXCEPTION 'Move % not found.', p_move_id USING ERRCODE = 'no_data_found';
+  END IF;
+  IF v_cur = p_target THEN
+    RETURN v_cur;                                   -- idempotent
+  END IF;
+
+  -- Forward path through the move lifecycle.
+  v_path := CASE p_target
+              WHEN 'confirmed' THEN ARRAY['confirmed']::public.inv_move_state[]
+              WHEN 'assigned'  THEN ARRAY['confirmed','assigned']::public.inv_move_state[]
+              WHEN 'done'      THEN ARRAY['confirmed','assigned','done']::public.inv_move_state[]
+              ELSE ARRAY[p_target]
+            END;
+
+  FOREACH v_step IN ARRAY v_path LOOP
+    SELECT state INTO v_cur FROM public.inv_move WHERE id = p_move_id;
+    CONTINUE WHEN v_cur = v_step;
+    IF NOT public.inv_move_state_allowed(v_cur, v_step) THEN
+      CONTINUE;                                     -- already past this hop
+    END IF;
+    UPDATE public.inv_move SET state = v_step WHERE id = p_move_id;
+  END LOOP;
+
+  SELECT state INTO v_cur FROM public.inv_move WHERE id = p_move_id;
+  IF v_cur <> p_target THEN
+    RAISE EXCEPTION
+      'Could not move move % to state %: it is %, and no legal path exists from there.',
+      p_move_id, p_target, v_cur
+      USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN v_cur;
+END $$;
+
+
+CREATE OR REPLACE FUNCTION public.inv_apply_operation_state(
+  p_operation_id uuid,
+  p_target       public.inv_operation_state
+) RETURNS public.inv_operation_state
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_cur  public.inv_operation_state;
+  v_path public.inv_operation_state[];
+  v_step public.inv_operation_state;
+BEGIN
+  SELECT state INTO v_cur FROM public.inv_operation WHERE id = p_operation_id;
+  IF v_cur IS NULL THEN
+    RAISE EXCEPTION 'Operation % not found.', p_operation_id USING ERRCODE = 'no_data_found';
+  END IF;
+  IF v_cur = p_target THEN
+    RETURN v_cur;
+  END IF;
+
+  v_path := CASE p_target
+              WHEN 'done' THEN ARRAY['ready','done']::public.inv_operation_state[]
+              ELSE ARRAY[p_target]
+            END;
+
+  FOREACH v_step IN ARRAY v_path LOOP
+    SELECT state INTO v_cur FROM public.inv_operation WHERE id = p_operation_id;
+    CONTINUE WHEN v_cur = v_step;
+    IF NOT public.inv_operation_state_allowed(v_cur, v_step) THEN
+      CONTINUE;
+    END IF;
+    -- state='done' requires done_at (Step 2 CHECK inv_operation_done_has_timestamp)
+    IF v_step = 'done' THEN
+      UPDATE public.inv_operation
+         SET state = v_step, done_at = COALESCE(done_at, now())
+       WHERE id = p_operation_id;
+    ELSE
+      UPDATE public.inv_operation SET state = v_step WHERE id = p_operation_id;
+    END IF;
+  END LOOP;
+
+  SELECT state INTO v_cur FROM public.inv_operation WHERE id = p_operation_id;
+  IF v_cur <> p_target THEN
+    RAISE EXCEPTION
+      'Could not move operation % to state %: it is %, and no legal path exists from there.',
+      p_operation_id, p_target, v_cur
+      USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN v_cur;
+END $$;
+
+
+-- =====================================================================
+-- 1. RECEIPT COMPLETION - create units, move them the sanctioned way
+-- =====================================================================
+-- RULE: a serial arriving on a receipt becomes a unit that exists at the
+-- supplier and is then moved into the destination location, leaving a ledger
+-- row and a move line behind. Receiving the same serial twice on the same
+-- receipt is a no-op, not a duplicate.
+--
+-- The unit is created AT THE SOURCE (supplier) location and then transferred,
+-- rather than being conjured directly into stock. That is what makes the
+-- ledger honest: every unit in stock has a tracking row showing it came from
+-- outside, exactly as the old VENDORS -> STOCK move did.
+--
+-- STATUS: p_status defaults to 'ok'. If GLF wants goods to land quarantined
+-- until QC signs them off, pass 'quarantined' here and let the QC step move
+-- them to 'ok'. See the note in the accompanying report - this is a policy
+-- choice, not a technical one.
+
+CREATE OR REPLACE FUNCTION public.inv_receive_serial(
+  p_move_id     uuid,
+  p_serial      text,
+  p_cost        numeric                 DEFAULT 0,
+  p_status      public.inv_stock_status DEFAULT 'ok',
+  p_batch_code  text                    DEFAULT NULL
+) RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_op        public.inv_operation%ROWTYPE;
+  v_kind      public.inv_operation_kind;
+  v_product   uuid;
+  v_existing  public.inv_stock_item%ROWTYPE;
+  v_item_id   uuid;
+  v_serial    text := trim(p_serial);
+BEGIN
+  IF NOT public.can_write_inventory() THEN
+    RAISE EXCEPTION 'Not permitted to receive inventory.'
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
+  IF v_serial IS NULL OR v_serial = '' THEN
+    RAISE EXCEPTION 'A serial number is required to receive a unit.'
+      USING ERRCODE = 'null_value_not_allowed';
+  END IF;
+
+  SELECT m.product_id, o.*
+    INTO v_product, v_op
+    FROM public.inv_move m
+    JOIN public.inv_operation o ON o.id = m.operation_id
+   WHERE m.id = p_move_id;
+
+  IF v_op.id IS NULL THEN
+    RAISE EXCEPTION 'Move % not found.', p_move_id USING ERRCODE = 'no_data_found';
+  END IF;
+
+  SELECT ot.kind INTO v_kind
+    FROM public.inv_operation_type ot WHERE ot.id = v_op.operation_type_id;
+
+  IF v_kind <> 'receipt'::public.inv_operation_kind THEN
+    RAISE EXCEPTION
+      'Operation % is a % operation, not a receipt. Units are received only on receipts.',
+      v_op.number, v_kind
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  IF v_op.state IN ('done','cancelled') THEN
+    RAISE EXCEPTION
+      'Receipt % is already % and cannot take further units.', v_op.number, v_op.state
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  IF v_op.source_location_id IS NULL OR v_op.dest_location_id IS NULL THEN
+    RAISE EXCEPTION
+      'Receipt % needs both a source and a destination location before units can be received.',
+      v_op.number
+      USING ERRCODE = 'null_value_not_allowed';
+  END IF;
+
+  ------------------------------------------------------------ idempotency
+  SELECT * INTO v_existing FROM public.inv_stock_item WHERE serial = v_serial;
+
+  IF v_existing.id IS NOT NULL THEN
+    IF v_existing.origin_operation_id IS DISTINCT FROM v_op.id THEN
+      RAISE EXCEPTION
+        'Serial % already exists and was received on a different document. Serials are globally unique.',
+        v_serial
+        USING ERRCODE = 'unique_violation';
+    END IF;
+
+    -- Same receipt. If the move line is already there this is a clean re-run.
+    IF EXISTS (SELECT 1 FROM public.inv_move_line
+                WHERE move_id = p_move_id AND stock_item_id = v_existing.id) THEN
+      RETURN v_existing.id;
+    END IF;
+
+    -- Unit exists but was never transferred (an interrupted earlier run).
+    -- Finish the job rather than leaving it stranded at the supplier.
+    PERFORM public.inv_transfer_stock_item(
+      v_existing.id, p_move_id, v_existing.location_id, v_op.dest_location_id,
+      'inv_operation', v_op.id, 'receipt',
+      jsonb_build_object('resumed', true));
+    RETURN v_existing.id;
+  END IF;
+
+  --------------------------------------------------------------- create
+  -- Born at the supplier, so the move into stock is a real, recorded movement.
+  INSERT INTO public.inv_stock_item (
+    product_id, serial, location_id, status,
+    origin_operation_id, batch_code, cost, received_at
+  ) VALUES (
+    v_product, v_serial, v_op.source_location_id, p_status,
+    v_op.id, p_batch_code, COALESCE(p_cost, 0), now()
+  ) RETURNING id INTO v_item_id;
+
+  --------------------------------------------------------------- move it
+  PERFORM public.inv_transfer_stock_item(
+    v_item_id, p_move_id, v_op.source_location_id, v_op.dest_location_id,
+    'inv_operation', v_op.id, 'receipt',
+    jsonb_build_object('cost', COALESCE(p_cost, 0)));
+
+  RETURN v_item_id;
+END $$;
+
+COMMENT ON FUNCTION public.inv_receive_serial IS
+  'Receives one serial onto a receipt move: creates the unit at the supplier location, then moves it into the destination via inv_transfer_stock_item so the ledger row and move line are written by the sanctioned path. Idempotent per serial.';
+
+
+CREATE OR REPLACE FUNCTION public.inv_receive_serials(
+  p_move_id uuid,
+  p_serials text[],
+  p_cost    numeric                 DEFAULT 0,
+  p_status  public.inv_stock_status DEFAULT 'ok'
+) RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  s       text;
+  v_count integer := 0;
+BEGIN
+  FOREACH s IN ARRAY COALESCE(p_serials, ARRAY[]::text[]) LOOP
+    IF trim(COALESCE(s,'')) <> '' THEN
+      PERFORM public.inv_receive_serial(p_move_id, s, p_cost, p_status);
+      v_count := v_count + 1;
+    END IF;
+  END LOOP;
+  RETURN v_count;
+END $$;
+
+COMMENT ON FUNCTION public.inv_receive_serials IS
+  'Batch wrapper over inv_receive_serial. Returns how many serials were processed; re-running with the same list is a no-op.';
+
+
+-- =====================================================================
+-- 3. OPERATION STATE DERIVATION  (defined before 2 - the PO sync calls it)
+-- =====================================================================
+-- RULE: a document's state is a fact about its moves, not something a user
+-- types. Derived, then applied through the Step 3 guards.
+--
+--   no moves                        -> draft
+--   every non-cancelled move done   -> done
+--   some done, some not             -> ready   (see note)
+--   none done, something assigned   -> ready
+--   otherwise                       -> waiting
+--   all moves cancelled             -> left alone (cancelling is a human act)
+--
+-- NOTE ON "IN PROGRESS": inv_operation_state has no in_progress value, so
+-- partial progress maps to 'ready' - the document is still actionable. Adding
+-- a value to the enum is a schema change and is deliberately NOT done here.
+
+CREATE OR REPLACE FUNCTION public.inv_derive_operation_state(
+  p_operation_id uuid
+) RETURNS public.inv_operation_state
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_cur       public.inv_operation_state;
+  v_target    public.inv_operation_state;
+  v_total     integer;
+  v_live      integer;
+  v_done      integer;
+  v_assigned  integer;
+BEGIN
+  SELECT state INTO v_cur FROM public.inv_operation WHERE id = p_operation_id;
+  IF v_cur IS NULL THEN
+    RAISE EXCEPTION 'Operation % not found.', p_operation_id USING ERRCODE = 'no_data_found';
+  END IF;
+
+  -- A cancelled document stays cancelled; nothing derives it back to life.
+  IF v_cur = 'cancelled' THEN
+    RETURN v_cur;
+  END IF;
+
+  SELECT count(*),
+         count(*) FILTER (WHERE state <> 'cancelled'),
+         count(*) FILTER (WHERE state =  'done'),
+         count(*) FILTER (WHERE state =  'assigned')
+    INTO v_total, v_live, v_done, v_assigned
+    FROM public.inv_move WHERE operation_id = p_operation_id;
+
+  v_target :=
+    CASE
+      WHEN v_total = 0              THEN 'draft'
+      WHEN v_live  = 0              THEN v_cur          -- every move cancelled
+      WHEN v_done  = v_live         THEN 'done'
+      WHEN v_done  > 0              THEN 'ready'        -- partial
+      WHEN v_assigned > 0           THEN 'ready'
+      ELSE                               'waiting'
+    END::public.inv_operation_state;
+
+  IF v_target = v_cur THEN
+    RETURN v_cur;
+  END IF;
+
+  -- Never derive a document backwards out of done.
+  IF v_cur = 'done' THEN
+    RETURN v_cur;
+  END IF;
+
+  RETURN public.inv_apply_operation_state(p_operation_id, v_target);
+END $$;
+
+COMMENT ON FUNCTION public.inv_derive_operation_state IS
+  'Derives inv_operation.state from its moves and applies it through the Step 3 transition guards. Partial progress maps to ready - the enum has no in_progress value.';
+
+
+-- =====================================================================
+-- 2. received_qty MAINTENANCE + PURCHASE ORDER STATE
+-- =====================================================================
+-- RULE: what has been received against an order is counted from the units that
+-- actually arrived, never incremented by hand. Over-receipt is recorded, not
+-- rejected - receiving 12 against an order for 10 is a real event, and the
+-- discrepancy flow needs to see it.
+--
+--   received_qty per line = units on move lines belonging to receipts that
+--                           cite this order, for that product
+--   every line met or exceeded -> 'received'
+--   anything received at all   -> 'partially_received'
+--   nothing yet                -> current state left alone (draft/sent/confirmed)
+--
+-- Recomputed from scratch each call, so it is idempotent and self-healing.
+
+CREATE OR REPLACE FUNCTION public.inv_sync_purchase_order_progress(
+  p_order_id uuid
+) RETURNS public.inv_order_state
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_cur      public.inv_order_state;
+  v_target   public.inv_order_state;
+  v_lines    integer;
+  v_met      integer;
+  v_any      integer;
+BEGIN
+  SELECT state INTO v_cur FROM public.inv_purchase_order WHERE id = p_order_id;
+  IF v_cur IS NULL THEN
+    RAISE EXCEPTION 'Purchase order % not found.', p_order_id USING ERRCODE = 'no_data_found';
+  END IF;
+
+  IF v_cur = 'cancelled' THEN
+    RETURN v_cur;
+  END IF;
+
+  -- Recount every line from the ledger of what actually arrived.
+  UPDATE public.inv_purchase_order_line pol
+     SET received_qty = COALESCE(sub.qty, 0),
+         updated_at   = now()
+    FROM (
+      SELECT m.product_id, count(ml.id)::integer AS qty
+        FROM public.inv_move_line ml
+        JOIN public.inv_move      m ON m.id = ml.move_id
+        JOIN public.inv_operation o ON o.id = m.operation_id
+       WHERE o.source_purchase_order_id = p_order_id
+       GROUP BY m.product_id
+    ) sub
+   WHERE pol.order_id = p_order_id
+     AND pol.product_id = sub.product_id;
+
+  -- Lines with nothing received at all must fall back to zero.
+  UPDATE public.inv_purchase_order_line pol
+     SET received_qty = 0, updated_at = now()
+   WHERE pol.order_id = p_order_id
+     AND pol.received_qty <> 0
+     AND NOT EXISTS (
+       SELECT 1 FROM public.inv_move_line ml
+         JOIN public.inv_move      m ON m.id = ml.move_id
+         JOIN public.inv_operation o ON o.id = m.operation_id
+        WHERE o.source_purchase_order_id = p_order_id
+          AND m.product_id = pol.product_id);
+
+  SELECT count(*),
+         count(*) FILTER (WHERE received_qty >= ordered_qty),
+         count(*) FILTER (WHERE received_qty > 0)
+    INTO v_lines, v_met, v_any
+    FROM public.inv_purchase_order_line WHERE order_id = p_order_id;
+
+  v_target :=
+    CASE
+      WHEN v_lines = 0        THEN v_cur
+      WHEN v_met   = v_lines  THEN 'received'
+      WHEN v_any   > 0        THEN 'partially_received'
+      ELSE                         v_cur
+    END::public.inv_order_state;
+
+  IF v_target <> v_cur THEN
+    UPDATE public.inv_purchase_order
+       SET state = v_target, updated_at = now()
+     WHERE id = p_order_id;
+  END IF;
+
+  RETURN v_target;
+END $$;
+
+COMMENT ON FUNCTION public.inv_sync_purchase_order_progress IS
+  'Recomputes received_qty per order line by counting the units that actually arrived, then derives the order state. Over-receipt is recorded, never rejected. Idempotent.';
+
+
+-- =====================================================================
+-- ORCHESTRATOR - complete a receipt
+-- =====================================================================
+-- RULE: completing a receipt marks its moves done, derives the document state
+-- from them, and updates the order it fulfils. Running it twice changes
+-- nothing the second time.
+
+CREATE OR REPLACE FUNCTION public.inv_complete_receipt(
+  p_operation_id uuid
+) RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_op       public.inv_operation%ROWTYPE;
+  v_kind     public.inv_operation_kind;
+  v_move     record;
+  v_units    integer;
+  v_state    public.inv_operation_state;
+  v_po_state public.inv_order_state;
+BEGIN
+  IF NOT public.can_write_inventory() THEN
+    RAISE EXCEPTION 'Not permitted to complete a receipt.'
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
+  SELECT * INTO v_op FROM public.inv_operation WHERE id = p_operation_id FOR UPDATE;
+  IF v_op.id IS NULL THEN
+    RAISE EXCEPTION 'Operation % not found.', p_operation_id USING ERRCODE = 'no_data_found';
+  END IF;
+
+  SELECT ot.kind INTO v_kind
+    FROM public.inv_operation_type ot WHERE ot.id = v_op.operation_type_id;
+
+  IF v_kind <> 'receipt'::public.inv_operation_kind THEN
+    RAISE EXCEPTION 'Operation % is a % operation, not a receipt.', v_op.number, v_kind
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  IF v_op.state = 'cancelled' THEN
+    RAISE EXCEPTION 'Receipt % is cancelled and cannot be completed.', v_op.number
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  -- Mark every move that actually received something as done.
+  FOR v_move IN
+    SELECT m.id, m.state,
+           (SELECT count(*) FROM public.inv_move_line ml WHERE ml.move_id = m.id) AS lines
+      FROM public.inv_move m
+     WHERE m.operation_id = p_operation_id
+       AND m.state NOT IN ('done','cancelled')
+  LOOP
+    IF v_move.lines > 0 THEN
+      PERFORM public.inv_apply_move_state(v_move.id, 'done'::public.inv_move_state);
+    END IF;
+  END LOOP;
+
+  v_state := public.inv_derive_operation_state(p_operation_id);
+
+  IF v_op.source_purchase_order_id IS NOT NULL THEN
+    v_po_state := public.inv_sync_purchase_order_progress(v_op.source_purchase_order_id);
+  END IF;
+
+  SELECT count(*) INTO v_units
+    FROM public.inv_move_line ml
+    JOIN public.inv_move m ON m.id = ml.move_id
+   WHERE m.operation_id = p_operation_id;
+
+  RETURN jsonb_build_object(
+    'operation',       v_op.number,
+    'operation_state', v_state,
+    'units_received',  v_units,
+    'purchase_order_state', v_po_state);
+END $$;
+
+COMMENT ON FUNCTION public.inv_complete_receipt IS
+  'Completes a receipt: marks moves with units done, derives the document state, and syncs the purchase order it fulfils. Idempotent.';
+
+
+-- =====================================================================
+-- GRANTS
+-- =====================================================================
+-- Every function below checks can_write_inventory() itself, or is called by
+-- one that does.
+
+GRANT EXECUTE ON FUNCTION public.inv_receive_serial(uuid, text, numeric, public.inv_stock_status, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.inv_receive_serials(uuid, text[], numeric, public.inv_stock_status)     TO authenticated;
+GRANT EXECUTE ON FUNCTION public.inv_complete_receipt(uuid)                                              TO authenticated;
+GRANT EXECUTE ON FUNCTION public.inv_derive_operation_state(uuid)                                        TO authenticated;
+GRANT EXECUTE ON FUNCTION public.inv_sync_purchase_order_progress(uuid)                                  TO authenticated;
+GRANT EXECUTE ON FUNCTION public.inv_apply_move_state(uuid, public.inv_move_state)                       TO authenticated;
+GRANT EXECUTE ON FUNCTION public.inv_apply_operation_state(uuid, public.inv_operation_state)             TO authenticated;
+
+
+-- =====================================================================
+-- NOT IN THIS STEP
+-- =====================================================================
+-- * Recording QC results (inv_test_result) - the seed in Part 2 writes them
+--   directly; a record-and-gate function belongs with the QC screen.
+-- * Moving a unit from quarantined to ok on QC pass - a policy decision, see
+--   the status note above.
+-- * Delivery, internal transfer and adjustment workflows.
+-- * Any frontend.
+
+COMMIT;
