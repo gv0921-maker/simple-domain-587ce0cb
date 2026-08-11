@@ -1,8 +1,20 @@
 /**
  * Inventory 2 — receipt detail. Route: /inventory2/receipts/:id
  *
- * READ-ONLY. No create, no edit, no validate. Header actions are rendered
- * disabled with the reason, exactly as in GR Pass 1.
+ * WRITABLE as of Step 5 Part B. Every write goes through a database RPC via
+ * @/lib/services/inventory2/receiptWrites — no direct table writes, and in
+ * particular never a direct insert into inv_stock_item / inv_move_line /
+ * inv_stock_tracking. Units enter stock only through inv_receive_serial.
+ *
+ * What the buttons do:
+ *   Validate  inv_complete_receipt        Cancel  inv_cancel_receipt
+ *   Add/edit  inv_add_receipt_line        Remove  inv_remove_receipt_line
+ *   Receive   inv_receive_serial
+ *
+ * The RPCs own the rules; this page owns none of them. It asks, and when the
+ * answer is no it prints the database's refusal verbatim (Rule 5) — those
+ * messages are written to tell staff what to do instead, so paraphrasing or
+ * toasting-and-forgetting them throws away the useful part.
  *
  * Layout is the Odoo shape validated in GR Pass 1, carried over unchanged:
  * always-visible fields (including when Done — the defect that rebuild
@@ -17,7 +29,7 @@
  *     visibly not sellable
  */
 import { useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { format, parseISO, isToday, isYesterday } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { INVENTORY_NAV } from '@/lib/navigation';
@@ -28,6 +40,14 @@ import {
 } from '@/design-system';
 import '@/design-system/tokens.css';
 import { useInv2Receipt } from '@/hooks/inventory2/receipts';
+import {
+  useInv2Products, useAddReceiptLine, useRemoveReceiptLine,
+  useReceiveSerial, useCompleteReceipt, useCancelReceipt,
+} from '@/hooks/inventory2/receiptMutations';
+import {
+  TextInput, SelectInput, ErrorBanner,
+} from '@/components/inventory2/formControls';
+import { errorText } from '@/lib/inventory2/errorText';
 import { useActivityLog } from '@/hooks/useActivityLog';
 import { useAppUsers, displayNameFor } from '@/hooks/useAppUsers';
 import type {
@@ -227,11 +247,35 @@ function QcPanel({
 /* ------------------------------------------------- detailed operations */
 
 function DetailedOperationsModal({
-  detail, moveId, onClose,
-}: { detail: Detail; moveId: string; onClose: () => void }) {
+  detail, moveId, operationId, editable, onClose,
+}: {
+  detail: Detail;
+  moveId: string;
+  operationId: string;
+  /** False once the document is done or cancelled — the RPC would refuse anyway. */
+  editable: boolean;
+  onClose: () => void;
+}) {
   const line = detail.lines.find((l) => l.move_id === moveId);
   const serials = detail.serials.filter((s) => s.move_id === moveId);
   const [openQc, setOpenQc] = useState<string | null>(serials[0]?.stock_item_id ?? null);
+
+  const receive = useReceiveSerial(operationId);
+  const [serial, setSerial] = useState('');
+  const [cost, setCost] = useState('0');
+  const [failure, setFailure] = useState<string | null>(null);
+
+  async function submitSerial() {
+    const s = serial.trim();
+    if (!s) return;
+    setFailure(null);
+    try {
+      await receive.mutateAsync({ moveId, serial: s, cost: Number(cost) || 0 });
+      setSerial('');   // keep cost — a pallet usually shares one unit cost
+    } catch (e) {
+      setFailure(errorText(e));
+    }
+  }
 
   return (
     <div
@@ -290,10 +334,68 @@ function DetailedOperationsModal({
 
           {openQc && <QcPanel detail={detail} stockItemId={openQc} />}
 
-          <p className="mt-2 text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-subtle))]">
-            Read-only in this pass. Units are received and inspected through the barcode and
-            QC flows.
-          </p>
+          {/* -------------------------------------------- receive a unit */}
+          {editable ? (
+            <div className="mt-3 rounded-[var(--ds-radius)] border border-[hsl(var(--ds-border))] p-3">
+              <h3 className="text-[var(--ds-fs-sm)] font-semibold text-[hsl(var(--ds-ink))]">
+                Receive a unit
+              </h3>
+              <p className="mt-0.5 text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-subtle))]">
+                One serial per unit. Received units land <strong>quarantined</strong> — on hand,
+                but not available to sell until QC passes.
+              </p>
+
+              {failure && (
+                <div className="mt-2">
+                  <ErrorBanner
+                    title="Could not receive that unit"
+                    message={failure}
+                    onDismiss={() => setFailure(null)}
+                  />
+                </div>
+              )}
+
+              <div className="mt-2 flex flex-wrap items-end gap-2">
+                <div className="min-w-[200px] flex-1">
+                  <label htmlFor="serial" className="text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-muted))]">
+                    Lot / Serial Number
+                  </label>
+                  <TextInput
+                    id="serial"
+                    value={serial}
+                    onChange={(e) => setSerial(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') void submitSerial(); }}
+                    placeholder="Scan or type a serial"
+                    autoFocus
+                  />
+                </div>
+                <div className="w-[120px]">
+                  <label htmlFor="cost" className="text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-muted))]">
+                    Unit cost
+                  </label>
+                  <TextInput
+                    id="cost"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={cost}
+                    onChange={(e) => setCost(e.target.value)}
+                  />
+                </div>
+                <Button
+                  variant="primary"
+                  onClick={() => void submitSerial()}
+                  disabled={!serial.trim() || receive.isPending}
+                >
+                  {receive.isPending ? 'Receiving…' : 'Receive'}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-2 text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-subtle))]">
+              This receipt is {detail.receipt.state} — units can no longer be received against it.
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -306,12 +408,38 @@ export default function ReceiptDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  const routeState = useLocation().state as { createdDestinationIgnored?: boolean } | null;
+
   const { data: detail, isLoading, error } = useInv2Receipt(id);
   const { data: activity } = useActivityLog('inv_operation', id, 50);
   const { data: appUsers = [] } = useAppUsers();
+  const { data: products = [] } = useInv2Products();
 
   const [segment, setSegment] = useState<'details' | 'moves' | 'traceability'>('details');
   const [detailsMoveId, setDetailsMoveId] = useState<string | null>(null);
+
+  /* -- writes ------------------------------------------------------------ */
+  const addLine = useAddReceiptLine(id);
+  const removeLine = useRemoveReceiptLine(id);
+  const complete = useCompleteReceipt(id);
+  const cancel = useCancelReceipt(id);
+
+  const [newProductId, setNewProductId] = useState('');
+  const [newQty, setNewQty] = useState('1');
+  const [editQty, setEditQty] = useState<Record<string, string>>({});
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  /** The database's own words, kept on screen until dismissed. */
+  const [failure, setFailure] = useState<{ title: string; message: string } | null>(null);
+  const [destIgnoredDismissed, setDestIgnoredDismissed] = useState(false);
+
+  async function run(title: string, fn: () => Promise<unknown>) {
+    setFailure(null);
+    try {
+      await fn();
+    } catch (e) {
+      setFailure({ title, message: errorText(e) });
+    }
+  }
 
   const userName = useMemo(
     () => (uid: string | null): string | null => {
@@ -373,13 +501,45 @@ export default function ReceiptDetail() {
   const r = detail.receipt;
   const isDone = r.state === 'done';
   const isCancelled = r.state === 'cancelled';
+  /** The same test the RPCs apply. Kept in one place so buttons and tables agree. */
+  const editable = !isDone && !isCancelled;
 
-  const DISABLED = 'Read-only preview — write actions arrive in a later pass.';
-  const actions: HeaderAction[] = [
-    { key: 'validate', label: 'Validate', variant: 'primary', disabled: true, title: DISABLED },
-    { key: 'print', label: 'Print', disabled: true, title: 'Printing coming in a later pass' },
-    { key: 'cancel', label: 'Cancel', variant: 'danger', disabled: true, title: DISABLED },
-  ];
+  const totalReceived = detail.lines.reduce((s, l) => s + l.received_qty, 0);
+
+  /*
+   * State-dependent actions, following the Odoo reference:
+   *   editable  ->  Validate (primary) · Print · Cancel (danger)
+   *   done      ->  Print only; Validate and Cancel are gone, not greyed —
+   *                 a completed receipt is a record, and offering to cancel it
+   *                 implies an undo that does not exist.
+   *   cancelled ->  Print only.
+   * Validate is disabled with a reason until at least one unit exists, because
+   * completing an empty receipt records an arrival that did not happen.
+   */
+  const actions: HeaderAction[] = editable
+    ? [
+        {
+          key: 'validate',
+          label: complete.isPending ? 'Validating…' : 'Validate',
+          variant: 'primary',
+          onClick: () => void run('Could not validate the receipt', () => complete.mutateAsync()),
+          disabled: complete.isPending || totalReceived === 0,
+          title: totalReceived === 0
+            ? 'Receive at least one unit before validating'
+            : undefined,
+        },
+        { key: 'print', label: 'Print', disabled: true, title: 'Printing coming in a later pass' },
+        {
+          key: 'cancel',
+          label: cancel.isPending ? 'Cancelling…' : 'Cancel',
+          variant: 'danger',
+          onClick: () => setConfirmCancel(true),
+          disabled: cancel.isPending,
+        },
+      ]
+    : [
+        { key: 'print', label: 'Print', disabled: true, title: 'Printing coming in a later pass' },
+      ];
 
   const segments: SegmentOption[] = [
     { key: 'details', label: 'Details' },
@@ -429,45 +589,151 @@ export default function ReceiptDetail() {
       label: 'Operations',
       badge: detail.lines.length,
       content: (
-        <TableShell
-          head={['Product', 'Demand', 'Received', 'Unit', 'Move State', '']}
-          empty="This receipt has no lines."
-          isEmpty={detail.lines.length === 0}
-          filler={fillerFor(detail.lines.length)}
-        >
-          {detail.lines.map((l) => (
-            <tr key={l.move_id}>
-              <td className={TD}>
-                <div className="text-[hsl(var(--ds-ink))]">{l.product_name ?? '—'}</div>
-                {l.product_sku && (
-                  <div className="text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-subtle))]">
-                    {l.product_sku}
-                  </div>
-                )}
-              </td>
-              <td className={cn(TD, 'tabular-nums')}>{l.demand_qty}</td>
-              <td className={cn(TD, 'tabular-nums')}>
-                {l.received_qty}
-                {l.received_qty > l.demand_qty && (
-                  <span className="ml-1.5 text-[var(--ds-fs-xs)] text-[hsl(var(--ds-amber))]">
-                    over
-                  </span>
-                )}
-              </td>
-              <td className={TD}>Units</td>
-              <td className={TD}>{l.move_state}</td>
-              <td className={cn(TD, 'text-right')}>
-                <button
-                  type="button"
-                  onClick={() => setDetailsMoveId(l.move_id)}
-                  className="text-[hsl(var(--ds-link))] hover:underline"
+        <>
+          <TableShell
+            head={['Product', 'Demand', 'Received', 'Unit', 'Move State', '']}
+            empty="This receipt has no lines."
+            isEmpty={detail.lines.length === 0}
+            filler={fillerFor(detail.lines.length)}
+          >
+            {detail.lines.map((l) => {
+              const draft = editQty[l.move_id];
+              const dirty = draft !== undefined && draft !== String(l.demand_qty);
+              return (
+                <tr key={l.move_id}>
+                  <td className={TD}>
+                    <div className="text-[hsl(var(--ds-ink))]">{l.product_name ?? '—'}</div>
+                    {l.product_sku && (
+                      <div className="text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-subtle))]">
+                        {l.product_sku}
+                      </div>
+                    )}
+                  </td>
+                  <td className={cn(TD, 'tabular-nums')}>
+                    {editable ? (
+                      <div className="flex items-center gap-1">
+                        <TextInput
+                          type="number"
+                          min="0"
+                          aria-label={`Demand for ${l.product_name ?? 'line'}`}
+                          className="h-[26px] w-[70px] px-1.5 py-0"
+                          value={draft ?? String(l.demand_qty)}
+                          onChange={(e) =>
+                            setEditQty({ ...editQty, [l.move_id]: e.target.value })}
+                        />
+                        {dirty && (
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            disabled={addLine.isPending}
+                            onClick={() => void run('Could not update the line', async () => {
+                              // Upsert by product — the RPC updates the existing move.
+                              await addLine.mutateAsync({
+                                productId: l.product_id,
+                                demandQty: Number(draft),
+                              });
+                              setEditQty((m) => {
+                                const next = { ...m };
+                                delete next[l.move_id];
+                                return next;
+                              });
+                            })}
+                          >
+                            Save
+                          </Button>
+                        )}
+                      </div>
+                    ) : l.demand_qty}
+                  </td>
+                  <td className={cn(TD, 'tabular-nums')}>
+                    {l.received_qty}
+                    {l.received_qty > l.demand_qty && (
+                      <span className="ml-1.5 text-[var(--ds-fs-xs)] text-[hsl(var(--ds-amber))]">
+                        over
+                      </span>
+                    )}
+                  </td>
+                  <td className={TD}>Units</td>
+                  <td className={TD}>{l.move_state}</td>
+                  <td className={cn(TD, 'text-right whitespace-nowrap')}>
+                    <button
+                      type="button"
+                      onClick={() => setDetailsMoveId(l.move_id)}
+                      className="text-[hsl(var(--ds-link))] hover:underline"
+                    >
+                      {editable ? 'Receive / Details' : 'Details'}
+                    </button>
+                    {editable && (
+                      <button
+                        type="button"
+                        disabled={removeLine.isPending}
+                        onClick={() => void run(
+                          'Could not remove the line',
+                          () => removeLine.mutateAsync(l.move_id),
+                        )}
+                        className="ml-3 text-[hsl(var(--ds-red))] hover:underline disabled:opacity-50"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </TableShell>
+
+          {editable && (
+            <div className="mt-2 flex flex-wrap items-end gap-2 border-t border-[hsl(var(--ds-border))] pt-2">
+              <div className="min-w-[220px] flex-1">
+                <label htmlFor="addprod" className="text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-muted))]">
+                  Add product line
+                </label>
+                <SelectInput
+                  id="addprod"
+                  value={newProductId}
+                  onChange={(e) => setNewProductId(e.target.value)}
                 >
-                  Details
-                </button>
-              </td>
-            </tr>
-          ))}
-        </TableShell>
+                  <option value="">Select a product…</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}{p.sku ? ` · ${p.sku}` : ''}
+                    </option>
+                  ))}
+                </SelectInput>
+              </div>
+              <div className="w-[100px]">
+                <label htmlFor="addqty" className="text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-muted))]">
+                  Demand
+                </label>
+                <TextInput
+                  id="addqty"
+                  type="number"
+                  min="0"
+                  value={newQty}
+                  onChange={(e) => setNewQty(e.target.value)}
+                />
+              </div>
+              <Button
+                variant="primary"
+                disabled={!newProductId || addLine.isPending}
+                onClick={() => void run('Could not add the line', async () => {
+                  await addLine.mutateAsync({
+                    productId: newProductId,
+                    demandQty: Number(newQty) || 0,
+                  });
+                  setNewProductId('');
+                  setNewQty('1');
+                })}
+              >
+                {addLine.isPending ? 'Adding…' : 'Add line'}
+              </Button>
+              <p className="w-full text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-subtle))]">
+                Adding a product that already has a line updates that line's demand instead of
+                creating a duplicate.
+              </p>
+            </div>
+          )}
+        </>
       ),
     },
     {
@@ -535,6 +801,42 @@ export default function ReceiptDetail() {
               )}
 
               {/*
+                The create form sent a destination the operation type overrode.
+                Saying so is the difference between "the system corrected me"
+                and "the system quietly ignored me".
+              */}
+              {routeState?.createdDestinationIgnored && !destIgnoredDismissed && (
+                <div className="border-b border-[hsl(var(--ds-border))] bg-[hsl(var(--ds-amber-bg))] px-3 py-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink))]">
+                      The destination you chose was replaced by{' '}
+                      <strong>{r.dest_location_name ?? 'the type default'}</strong>, because
+                      operation type <strong>{r.operation_type_name}</strong> locks its
+                      destination.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setDestIgnoredDismissed(true)}
+                      className="shrink-0 text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-muted))] hover:underline"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Rule 5 — the RPC's refusal, verbatim, until dismissed. */}
+              {failure && (
+                <div className="border-b border-[hsl(var(--ds-border))] p-3">
+                  <ErrorBanner
+                    title={failure.title}
+                    message={failure.message}
+                    onDismiss={() => setFailure(null)}
+                  />
+                </div>
+              )}
+
+              {/*
                 On-hand vs AVAILABLE, side by side. Quarantined, rejected and
                 attention units count as on-hand but are NOT sellable — this is
                 the visible replacement for the old stock_on_hand column that
@@ -557,6 +859,20 @@ export default function ReceiptDetail() {
                     {detail.availableQty}
                   </div>
                 </div>
+                {/*
+                  The gap between the two numbers above is the whole point of the
+                  QC gate, so it is spelled out rather than left to be inferred.
+                */}
+                {totalOnHand - detail.availableQty > 0 && (
+                  <div>
+                    <div className="text-[var(--ds-fs-xs)] uppercase tracking-wide text-[hsl(var(--ds-ink-subtle))]">
+                      Held back
+                    </div>
+                    <div className="text-[var(--ds-fs-md)] font-semibold tabular-nums text-[hsl(var(--ds-amber))]">
+                      {totalOnHand - detail.availableQty}
+                    </div>
+                  </div>
+                )}
                 <div className="flex flex-wrap items-center gap-1.5">
                   {detail.onHand.map((b) => (
                     <StatusPill key={b.location_name + b.status} tone={STATUS_TONE[b.status]}>
@@ -632,8 +948,64 @@ export default function ReceiptDetail() {
         <DetailedOperationsModal
           detail={detail}
           moveId={detailsMoveId}
+          operationId={r.id}
+          editable={editable}
           onClose={() => setDetailsMoveId(null)}
         />
+      )}
+
+      {/*
+        Cancel confirmation. The refusal path is the interesting one: when units
+        exist the RPC raises a paragraph explaining that cancelling would strand
+        stock, and telling the user to complete + adjust instead. That paragraph
+        is rendered in full by the failure banner above — it is the answer, not
+        an error to be swallowed.
+      */}
+      {confirmCancel && (
+        <div
+          role="dialog" aria-modal="true" aria-label="Cancel receipt"
+          className="ds-root fixed inset-0 z-[60] grid place-items-center bg-black/40 p-4"
+          onClick={() => setConfirmCancel(false)}
+        >
+          <div
+            className={cn('w-full max-w-md bg-[hsl(var(--ds-surface))]',
+              'border border-[hsl(var(--ds-border))]',
+              'rounded-[var(--ds-radius)] shadow-[var(--ds-shadow-pop)]')}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="border-b border-[hsl(var(--ds-border))] px-4 py-2.5">
+              <h2 className="text-[var(--ds-fs-md)] font-semibold text-[hsl(var(--ds-ink))]">
+                Cancel {r.number}?
+              </h2>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink))]">
+                Cancelling marks the receipt and its open lines cancelled.
+              </p>
+              {totalReceived > 0 && (
+                <p className="mt-2 text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">
+                  This receipt has <strong>{totalReceived}</strong> unit(s) already received, so
+                  the database is expected to refuse. Its reason will be shown in full.
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 border-t border-[hsl(var(--ds-border))] px-4 py-2.5">
+              <Button variant="subtle" onClick={() => setConfirmCancel(false)}>
+                Keep it
+              </Button>
+              <Button
+                variant="danger"
+                disabled={cancel.isPending}
+                onClick={() => {
+                  setConfirmCancel(false);
+                  void run('Could not cancel the receipt', () => cancel.mutateAsync());
+                }}
+              >
+                {cancel.isPending ? 'Cancelling…' : 'Cancel receipt'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </AppLayout>
   );
