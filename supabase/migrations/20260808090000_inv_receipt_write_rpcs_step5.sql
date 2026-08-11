@@ -2,7 +2,14 @@
 -- INVENTORY RESET — STEP 5: receipt write layer (RPCs)
 -- =====================================================================
 --
--- NOT YET APPLIED. For review.
+-- APPLIED 2026-08-11 to the live database, via
+--   supabase db query --linked --file <this file>
+--
+-- Verified after applying: 205 public functions (was 201 — exactly the 4 below
+-- added); the non-inv_ schema, non-inv_ policy and pre-existing-function md5
+-- fingerprints all unchanged; the three legacy namesakes byte-identical.
+-- Smoke suite supabase/smoke/inv_step5_smoke.sql: 17 pass, 0 fail, 1 skip
+-- (test 18 needs a user holding warehouse_operator; none exists yet).
 --
 -- Makes the receipt writable from the UI without putting business rules in
 -- the browser. Four new functions, plus one corrective change to a proven
