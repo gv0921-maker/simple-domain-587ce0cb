@@ -839,7 +839,8 @@ export default function ReceiptDetail() {
     },
   ];
 
-  const totalOnHand = detail.onHand.reduce((s, b) => s + b.qty, 0);
+  /** Units this receipt brought in — not a warehouse stock level. */
+  const totalDocumentUnits = detail.documentUnits.reduce((s, b) => s + b.qty, 0);
 
   return (
     <AppLayout title={`Receipt ${r.number}`} moduleNav={INVENTORY_NAV}>
@@ -913,44 +914,50 @@ export default function ReceiptDetail() {
               )}
 
               {/*
-                On-hand vs AVAILABLE, side by side. Quarantined, rejected and
-                attention units count as on-hand but are NOT sellable — this is
-                the visible replacement for the old stock_on_hand column that
-                silently counted everything.
+                THIS receipt's units, sellable vs held back. Quarantined,
+                rejected and attention units are units the receipt brought in
+                but which are NOT sellable — the visible replacement for the old
+                stock_on_hand column that silently counted everything.
+
+                These figures are scoped to the document. They were previously
+                read from inv_on_hand by product, which counted every unit of
+                the product across every document and location, so a 4-unit
+                receipt could read 24. The labels now say "on this receipt" so
+                the panel cannot be mistaken for a stock level.
               */}
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-[hsl(var(--ds-border))] px-3 py-2">
                 <div>
                   <div className="text-[var(--ds-fs-xs)] uppercase tracking-wide text-[hsl(var(--ds-ink-subtle))]">
-                    On hand
+                    Units on this receipt
                   </div>
                   <div className="text-[var(--ds-fs-md)] font-semibold tabular-nums text-[hsl(var(--ds-ink))]">
-                    {totalOnHand}
+                    {totalDocumentUnits}
                   </div>
                 </div>
                 <div>
                   <div className="text-[var(--ds-fs-xs)] uppercase tracking-wide text-[hsl(var(--ds-ink-subtle))]">
-                    Available to sell
+                    Sellable
                   </div>
                   <div className="text-[var(--ds-fs-md)] font-semibold tabular-nums text-[hsl(var(--ds-green))]">
-                    {detail.availableQty}
+                    {detail.sellableQty}
                   </div>
                 </div>
                 {/*
                   The gap between the two numbers above is the whole point of the
                   QC gate, so it is spelled out rather than left to be inferred.
                 */}
-                {totalOnHand - detail.availableQty > 0 && (
+                {totalDocumentUnits - detail.sellableQty > 0 && (
                   <div>
                     <div className="text-[var(--ds-fs-xs)] uppercase tracking-wide text-[hsl(var(--ds-ink-subtle))]">
                       Held back
                     </div>
                     <div className="text-[var(--ds-fs-md)] font-semibold tabular-nums text-[hsl(var(--ds-amber))]">
-                      {totalOnHand - detail.availableQty}
+                      {totalDocumentUnits - detail.sellableQty}
                     </div>
                   </div>
                 )}
                 <div className="flex flex-wrap items-center gap-1.5">
-                  {detail.onHand.map((b) => (
+                  {detail.documentUnits.map((b) => (
                     <StatusPill key={b.location_name + b.status} tone={STATUS_TONE[b.status]}>
                       {b.qty} {STATUS_LABEL[b.status]} · {b.location_name}
                     </StatusPill>

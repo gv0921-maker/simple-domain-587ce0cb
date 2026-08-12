@@ -16,7 +16,6 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Database, Json } from '@/integrations/supabase/types';
 
 type Tables = Database['public']['Tables'];
-type Views = Database['public']['Views'];
 
 type MoveRow = Tables['inv_move']['Row'];
 type MoveLineRow = Tables['inv_move_line']['Row'];
@@ -25,7 +24,10 @@ type TrackingRow = Tables['inv_stock_tracking']['Row'];
 type TestTemplateRow = Tables['inv_test_template']['Row'];
 type TestResultRow = Tables['inv_test_result']['Row'];
 type PurchaseOrderLineRow = Tables['inv_purchase_order_line']['Row'];
-type OnHandRow = Views['inv_on_hand']['Row'];
+// The inv_on_hand view is intentionally NOT read here any more. It reports
+// warehouse-wide stock per product/location, which is the right answer for a
+// stock report and the wrong one for a document page. The view itself is
+// untouched and still available to whatever reports it later.
 type ProductRef = { id: string; name: string; sku: string | null };
 
 /* ------------------------------------------------------------------ types */
@@ -111,7 +113,14 @@ export interface LedgerRow {
   created_at: string;
 }
 
-export interface OnHandBucket {
+/**
+ * A group of THIS document's units sharing a current location and condition.
+ *
+ * Named for the document, not for stock: it is deliberately not an on-hand
+ * figure. See the scope note where it is built.
+ */
+export interface DocumentUnitBucket {
+  /** Where those units are NOW — a unit moved on since is shown where it went. */
   location_name: string;
   status: InvStockStatus;
   qty: number;
@@ -143,9 +152,13 @@ export interface ReceiptDetail {
   templates: QcTemplate[];
   results: QcResult[];
   ledger: LedgerRow[];
-  onHand: OnHandBucket[];
-  /** Units in condition `ok` — the only ones counted as sellable. */
-  availableQty: number;
+  /** THIS document's units, grouped by current location and condition. */
+  documentUnits: DocumentUnitBucket[];
+  /**
+   * How many of THIS document's units are in condition `ok` — the only ones
+   * that count as sellable. Not a warehouse availability figure.
+   */
+  sellableQty: number;
 }
 
 /* --------------------------------------------------------------- helpers */
@@ -363,23 +376,34 @@ export async function getReceiptDetail(id: string): Promise<ReceiptDetail | null
     };
   });
 
-  // On-hand for the products on this receipt, from the live view.
-  const onHandRes = productIds.length
-    ? await supabase.from('inv_on_hand').select('*').in('product_id', productIds)
-    : null;
-  if (onHandRes?.error) throw onHandRes.error;
-  const onHandRows: OnHandRow[] = onHandRes?.data ?? [];
-
-  const onHand: OnHandBucket[] = onHandRows.map((r) => ({
-    location_name: (r.location_id ? locIdx.get(r.location_id) : null) ?? '—',
-    status: r.status ?? 'quarantined',
-    qty: Number(r.qty ?? 0),
-  })).sort((a, b) =>
+  // Units belonging to THIS document, bucketed by where they are now and what
+  // condition they are in.
+  //
+  // This used to read the inv_on_hand view filtered by product_id, which spans
+  // every document and every location. On a document page that is simply the
+  // wrong number: a receipt for 4 units reported 24 because the product had 24
+  // units in the warehouse. The panel is built from `serials` instead — the
+  // stock items reachable through this operation's moves and move lines, which
+  // is exactly the set the rest of the page already shows.
+  //
+  // SCOPE DECISION: these are the units this document CREATED, wherever they
+  // are now — not only those still sitting at its destination. A receipt is the
+  // record of what arrived; a unit later transferred out did still arrive here,
+  // and dropping it would make the document's own history incomplete. The
+  // location on each pill is the unit's CURRENT location, so a unit that moved
+  // shows where it went rather than vanishing.
+  const bucketKey = new Map<string, DocumentUnitBucket>();
+  for (const s of serials) {
+    const location = s.location_name ?? '—';
+    const key = `${location} ${s.status}`;
+    const existing = bucketKey.get(key);
+    if (existing) existing.qty += 1;
+    else bucketKey.set(key, { location_name: location, status: s.status, qty: 1 });
+  }
+  const documentUnits: DocumentUnitBucket[] = [...bucketKey.values()].sort((a, b) =>
     a.location_name.localeCompare(b.location_name) || a.status.localeCompare(b.status));
 
-  const availableQty = onHand
-    .filter((b) => b.status === 'ok')
-    .reduce((s, b) => s + b.qty, 0);
+  const sellableQty = serials.filter((s) => s.status === 'ok').length;
 
   const poLine: PurchaseOrderLineRow | null = (poLineRes?.data ?? [])[0] ?? null;
   const type = typeRes.data ?? null;
@@ -413,7 +437,7 @@ export async function getReceiptDetail(id: string): Promise<ReceiptDetail | null
       attachments: toAttachments(r.attachments),
     })),
     ledger,
-    onHand,
-    availableQty,
+    documentUnits,
+    sellableQty,
   };
 }
