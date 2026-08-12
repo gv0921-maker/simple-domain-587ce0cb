@@ -91,7 +91,22 @@ const EMPTY: ProductInput = {
   is_active: true,
   category_id: null,
   uom_id: null,
+  weight: null,
+  volume: null,
 };
+
+/**
+ * Number inputs that may legitimately be empty. Blank must round-trip to NULL,
+ * not 0 — "this product has never been weighed" and "this product weighs
+ * nothing" are different facts, and coercing the first into the second would
+ * put a fabricated 0 into a shared table.
+ */
+function toNullableNumber(raw: string): number | null {
+  const t = raw.trim();
+  if (t === '') return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
 
 function money(n: number): string {
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -203,6 +218,8 @@ export default function Inv2ProductForm() {
         is_active: existing.is_active,
         category_id: existing.category_id,
         uom_id: existing.uom_id,
+        weight: existing.weight,
+        volume: existing.volume,
       });
       setDirty(false);
     }
@@ -436,16 +453,27 @@ export default function Inv2ProductForm() {
         </div>
 
         <div>
-          <Field label="Weight">
-            <LockedValue
-              value="Not set"
-              reason="Outside the approved write surface for this pass. Shown so the field is not forgotten."
+          <Field label="Weight" htmlFor="weight" hint="Per unit, in kg. Leave blank if not measured.">
+            <TextInput
+              id="weight"
+              type="number"
+              step="0.001"
+              min="0"
+              value={form.weight ?? ''}
+              onChange={(e) => set('weight', toNullableNumber(e.target.value))}
+              placeholder="—"
             />
           </Field>
-          <Field label="Volume">
-            <LockedValue
-              value="Not set"
-              reason="Outside the approved write surface for this pass."
+
+          <Field label="Volume" htmlFor="volume" hint="Per unit, in m³. Leave blank if not measured.">
+            <TextInput
+              id="volume"
+              type="number"
+              step="0.001"
+              min="0"
+              value={form.volume ?? ''}
+              onChange={(e) => set('volume', toNullableNumber(e.target.value))}
+              placeholder="—"
             />
           </Field>
         </div>
@@ -651,8 +679,9 @@ export default function Inv2ProductForm() {
           <ReadOnlyNote>
             Products are shared with Sales. This screen writes only: reference, name, type,
             notes, cost, reorder level, costing method, barcode, inventory tracking, status,
-            category and unit of measure. It never writes stock_on_hand, sale_price, the
-            legacy category/unit_of_measure text pair, or variants — and it cannot delete.
+            category, unit of measure, weight and volume. It never writes stock_on_hand,
+            sale_price, the legacy category/unit_of_measure text pair, or variants — and it
+            cannot delete.
           </ReadOnlyNote>
         </div>
       </div>

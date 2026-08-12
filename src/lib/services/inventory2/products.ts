@@ -82,6 +82,10 @@ export const WRITABLE = [
   'is_active',
   'category_id',
   'uom_id',
+  // Inventory-owned physical attributes. Nothing outside inventory reads
+  // either column, so they carry none of sale_price's shared-ownership risk.
+  'weight',
+  'volume',
 ] as const;
 
 export type WritableColumn = (typeof WRITABLE)[number];
@@ -99,6 +103,9 @@ export interface ProductInput {
   is_active: boolean;
   category_id: string | null;
   uom_id: string | null;
+  /** numeric(14,3), nullable — blank means "not recorded", not zero. */
+  weight: number | null;
+  volume: number | null;
 }
 
 export interface ProductListRow {
@@ -233,6 +240,9 @@ function toDetail(r: ProductRow): ProductDetail {
     is_active: r.is_active,
     category_id: r.category_id,
     uom_id: r.uom_id,
+    // Null is meaningful here — it distinguishes "never measured" from 0.
+    weight: r.weight == null ? null : Number(r.weight),
+    volume: r.volume == null ? null : Number(r.volume),
 
     sale_price: Number(r.sale_price ?? 0),
     track_serials: r.track_serials,
