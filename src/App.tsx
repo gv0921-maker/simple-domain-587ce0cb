@@ -72,6 +72,7 @@ const Inv2ReceiptsList = lazy(() => import("@/pages/inventory2/ReceiptsList"));
 const Inv2ReceiptNew = lazy(() => import("@/pages/inventory2/ReceiptNew"));
 const Inv2ReceiptDetail = lazy(() => import("@/pages/inventory2/ReceiptDetail"));
 const Inv2QcQueue = lazy(() => import("@/pages/inventory2/QcQueue"));
+const Inv2BarcodeScan = lazy(() => import("@/pages/inventory2/BarcodeScan"));
 const CorrectionOrdersList = lazy(() => import("@/pages/inventory/CorrectionOrdersList"));
 const CorrectionOrderDetail = lazy(() => import("@/pages/inventory/CorrectionOrderDetail"));
 const InternalMovementsList = lazy(() => import("@/pages/inventory/InternalMovementsList"));
@@ -412,6 +413,9 @@ const App = () => (
             <Route path="/inventory2/receipts/new" element={<ProtectedRoute><Inv2ReceiptNew /></ProtectedRoute>} />
             <Route path="/inventory2/receipts/:id" element={<ProtectedRoute><Inv2ReceiptDetail /></ProtectedRoute>} />
             <Route path="/inventory2/qc" element={<ProtectedRoute><Inv2QcQueue /></ProtectedRoute>} />
+            {/* Inventory 2's own scan screen. The legacy /barcode queue is
+                untouched and still serves the old module. */}
+            <Route path="/inventory2/barcode" element={<ProtectedRoute><Inv2BarcodeScan /></ProtectedRoute>} />
 
             {/* Barcode module */}
             <Route path="/barcode" element={<ProtectedRoute><ScanQueueDashboard /></ProtectedRoute>} />

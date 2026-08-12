@@ -594,6 +594,10 @@ export default function ReceiptDetail() {
   const segments: SegmentOption[] = [
     { key: 'details', label: 'Details' },
     { key: 'moves', label: 'Moves' },
+    // Hands off to Inventory 2's own scan screen, carrying this receipt with
+    // it. Not the legacy /barcode queue — that belongs to the old module and
+    // is left exactly as it is.
+    { key: 'barcode', label: 'Barcode' },
     ...(isDone ? [{ key: 'traceability', label: 'Traceability' }] : []),
   ];
 
@@ -834,7 +838,15 @@ export default function ReceiptDetail() {
               actions={actions}
               segments={segments}
               activeSegment={segment}
-              onSegmentChange={(k) => setSegment(k as 'details' | 'moves' | 'traceability')}
+              onSegmentChange={(k) => {
+                // Barcode is not a view on this page — it hands off to the
+                // scan screen with this receipt preselected.
+                if (k === 'barcode') {
+                  navigate(`/inventory2/barcode?receipt=${id}`);
+                  return;
+                }
+                setSegment(k as 'details' | 'moves' | 'traceability');
+              }}
               stages={RIBBON_STAGES}
               currentStage={stageFor(r.state)}
               cog={{ items: [], printDisabled: true, printDisabledTitle: 'Printing coming in a later pass' }}

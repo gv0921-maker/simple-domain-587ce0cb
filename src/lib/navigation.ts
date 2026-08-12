@@ -14,6 +14,7 @@ export const INVENTORY_NAV = [
       // Runs alongside the entry above; neither replaces the other yet.
       { label: 'Goods Receipts (v2)', href: '/inventory2/receipts' },
       { label: 'Quality Control (v2)', href: '/inventory2/qc' },
+      { label: 'Barcode (v2)', href: '/inventory2/barcode' },
       { label: 'Delivery Notes', href: '/inventory/delivery-notes' },
       { label: 'Internal Movements', href: '/inventory/internal-movements' },
     ],
