@@ -9,6 +9,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as qc from '@/lib/services/inventory2/qc';
 import { inv2Keys } from './receipts';
+import { inv2QualityKeys } from './quality';
 
 export const inv2QcKeys = {
   all: ['inv2', 'qc'] as const,
@@ -47,7 +48,13 @@ export function useRecordQc(stockItemId: string | undefined, operationId?: strin
       if (stockItemId) void client.invalidateQueries({ queryKey: inv2QcKeys.results(stockItemId) });
       void client.invalidateQueries({ queryKey: inv2QcKeys.queue() });
       void client.invalidateQueries({ queryKey: inv2Keys.receipts() });
-      if (operationId) void client.invalidateQueries({ queryKey: inv2Keys.receipt(operationId) });
+      if (operationId) {
+        void client.invalidateQueries({ queryKey: inv2Keys.receipt(operationId) });
+        // The Quality segment's counts are derived from this unit's status, so
+        // they must move with it — otherwise the roll-up says "3 awaiting"
+        // while the row beside it already reads OK.
+        void client.invalidateQueries({ queryKey: inv2QualityKeys.document(operationId) });
+      }
     },
   });
 }
