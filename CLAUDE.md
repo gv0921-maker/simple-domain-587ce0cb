@@ -199,3 +199,33 @@ per-module database dependencies, and shared-code inventory.
   neighbouring modules.
 - **Verify, don't assume.** If you claim something works, say how you checked. If you
   didn't check, say that.
+
+---
+
+## KNOWN ISSUES — deferred, do not fix opportunistically
+
+Recorded so they are not rediscovered as surprises. Each one is deferred **on
+purpose**; fixing one is its own approved pass, not a "while I'm here".
+
+### Orphaned QC attachment uploads (Inventory 2) — found Pass 6, 2026-08-12
+
+`uploadQcAttachment()` in `src/lib/services/inventory2/qc.ts` puts the file in the
+`qc-images` bucket under `inv2/<stock_item_id>/` **as soon as the inspector picks
+it**, before `inv_record_qc_results` is called. If the submission is then abandoned
+— the dialog is closed, the tab dies, the RPC rejects the checklist — the file
+stays in the bucket with nothing referencing it. Nothing cleans it up, and nothing
+detects it: the only way to find one is to diff bucket objects against the URLs in
+`inv_test_result.attachments`.
+
+There is one such orphan today, from the Pass 6 crash:
+`inv2/8d2751c2-5f45-42fc-a7bb-575cfb248bb9/1786473217403-PASS6-PREVIEW-condition.png`
+(450 bytes, referenced by zero test results).
+
+**Deliberately not fixed.** It is a few hundred bytes of preview litter and the
+bucket is wiped at go-live, so cleanup buys nothing today. It matters at real
+volume, where inspectors retake photos routinely and every abandoned attempt is a
+permanent orphan.
+
+Worth knowing when it *is* addressed: deleting a stored object is a rule-4 deletion
+and needs sign-off, so the likely fix is upload-on-submit (hold the File in memory,
+upload only once the RPC succeeds) rather than a sweeper that deletes.
