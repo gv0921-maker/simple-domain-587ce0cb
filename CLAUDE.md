@@ -229,3 +229,45 @@ permanent orphan.
 Worth knowing when it *is* addressed: deleting a stored object is a rule-4 deletion
 and needs sign-off, so the likely fix is upload-on-submit (hold the File in memory,
 upload only once the RPC succeeds) rather than a sweeper that deletes.
+
+### `products.track_serials` is obsolete, and Inventory 2 has no non-serial path — found Pass 9, 2026-08-12
+
+The flag is not merely inconsistent, it is **outside the Inventory 2 model entirely**.
+`inv_receive_serial` never reads it — no RPC in `public` references the column at all —
+and `inv_stock_item.serial` is `NOT NULL` with a `length(trim(serial)) > 0` check. Every
+unit that enters Inventory 2 stock is serial-identified by construction. That is why the
+one product in the database carries 24 serial-identified units while its `track_serials`
+reads `false`: nothing consulted the flag on the way in.
+
+**The consequence is the part that matters.** Inventory 2 currently has **no path for
+non-serial stock**. Consumables — screws, polish, packaging, glue — cannot be modelled
+at all, because there is no way to receive a quantity rather than a set of identified
+units. This is a modelling gap, not a display bug.
+
+`src/pages/inventory2/ProductForm.tsx` therefore shows `track_serials` read-only with a
+note, rather than offering a toggle that would change nothing.
+
+Note that `src/components/sales/ReserveStockDialog.tsx:51-52` **already works around the
+flag** — it computes `usesSerials = availableSerials.length > 0 || product?.trackSerials`
+with a comment saying the flag "is not consistently set". Someone hit this before and
+routed around it.
+
+**Deliberately not fixed.** Resolving it means one of two passes, both larger than a
+patch: retire the column alongside `stock_on_hand`, or build a genuine quantity-tracked
+path for consumables. Do not add a `track_serials` toggle to any screen in the meantime.
+
+### `useProducts()` has no `is_active` filter — archived products still appear in Sales — found Pass 9, 2026-08-12
+
+`getProductsAsync()` in `src/lib/services/inventory/api.ts:368` selects every product with
+no `is_active` filter, and `useProducts()` (`src/hooks/inventory/index.ts:16`) feeds the
+pickers on Sales order lines, invoices, pricelists, subscriptions, promotions, work orders
+and labels.
+
+**Archiving a product therefore does not hide it anywhere.** This matters because archiving
+is the *only* deactivation available: RLS policy `products_no_delete` is `USING(false)` and
+37 foreign keys reference `products.id`, so products genuinely cannot be deleted. Setting
+`is_active = false` records intent and changes nothing a salesperson sees.
+
+**Deliberately not fixed.** The change is Sales-side — filtering those pickers is a Sales
+decision about which products may still be sold, not an Inventory one. Adding the filter
+from an inventory pass would silently remove options from live Sales screens.
