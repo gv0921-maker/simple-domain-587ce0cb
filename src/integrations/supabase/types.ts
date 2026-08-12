@@ -4320,6 +4320,7 @@ export type Database = {
           product_id: string
           state: Database["public"]["Enums"]["inv_move_state"]
           updated_at: string
+          variant_id: string | null
         }
         Insert: {
           created_at?: string
@@ -4330,6 +4331,7 @@ export type Database = {
           product_id: string
           state?: Database["public"]["Enums"]["inv_move_state"]
           updated_at?: string
+          variant_id?: string | null
         }
         Update: {
           created_at?: string
@@ -4340,6 +4342,7 @@ export type Database = {
           product_id?: string
           state?: Database["public"]["Enums"]["inv_move_state"]
           updated_at?: string
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -4355,6 +4358,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_move_variant_fk"
+            columns: ["variant_id", "product_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id", "product_id"]
           },
         ]
       }
@@ -4695,6 +4705,7 @@ export type Database = {
           product_id: string
           received_qty: number
           updated_at: string
+          variant_id: string | null
         }
         Insert: {
           created_at?: string
@@ -4705,6 +4716,7 @@ export type Database = {
           product_id: string
           received_qty?: number
           updated_at?: string
+          variant_id?: string | null
         }
         Update: {
           created_at?: string
@@ -4715,6 +4727,7 @@ export type Database = {
           product_id?: string
           received_qty?: number
           updated_at?: string
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -4730,6 +4743,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_purchase_order_line_variant_fk"
+            columns: ["variant_id", "product_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id", "product_id"]
           },
         ]
       }
@@ -4748,6 +4768,7 @@ export type Database = {
           serial: string
           status: Database["public"]["Enums"]["inv_stock_status"]
           updated_at: string
+          variant_id: string | null
         }
         Insert: {
           batch_code?: string | null
@@ -4763,6 +4784,7 @@ export type Database = {
           serial: string
           status?: Database["public"]["Enums"]["inv_stock_status"]
           updated_at?: string
+          variant_id?: string | null
         }
         Update: {
           batch_code?: string | null
@@ -4778,6 +4800,7 @@ export type Database = {
           serial?: string
           status?: Database["public"]["Enums"]["inv_stock_status"]
           updated_at?: string
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -4807,6 +4830,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_stock_item_variant_fk"
+            columns: ["variant_id", "product_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id", "product_id"]
           },
         ]
       }
@@ -6751,6 +6781,108 @@ export type Database = {
           },
         ]
       }
+      product_variant_values: {
+        Row: {
+          attribute_id: string
+          created_at: string
+          value_id: string
+          variant_id: string
+        }
+        Insert: {
+          attribute_id: string
+          created_at?: string
+          value_id: string
+          variant_id: string
+        }
+        Update: {
+          attribute_id?: string
+          created_at?: string
+          value_id?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variant_values_attribute_id_fkey"
+            columns: ["attribute_id"]
+            isOneToOne: false
+            referencedRelation: "product_attributes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_variant_values_value_matches_attribute"
+            columns: ["value_id", "attribute_id"]
+            isOneToOne: false
+            referencedRelation: "product_attribute_values"
+            referencedColumns: ["id", "attribute_id"]
+          },
+          {
+            foreignKeyName: "product_variant_values_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_variants: {
+        Row: {
+          archived_at: string | null
+          barcode: string | null
+          combo_key: string | null
+          cost_price: number
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          product_id: string
+          promoted_at: string | null
+          sale_price: number
+          sku: string
+          status: Database["public"]["Enums"]["product_variant_status"]
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          barcode?: string | null
+          combo_key?: string | null
+          cost_price?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          product_id: string
+          promoted_at?: string | null
+          sale_price?: number
+          sku: string
+          status?: Database["public"]["Enums"]["product_variant_status"]
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          barcode?: string | null
+          combo_key?: string | null
+          cost_price?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          product_id?: string
+          promoted_at?: string | null
+          sale_price?: number
+          sku?: string
+          status?: Database["public"]["Enums"]["product_variant_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           barcode: string | null
@@ -6768,6 +6900,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean
+          mode: Database["public"]["Enums"]["product_mode"]
           name: string
           reorder_level: number
           sale_price: number
@@ -6801,6 +6934,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          mode?: Database["public"]["Enums"]["product_mode"]
           name: string
           reorder_level?: number
           sale_price?: number
@@ -6834,6 +6968,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          mode?: Database["public"]["Enums"]["product_mode"]
           name?: string
           reorder_level?: number
           sale_price?: number
@@ -11118,6 +11253,15 @@ export type Database = {
         }
         Returns: string
       }
+      product_variant_auto_archive: {
+        Args: { p_dry_run?: boolean; p_older_than?: string }
+        Returns: {
+          action: string
+          reason: string
+          sku: string
+          variant_id: string
+        }[]
+      }
       reconcile_stock_count: {
         Args: { p_count_id: string; p_item_reconciliations: Json }
         Returns: Json
@@ -11366,6 +11510,8 @@ export type Database = {
         | "lost"
       note_visibility: "private" | "team" | "public"
       opportunity_stage: "new" | "qualified" | "proposition" | "won" | "lost"
+      product_mode: "stocked" | "made_to_order" | "both"
+      product_variant_status: "provisional" | "permanent" | "archived"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -11613,6 +11759,8 @@ export const Constants = {
       ],
       note_visibility: ["private", "team", "public"],
       opportunity_stage: ["new", "qualified", "proposition", "won", "lost"],
+      product_mode: ["stocked", "made_to_order", "both"],
+      product_variant_status: ["provisional", "permanent", "archived"],
     },
   },
 } as const
