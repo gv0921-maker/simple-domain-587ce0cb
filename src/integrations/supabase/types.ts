@@ -4572,6 +4572,7 @@ export type Database = {
           mandatory_scan_serial: boolean
           name: string
           print_labels: boolean
+          requires_qc: boolean
           sequence_id: string | null
           updated_at: string
         }
@@ -4590,6 +4591,7 @@ export type Database = {
           mandatory_scan_serial?: boolean
           name: string
           print_labels?: boolean
+          requires_qc?: boolean
           sequence_id?: string | null
           updated_at?: string
         }
@@ -4608,6 +4610,7 @@ export type Database = {
           mandatory_scan_serial?: boolean
           name?: string
           print_labels?: boolean
+          requires_qc?: boolean
           sequence_id?: string | null
           updated_at?: string
         }
