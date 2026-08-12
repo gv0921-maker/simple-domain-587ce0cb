@@ -288,8 +288,13 @@ export async function getReceiptDetail(id: string): Promise<ReceiptDetail | null
     stockItemIds.length
       ? supabase.from('inv_stock_item').select('*').in('id', stockItemIds)
       : null,
+    // is_active is filtered here to match listTemplatesForProduct in qc.ts.
+    // Without it a deactivated template still appeared in this page's read-only
+    // QC peek while the runner ignored it — the same unit reading as having an
+    // outstanding test in one place and not the other. Found in Pass 8 Part A;
+    // no template is inactive today, so nothing visibly changes yet.
     productIds.length
-      ? supabase.from('inv_test_template').select('*').or(
+      ? supabase.from('inv_test_template').select('*').eq('is_active', true).or(
           `product_id.in.(${productIds.join(',')}),product_id.is.null`)
       : null,
     stockItemIds.length
