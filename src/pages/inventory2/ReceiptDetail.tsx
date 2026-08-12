@@ -48,6 +48,9 @@ import {
   TextInput, SelectInput, ErrorBanner,
 } from '@/components/inventory2/formControls';
 import { QcRunner } from '@/components/inventory2/QcRunner';
+import { QualitySegment } from '@/components/inventory2/QualitySegment';
+import { useDocumentQuality } from '@/hooks/inventory2/quality';
+import { documentRequiresQc } from '@/lib/services/inventory2/quality';
 import { isLiveAttachment } from '@/lib/services/inventory2/qc';
 import { errorText } from '@/lib/inventory2/errorText';
 import { useActivityLog } from '@/hooks/useActivityLog';
@@ -465,8 +468,17 @@ export default function ReceiptDetail() {
   const { data: appUsers = [] } = useAppUsers();
   const { data: products = [] } = useInv2Products();
 
-  const [segment, setSegment] = useState<'details' | 'moves' | 'traceability'>('details');
+  const [segment, setSegment] = useState<'details' | 'moves' | 'quality' | 'traceability'>('details');
   const [detailsMoveId, setDetailsMoveId] = useState<string | null>(null);
+
+  /**
+   * Whether the Quality segment is offered. Read through documentRequiresQc so
+   * this page never tests the flag itself — one point of change, as agreed in
+   * Pass 8 Part A. The extra read is cheap and shared with the segment's own
+   * query, so opening Quality does not refetch.
+   */
+  const { data: quality } = useDocumentQuality(id);
+  const showQuality = documentRequiresQc(quality);
 
   /* -- writes ------------------------------------------------------------ */
   const addLine = useAddReceiptLine(id);
@@ -598,6 +610,8 @@ export default function ReceiptDetail() {
     // it. Not the legacy /barcode queue — that belongs to the old module and
     // is left exactly as it is.
     { key: 'barcode', label: 'Barcode' },
+    // Driven by inv_operation_type.requires_qc, never by the document's kind.
+    ...(showQuality ? [{ key: 'quality', label: 'Quality' }] : []),
     ...(isDone ? [{ key: 'traceability', label: 'Traceability' }] : []),
   ];
 
@@ -845,7 +859,7 @@ export default function ReceiptDetail() {
                   navigate(`/inventory2/barcode?receipt=${id}`);
                   return;
                 }
-                setSegment(k as 'details' | 'moves' | 'traceability');
+                setSegment(k as 'details' | 'moves' | 'quality' | 'traceability');
               }}
               stages={RIBBON_STAGES}
               currentStage={stageFor(r.state)}
@@ -948,6 +962,8 @@ export default function ReceiptDetail() {
               <DocumentFields columns={[leftFields, rightFields]} />
 
               {segment === 'details' && <DocumentTabs tabs={tabs} />}
+
+              {segment === 'quality' && id && <QualitySegment operationId={id} />}
 
               {segment === 'moves' && (
                 <div className="border-t border-[hsl(var(--ds-border))] p-3">
