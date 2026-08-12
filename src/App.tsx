@@ -71,6 +71,7 @@ const GoodsReceiptDetail = lazy(() => import("@/pages/inventory/GoodsReceiptDeta
 const Inv2ReceiptsList = lazy(() => import("@/pages/inventory2/ReceiptsList"));
 const Inv2ReceiptNew = lazy(() => import("@/pages/inventory2/ReceiptNew"));
 const Inv2ReceiptDetail = lazy(() => import("@/pages/inventory2/ReceiptDetail"));
+const Inv2QcQueue = lazy(() => import("@/pages/inventory2/QcQueue"));
 const CorrectionOrdersList = lazy(() => import("@/pages/inventory/CorrectionOrdersList"));
 const CorrectionOrderDetail = lazy(() => import("@/pages/inventory/CorrectionOrderDetail"));
 const InternalMovementsList = lazy(() => import("@/pages/inventory/InternalMovementsList"));
@@ -410,6 +411,7 @@ const App = () => (
             {/* /new is declared before /:id so it is not swallowed as an id. */}
             <Route path="/inventory2/receipts/new" element={<ProtectedRoute><Inv2ReceiptNew /></ProtectedRoute>} />
             <Route path="/inventory2/receipts/:id" element={<ProtectedRoute><Inv2ReceiptDetail /></ProtectedRoute>} />
+            <Route path="/inventory2/qc" element={<ProtectedRoute><Inv2QcQueue /></ProtectedRoute>} />
 
             {/* Barcode module */}
             <Route path="/barcode" element={<ProtectedRoute><ScanQueueDashboard /></ProtectedRoute>} />

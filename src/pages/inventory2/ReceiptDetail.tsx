@@ -47,6 +47,8 @@ import {
 import {
   TextInput, SelectInput, ErrorBanner,
 } from '@/components/inventory2/formControls';
+import { QcRunner } from '@/components/inventory2/QcRunner';
+import { isLiveAttachment } from '@/lib/services/inventory2/qc';
 import { errorText } from '@/lib/inventory2/errorText';
 import { useActivityLog } from '@/hooks/useActivityLog';
 import { useAppUsers, displayNameFor } from '@/hooks/useAppUsers';
@@ -230,9 +232,25 @@ function QcPanel({
               <td className={TD}>
                 {r && r.attachments?.length
                   ? r.attachments.map((a, i) => (
-                      <div key={i} className="text-[var(--ds-fs-xs)] text-[hsl(var(--ds-link))]">
-                        {a.name ?? a.url ?? 'attachment'}
-                      </div>
+                      isLiveAttachment(a) ? (
+                        <a
+                          key={i} href={a.url} target="_blank" rel="noreferrer"
+                          className="block text-[var(--ds-fs-xs)] text-[hsl(var(--ds-link))] hover:underline"
+                        >
+                          {a.name ?? a.url}
+                        </a>
+                      ) : (
+                        /* Seeded references like `/qc/received-1.jpg` point at
+                           nothing. Rendering them as evidence would misreport
+                           what was actually inspected. */
+                        <span
+                          key={i}
+                          title={`No file behind this reference: ${a.url ?? 'no url'}`}
+                          className="block text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-subtle))] line-through"
+                        >
+                          {a.name ?? 'attachment'} (missing)
+                        </span>
+                      )
                     ))
                   : DASH}
               </td>
@@ -264,6 +282,8 @@ function DetailedOperationsModal({
   const [serial, setSerial] = useState('');
   const [cost, setCost] = useState('0');
   const [failure, setFailure] = useState<string | null>(null);
+  /** Unit whose full QC screen is open. Independent of the read-only peek. */
+  const [qcUnit, setQcUnit] = useState<{ id: string; serial: string; productId: string; status: InvStockStatus } | null>(null);
 
   async function submitSerial() {
     const s = serial.trim();
@@ -319,7 +339,7 @@ function DetailedOperationsModal({
                 </td>
                 <td className={cn(TD, 'tabular-nums')}>1</td>
                 <td className={TD}>Units</td>
-                <td className={cn(TD, 'text-right')}>
+                <td className={cn(TD, 'whitespace-nowrap text-right')}>
                   <button
                     type="button"
                     onClick={() => setOpenQc(openQc === s.stock_item_id ? null : s.stock_item_id)}
@@ -327,6 +347,20 @@ function DetailedOperationsModal({
                   >
                     {openQc === s.stock_item_id ? 'Hide QC' : 'QC'}
                   </button>
+                  {s.product_id && (
+                    <button
+                      type="button"
+                      onClick={() => setQcUnit({
+                        id: s.stock_item_id,
+                        serial: s.serial,
+                        productId: s.product_id!,
+                        status: s.status,
+                      })}
+                      className="ml-3 font-medium text-[hsl(var(--ds-link))] hover:underline"
+                    >
+                      Run QC
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -398,6 +432,22 @@ function DetailedOperationsModal({
           )}
         </div>
       </div>
+
+      {/*
+        QC is deliberately NOT gated on the document being editable: inspection
+        happens after goods arrive, and a validated receipt is exactly when a
+        unit is most likely to be sitting in quarantine awaiting a decision.
+      */}
+      {qcUnit && (
+        <QcRunner
+          stockItemId={qcUnit.id}
+          productId={qcUnit.productId}
+          serial={qcUnit.serial}
+          currentStatus={qcUnit.status}
+          operationId={operationId}
+          onClose={() => setQcUnit(null)}
+        />
+      )}
     </div>
   );
 }
