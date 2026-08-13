@@ -207,6 +207,47 @@ per-module database dependencies, and shared-code inventory.
 Recorded so they are not rediscovered as surprises. Each one is deferred **on
 purpose**; fixing one is its own approved pass, not a "while I'm here".
 
+### `product_attribute_values.extra_price` is SUPERSEDED for the attribute path — from Pass C, 2026-08-13
+
+Category-scoped attribute values (Pass A, applied 2026-08-13) put the price adjustment on
+the **category link**: `product_category_attribute_values.extra_price`, `NOT NULL DEFAULT 0`
+with **no fallback** to the global column. The link row is the whole answer — a fallback
+would put the global figure silently back in charge of any link nobody priced, which is
+the two-sources problem the change exists to remove.
+
+**The global column stays** (Rule 4) and is still the live source until Pass C repoints the
+readers. Current readers of the global column:
+
+| Reader | What it does |
+|---|---|
+| `components/sales/CustomizationPicker.tsx:83` | sums `extraPrice` into the line's `priceAdjustment` |
+| `components/sales/CustomizationPicker.tsx:160` | renders the `(+₹…)` label |
+| `pages/inventory2/config/AttributeConfigForm.tsx`, `components/inventory/config/AttributesConfig.tsx` | write it |
+
+**After Pass C** the picker should read the resolved per-category price. And note the
+consequence: if Pass C makes an uncategorised product offer **no** values, every value
+reaching the picker will have arrived through a category link, so the global column has
+**no live reader at all** on the attribute path.
+
+**Do not drop it.** Mark it superseded in a comment. It is still the only price for the
+`product_customization_options` path, which is a different mechanism.
+
+### `products.category_id` is ON DELETE SET NULL — becomes a silent failure once scoping is live, 2026-08-13
+
+Today this is cosmetic. Once category-scoped values are resolved (Pass C), deleting a
+category leaves its products with `category_id = NULL`, which means **they can offer no
+attribute values at all** — a silent failure of exactly the kind this module refuses
+everywhere else.
+
+**RESTRICT is recommended**, deferred to its own pass because it alters an existing FK on a
+shared table and Pass A was deliberately additive.
+
+| | |
+|---|---|
+| Live delete path | `deleteCategory()` in `src/lib/services/inventory/categories.ts:53`, wired through `useDeleteCategory` in `hooks/inventory/config.ts:27` |
+| What changes | That path starts failing loudly for a category that has products — which is the intent, but it is a behaviour change to a legacy path |
+| Why it is coherent | `product_categories.is_active` already exists, so archive is available as the non-destructive alternative |
+
 ### A new REQUIRED QC check retroactively un-completes past inspections — INTENDED, warned, 2026-08-13
 
 **This is correct behaviour, not a bug.** It is recorded here because it is genuinely

@@ -6737,6 +6737,45 @@ export type Database = {
           },
         ]
       }
+      product_category_attribute_values: {
+        Row: {
+          attribute_id: string
+          category_id: string
+          created_at: string
+          extra_price: number
+          value_id: string
+        }
+        Insert: {
+          attribute_id: string
+          category_id: string
+          created_at?: string
+          extra_price?: number
+          value_id: string
+        }
+        Update: {
+          attribute_id?: string
+          category_id?: string
+          created_at?: string
+          extra_price?: number
+          value_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pcav_value_matches_attribute"
+            columns: ["value_id", "attribute_id"]
+            isOneToOne: false
+            referencedRelation: "product_attribute_values"
+            referencedColumns: ["id", "attribute_id"]
+          },
+          {
+            foreignKeyName: "product_category_attribute_values_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_customization_options: {
         Row: {
           additional_price: number
