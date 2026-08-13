@@ -25,6 +25,7 @@ import type {
 import { useProducts } from '@/hooks/inventory';
 import { getSeasonalDiscountPct } from '@/lib/sales/seasonalPricing';
 import { CustomizationPicker, type CustomizationValue } from './CustomizationPicker';
+import { RequestVariantDialog } from './RequestVariantDialog';
 
 export type AnyLine = QuotationLine | SalesOrderLine;
 
@@ -123,6 +124,8 @@ export function OrderLinesTable<L extends AnyLine>({
   newLine,
 }: Props<L>) {
   const { data: productList = [] } = useProducts();
+  // Which product a version is being requested for; null when the dialog is shut.
+  const [variantRequestFor, setVariantRequestFor] = useState<string | null>(null);
   const products = useMemo<ProductLite[]>(() => productList as unknown as ProductLite[], [productList]);
   const productMap = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
   const barcodeMap = useMemo(() => {
@@ -565,13 +568,31 @@ export function OrderLinesTable<L extends AnyLine>({
             </div>
           </div>
           {showPicker && line.productId && (
-            <div className="mt-2">
+            <div className="mt-2 space-y-2">
               <CustomizationPicker
                 productId={line.productId}
                 value={customizationValue}
                 onChange={onCustomizationChange}
                 disabled={disabled}
               />
+              {/*
+                Create-only escape hatch: the customer wants a combination that
+                is not in the catalogue. This adds it as a provisional version so
+                Inventory can order it, and deliberately does NOT touch the line —
+                order_lines has no variant_id yet (10F). The dialog says so.
+              */}
+              {!disabled && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setVariantRequestFor(line.productId!)}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Request a version we don't stock
+                </Button>
+              )}
             </div>
           )}
         </td>
@@ -801,6 +822,20 @@ export function OrderLinesTable<L extends AnyLine>({
             </div>
           </div>
       </CardContent>
+
+      {/*
+        Mounted once for the whole table rather than per line: only one request
+        can be open at a time, and per-row dialogs would mount one hidden
+        component per line.
+      */}
+      {variantRequestFor && (
+        <RequestVariantDialog
+          open
+          onOpenChange={(v) => { if (!v) setVariantRequestFor(null); }}
+          productId={variantRequestFor}
+          productName={productMap.get(variantRequestFor)?.name}
+        />
+      )}
     </Card>
   );
 }
