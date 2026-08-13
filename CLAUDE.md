@@ -271,3 +271,31 @@ is the *only* deactivation available: RLS policy `products_no_delete` is `USING(
 **Deliberately not fixed.** The change is Sales-side — filtering those pickers is a Sales
 decision about which products may still be sold, not an Inventory one. Adding the filter
 from an inventory pass would silently remove options from live Sales screens.
+
+### The attribute service cannot move under `inventory2/` — found Pass 10C, 2026-08-13
+
+The config pages moved to `/inventory2/config` in the consolidation pass, but their
+service and hooks did not, because **legacy still imports them heavily**:
+
+| Module | Legacy importers |
+|---|---|
+| `src/lib/services/inventory/attributes.ts` | `components/inventory/config/AttributesConfig.tsx` (the legacy shadcn editor), plus the hooks barrel below |
+| `src/hooks/inventory/config.ts` | `pages/inventory/GoodsReceiptDetail.tsx`, `GoodsReceiptWizard.tsx`, `InventoryOverview.tsx`, `InventoryOperationsOverview.tsx`, five `components/inventory/config/*` components, `_archive/`, and — **importantly — `components/sales/CustomizationPicker.tsx`** |
+
+`hooks/inventory/config.ts` is also a barrel exporting the category, UoM and
+operation-type hooks, so moving it wholesale would break ten importers at once.
+
+**The consequence to know about:** the new module reads the same data under a
+different TanStack query key (`inv2VariantKeys.assigned(productId)`) from the one
+the legacy hooks invalidate (`['product-attribute-assignments', productId]`). Saving
+an assignment through the legacy hook therefore leaves the new module's copy stale —
+the variant editor said "no attributes assigned" immediately after they were.
+
+`src/components/inventory2/AttributeAssignment.tsx` reconciles the two key spaces by
+hand, in one place, with a comment saying so. **That reconciliation is the marker for
+this issue** — when the service finally moves, it comes out.
+
+**Deliberately deferred.** Moving the service means either updating ten legacy
+importers (a legacy-module change, outside an Inventory 2 pass) or splitting the
+barrel. Both are their own approved pass. Until then, anything in Inventory 2 that
+writes attribute assignments must invalidate `inv2VariantKeys` as well.
