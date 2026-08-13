@@ -10556,6 +10556,56 @@ export type Database = {
           },
         ]
       }
+      product_category_ancestors: {
+        Row: {
+          ancestor_id: string | null
+          ancestor_name: string | null
+          category_id: string | null
+          distance: number | null
+        }
+        Relationships: []
+      }
+      product_category_value_candidates: {
+        Row: {
+          attribute_id: string | null
+          category_id: string | null
+          distance: number | null
+          extra_price: number | null
+          source_category_id: string | null
+          source_category_name: string | null
+          value_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pcav_value_matches_attribute"
+            columns: ["value_id", "attribute_id"]
+            isOneToOne: false
+            referencedRelation: "product_attribute_values"
+            referencedColumns: ["id", "attribute_id"]
+          },
+        ]
+      }
+      product_category_values_resolved: {
+        Row: {
+          attribute_id: string | null
+          category_id: string | null
+          distance: number | null
+          extra_price: number | null
+          overrides_ancestor: boolean | null
+          source_category_id: string | null
+          source_category_name: string | null
+          value_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pcav_value_matches_attribute"
+            columns: ["value_id", "attribute_id"]
+            isOneToOne: false
+            referencedRelation: "product_attribute_values"
+            referencedColumns: ["id", "attribute_id"]
+          },
+        ]
+      }
       reservation_health: {
         Row: {
           issue: string | null
