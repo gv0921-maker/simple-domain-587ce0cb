@@ -17,7 +17,7 @@
  * `useCreateLocation` / `useUpdateLocation` -> `createLocation` /
  * `updateLocation` -> `saveLocationAsync`.
  *
- * Route: /inventory/config/locations/:id, where :id === 'new' creates.
+ * Route: /inventory2/config/locations/:id, where :id === 'new' creates.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -38,7 +38,7 @@ import {
   REMOVAL_STRATEGY_OPTIONS,
 } from './locationPath';
 
-const LIST_PATH = '/inventory/config/locations';
+const LIST_PATH = '/inventory2/config/locations';
 
 type RemovalStrategy = NonNullable<Location['removalStrategy']>;
 

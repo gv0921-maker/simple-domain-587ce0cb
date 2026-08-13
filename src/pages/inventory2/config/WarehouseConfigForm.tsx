@@ -12,7 +12,7 @@
  * `useSaveWarehouse` -> `saveWarehouseAsync` service path (insert when the id
  * is empty, update otherwise). No new data layer.
  *
- * Route: /inventory/config/warehouses/:id, where :id === 'new' creates.
+ * Route: /inventory2/config/warehouses/:id, where :id === 'new' creates.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -23,7 +23,7 @@ import type { Warehouse } from '@/lib/services/inventory';
 import { DocumentHeader, DocumentFields, type DocumentField } from '@/design-system';
 import '@/design-system/tokens.css';
 
-const LIST_PATH = '/inventory/config/warehouses';
+const LIST_PATH = '/inventory2/config/warehouses';
 
 interface FormState {
   name: string;

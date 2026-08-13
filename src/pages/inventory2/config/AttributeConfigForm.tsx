@@ -23,7 +23,7 @@
  * (attribute_id, value), so duplicates are possible; the form warns rather than
  * silently allowing them.
  *
- * Route: /inventory/config/attributes/:id, where :id === 'new' creates.
+ * Route: /inventory2/config/attributes/:id, where :id === 'new' creates.
  * A new attribute must be saved before values can be added — they need its id.
  */
 import { useEffect, useMemo, useState } from 'react';
@@ -51,7 +51,7 @@ import {
 import '@/design-system/tokens.css';
 import { DISPLAY_TYPE_LABELS, DISPLAY_TYPE_OPTIONS } from './configMeta';
 
-const LIST_PATH = '/inventory/config/attributes';
+const LIST_PATH = '/inventory2/config/attributes';
 
 const controlClass =
   'w-full rounded-[var(--ds-radius)] border border-[hsl(var(--ds-border-strong))] ' +

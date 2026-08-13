@@ -127,8 +127,8 @@ export default function LocationsConfigList() {
             setPage(0);
           }}
           searchPlaceholder="Search locations…"
-          onNew={() => navigate('/inventory/config/locations/new')}
-          onRowClick={(r) => navigate(`/inventory/config/locations/${r.location.id}`)}
+          onNew={() => navigate('/inventory2/config/locations/new')}
+          onRowClick={(r) => navigate(`/inventory2/config/locations/${r.location.id}`)}
           page={{
             from: filtered.length ? safePage * PAGE_SIZE + 1 : 0,
             to: safePage * PAGE_SIZE + visible.length,

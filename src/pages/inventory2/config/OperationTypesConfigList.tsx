@@ -121,8 +121,8 @@ export default function OperationTypesConfigList() {
             setPage(0);
           }}
           searchPlaceholder="Search operation types…"
-          onNew={() => navigate('/inventory/config/operation-types/new')}
-          onRowClick={(t) => navigate(`/inventory/config/operation-types/${t.id}`)}
+          onNew={() => navigate('/inventory2/config/operation-types/new')}
+          onRowClick={(t) => navigate(`/inventory2/config/operation-types/${t.id}`)}
           page={{
             from: filtered.length ? safePage * PAGE_SIZE + 1 : 0,
             to: safePage * PAGE_SIZE + visible.length,

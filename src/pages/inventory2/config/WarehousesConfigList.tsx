@@ -113,8 +113,8 @@ export default function WarehousesConfigList() {
             setPage(0);
           }}
           searchPlaceholder="Search warehouses…"
-          onNew={() => navigate('/inventory/config/warehouses/new')}
-          onRowClick={(w) => navigate(`/inventory/config/warehouses/${w.id}`)}
+          onNew={() => navigate('/inventory2/config/warehouses/new')}
+          onRowClick={(w) => navigate(`/inventory2/config/warehouses/${w.id}`)}
           getRowLabel={(w) => w.name}
           page={{
             from: filtered.length ? safePage * PAGE_SIZE + 1 : 0,

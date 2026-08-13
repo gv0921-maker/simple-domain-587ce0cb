@@ -190,8 +190,8 @@ export default function NumberingConfigList() {
             setPage(0);
           }}
           searchPlaceholder="Search document types…"
-          onNew={() => navigate('/inventory/config/numbering/new')}
-          onRowClick={(s) => navigate(`/inventory/config/numbering/${s.id}`)}
+          onNew={() => navigate('/inventory2/config/numbering/new')}
+          onRowClick={(s) => navigate(`/inventory2/config/numbering/${s.id}`)}
           page={{
             from: filtered.length ? safePage * PAGE_SIZE + 1 : 0,
             to: safePage * PAGE_SIZE + visible.length,

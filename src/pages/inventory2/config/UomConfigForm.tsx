@@ -11,7 +11,7 @@
  * Dozen (ratio 12) and Pair (ratio 2). Every field is submitted explicitly from
  * loaded state.
  *
- * Route: /inventory/config/uom/:id, where :id === 'new' creates.
+ * Route: /inventory2/config/uom/:id, where :id === 'new' creates.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -23,7 +23,7 @@ import { DocumentHeader, DocumentFields, type DocumentField } from '@/design-sys
 import '@/design-system/tokens.css';
 import { UOM_TYPE_LABELS, UOM_TYPE_OPTIONS } from './configMeta';
 
-const LIST_PATH = '/inventory/config/uom';
+const LIST_PATH = '/inventory2/config/uom';
 
 const controlClass =
   'w-full rounded-[var(--ds-radius)] border border-[hsl(var(--ds-border-strong))] ' +

@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider, MutationCache, QueryCache } from "@tanstack/react-query";
 import { toast as sonnerToast } from "sonner";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CustomizationProvider } from "@/contexts/CustomizationContext";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
@@ -24,20 +24,20 @@ const WarehousesList = lazy(() => import("@/pages/inventory/WarehousesList"));
 const WarehouseLocations = lazy(() => import("@/pages/inventory/WarehouseLocations"));
 // Rebuilt warehouse config (design system). The legacy WarehousesList above
 // stays routed at /inventory/warehouses until this is signed off.
-const WarehousesConfigList = lazy(() => import("@/pages/inventory/config/WarehousesConfigList"));
-const WarehouseConfigForm = lazy(() => import("@/pages/inventory/config/WarehouseConfigForm"));
-const LocationsConfigList = lazy(() => import("@/pages/inventory/config/LocationsConfigList"));
-const LocationConfigForm = lazy(() => import("@/pages/inventory/config/LocationConfigForm"));
-const OperationTypesConfigList = lazy(() => import("@/pages/inventory/config/OperationTypesConfigList"));
-const OperationTypeConfigForm = lazy(() => import("@/pages/inventory/config/OperationTypeConfigForm"));
-const NumberingConfigList = lazy(() => import("@/pages/inventory/config/NumberingConfigList"));
-const NumberingConfigForm = lazy(() => import("@/pages/inventory/config/NumberingConfigForm"));
-const CategoriesConfigList = lazy(() => import("@/pages/inventory/config/CategoriesConfigList"));
-const CategoryConfigForm = lazy(() => import("@/pages/inventory/config/CategoryConfigForm"));
-const UomConfigList = lazy(() => import("@/pages/inventory/config/UomConfigList"));
-const UomConfigForm = lazy(() => import("@/pages/inventory/config/UomConfigForm"));
-const AttributesConfigList = lazy(() => import("@/pages/inventory/config/AttributesConfigList"));
-const AttributeConfigForm = lazy(() => import("@/pages/inventory/config/AttributeConfigForm"));
+const WarehousesConfigList = lazy(() => import("@/pages/inventory2/config/WarehousesConfigList"));
+const WarehouseConfigForm = lazy(() => import("@/pages/inventory2/config/WarehouseConfigForm"));
+const LocationsConfigList = lazy(() => import("@/pages/inventory2/config/LocationsConfigList"));
+const LocationConfigForm = lazy(() => import("@/pages/inventory2/config/LocationConfigForm"));
+const OperationTypesConfigList = lazy(() => import("@/pages/inventory2/config/OperationTypesConfigList"));
+const OperationTypeConfigForm = lazy(() => import("@/pages/inventory2/config/OperationTypeConfigForm"));
+const NumberingConfigList = lazy(() => import("@/pages/inventory2/config/NumberingConfigList"));
+const NumberingConfigForm = lazy(() => import("@/pages/inventory2/config/NumberingConfigForm"));
+const CategoriesConfigList = lazy(() => import("@/pages/inventory2/config/CategoriesConfigList"));
+const CategoryConfigForm = lazy(() => import("@/pages/inventory2/config/CategoryConfigForm"));
+const UomConfigList = lazy(() => import("@/pages/inventory2/config/UomConfigList"));
+const UomConfigForm = lazy(() => import("@/pages/inventory2/config/UomConfigForm"));
+const AttributesConfigList = lazy(() => import("@/pages/inventory2/config/AttributesConfigList"));
+const AttributeConfigForm = lazy(() => import("@/pages/inventory2/config/AttributeConfigForm"));
 const StockMoves = lazy(() => import("@/pages/inventory/StockMoves"));
 const StockMoveDetail = lazy(() => import("@/pages/inventory/StockMoveDetail"));
 const InventoryConfiguration = lazy(() => import("@/pages/inventory/InventoryConfiguration"));
@@ -296,6 +296,21 @@ function extractMessage(error: unknown): string {
   return e.message || e.hint || e.details || 'Something went wrong';
 }
 
+/**
+ * Redirect a legacy /inventory/config/<section>/:id URL to its new
+ * /inventory2/config/<section>/:id home, carrying the record id across.
+ *
+ * A plain <Navigate> cannot do this: the target is only known at render time
+ * because `:id` has to be read from the matched route. Without it, a bookmark
+ * to a specific warehouse or attribute would land on the list instead of the
+ * record — technically "not broken", but the wrong page, which is worse than a
+ * 404 because it looks like it worked.
+ */
+function RedirectConfig({ to }: { to: string }) {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/inventory2/config/${to}/${id ?? ''}`} replace />;
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -359,22 +374,28 @@ const App = () => (
             <Route path="/inventory/products/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
             <Route path="/inventory/ito/:id" element={<ProtectedRoute><ItoDetail /></ProtectedRoute>} />
             <Route path="/inventory/warehouses" element={<ProtectedRoute><WarehousesList /></ProtectedRoute>} />
-            <Route path="/inventory/config/warehouses" element={<ProtectedRoute><WarehousesConfigList /></ProtectedRoute>} />
-            <Route path="/inventory/config/warehouses/:id" element={<ProtectedRoute><WarehouseConfigForm /></ProtectedRoute>} />
             <Route path="/inventory/locations" element={<ProtectedRoute><WarehouseLocations /></ProtectedRoute>} />
-            <Route path="/inventory/config/locations" element={<ProtectedRoute><LocationsConfigList /></ProtectedRoute>} />
-            <Route path="/inventory/config/locations/:id" element={<ProtectedRoute><LocationConfigForm /></ProtectedRoute>} />
-            <Route path="/inventory/config/operation-types" element={<ProtectedRoute><OperationTypesConfigList /></ProtectedRoute>} />
-            <Route path="/inventory/config/operation-types/:id" element={<ProtectedRoute><OperationTypeConfigForm /></ProtectedRoute>} />
-            {/* Numbering keeps the Super Admin restriction the legacy /settings/numbering route has. */}
-            <Route path="/inventory/config/numbering" element={<RouteGuard superAdmin denyMessage="Numbering settings are restricted to Super Admin."><NumberingConfigList /></RouteGuard>} />
-            <Route path="/inventory/config/numbering/:id" element={<RouteGuard superAdmin denyMessage="Numbering settings are restricted to Super Admin."><NumberingConfigForm /></RouteGuard>} />
-            <Route path="/inventory/config/categories" element={<ProtectedRoute><CategoriesConfigList /></ProtectedRoute>} />
-            <Route path="/inventory/config/categories/:id" element={<ProtectedRoute><CategoryConfigForm /></ProtectedRoute>} />
-            <Route path="/inventory/config/uom" element={<ProtectedRoute><UomConfigList /></ProtectedRoute>} />
-            <Route path="/inventory/config/uom/:id" element={<ProtectedRoute><UomConfigForm /></ProtectedRoute>} />
-            <Route path="/inventory/config/attributes" element={<ProtectedRoute><AttributesConfigList /></ProtectedRoute>} />
-            <Route path="/inventory/config/attributes/:id" element={<ProtectedRoute><AttributeConfigForm /></ProtectedRoute>} />
+
+            {/* Config pages moved to /inventory2/config — see the block below.
+                These redirects keep every existing bookmark and pasted link
+                working. They are deliberately NOT dual-mounts: two live URLs for
+                one editor is how the duplicate attributes editor happened. They
+                come out at go-live with the prefix rename. */}
+            <Route path="/inventory/config/warehouses" element={<Navigate to="/inventory2/config/warehouses" replace />} />
+            <Route path="/inventory/config/warehouses/:id" element={<RedirectConfig to="warehouses" />} />
+            <Route path="/inventory/config/locations" element={<Navigate to="/inventory2/config/locations" replace />} />
+            <Route path="/inventory/config/locations/:id" element={<RedirectConfig to="locations" />} />
+            <Route path="/inventory/config/operation-types" element={<Navigate to="/inventory2/config/operation-types" replace />} />
+            <Route path="/inventory/config/operation-types/:id" element={<RedirectConfig to="operation-types" />} />
+            <Route path="/inventory/config/numbering" element={<Navigate to="/inventory2/config/numbering" replace />} />
+            <Route path="/inventory/config/numbering/:id" element={<RedirectConfig to="numbering" />} />
+            <Route path="/inventory/config/categories" element={<Navigate to="/inventory2/config/categories" replace />} />
+            <Route path="/inventory/config/categories/:id" element={<RedirectConfig to="categories" />} />
+            <Route path="/inventory/config/uom" element={<Navigate to="/inventory2/config/uom" replace />} />
+            <Route path="/inventory/config/uom/:id" element={<RedirectConfig to="uom" />} />
+            <Route path="/inventory/config/attributes" element={<Navigate to="/inventory2/config/attributes" replace />} />
+            <Route path="/inventory/config/attributes/:id" element={<RedirectConfig to="attributes" />} />
+
             <Route path="/inventory/stock-moves" element={<ProtectedRoute><StockMoves /></ProtectedRoute>} />
             <Route path="/inventory/stock-moves/:id" element={<ProtectedRoute><StockMoveDetail /></ProtectedRoute>} />
             <Route path="/inventory/reporting" element={<ProtectedRoute><InventoryReporting /></ProtectedRoute>} />
@@ -426,6 +447,26 @@ const App = () => (
             {/* /new is declared before /:id so it is not swallowed as an id. */}
             <Route path="/inventory2/products/new" element={<ProtectedRoute><Inv2ProductForm /></ProtectedRoute>} />
             <Route path="/inventory2/products/:id" element={<ProtectedRoute><Inv2ProductForm /></ProtectedRoute>} />
+
+            {/* Configuration — one config surface, owned by the new module.
+                Moved wholesale from /inventory/config/*, which now redirects
+                here. Legacy pages still READ these tables; they have simply
+                lost their edit links. */}
+            <Route path="/inventory2/config/warehouses" element={<ProtectedRoute><WarehousesConfigList /></ProtectedRoute>} />
+            <Route path="/inventory2/config/warehouses/:id" element={<ProtectedRoute><WarehouseConfigForm /></ProtectedRoute>} />
+            <Route path="/inventory2/config/locations" element={<ProtectedRoute><LocationsConfigList /></ProtectedRoute>} />
+            <Route path="/inventory2/config/locations/:id" element={<ProtectedRoute><LocationConfigForm /></ProtectedRoute>} />
+            <Route path="/inventory2/config/operation-types" element={<ProtectedRoute><OperationTypesConfigList /></ProtectedRoute>} />
+            <Route path="/inventory2/config/operation-types/:id" element={<ProtectedRoute><OperationTypeConfigForm /></ProtectedRoute>} />
+            {/* Numbering keeps the Super Admin restriction the legacy /settings/numbering route has. */}
+            <Route path="/inventory2/config/numbering" element={<RouteGuard superAdmin denyMessage="Numbering settings are restricted to Super Admin."><NumberingConfigList /></RouteGuard>} />
+            <Route path="/inventory2/config/numbering/:id" element={<RouteGuard superAdmin denyMessage="Numbering settings are restricted to Super Admin."><NumberingConfigForm /></RouteGuard>} />
+            <Route path="/inventory2/config/categories" element={<ProtectedRoute><CategoriesConfigList /></ProtectedRoute>} />
+            <Route path="/inventory2/config/categories/:id" element={<ProtectedRoute><CategoryConfigForm /></ProtectedRoute>} />
+            <Route path="/inventory2/config/uom" element={<ProtectedRoute><UomConfigList /></ProtectedRoute>} />
+            <Route path="/inventory2/config/uom/:id" element={<ProtectedRoute><UomConfigForm /></ProtectedRoute>} />
+            <Route path="/inventory2/config/attributes" element={<ProtectedRoute><AttributesConfigList /></ProtectedRoute>} />
+            <Route path="/inventory2/config/attributes/:id" element={<ProtectedRoute><AttributeConfigForm /></ProtectedRoute>} />
 
             {/* Barcode module */}
             <Route path="/barcode" element={<ProtectedRoute><ScanQueueDashboard /></ProtectedRoute>} />

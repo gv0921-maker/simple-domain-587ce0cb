@@ -19,7 +19,7 @@
  * The legacy OperationTypesConfig panel at /inventory/setup/operation-types is
  * untouched and still routed.
  *
- * Route: /inventory/config/operation-types/:id, where :id === 'new' creates.
+ * Route: /inventory2/config/operation-types/:id, where :id === 'new' creates.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -53,7 +53,7 @@ import {
   OPERATION_KIND_OPTIONS,
 } from './operationTypeMeta';
 
-const LIST_PATH = '/inventory/config/operation-types';
+const LIST_PATH = '/inventory2/config/operation-types';
 
 interface FormState {
   name: string;

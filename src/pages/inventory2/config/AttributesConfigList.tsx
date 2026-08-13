@@ -137,8 +137,8 @@ export default function AttributesConfigList() {
             setPage(0);
           }}
           searchPlaceholder="Search attributes or values…"
-          onNew={() => navigate('/inventory/config/attributes/new')}
-          onRowClick={(a) => navigate(`/inventory/config/attributes/${a.id}`)}
+          onNew={() => navigate('/inventory2/config/attributes/new')}
+          onRowClick={(a) => navigate(`/inventory2/config/attributes/${a.id}`)}
           page={{
             from: filtered.length ? safePage * PAGE_SIZE + 1 : 0,
             to: safePage * PAGE_SIZE + visible.length,

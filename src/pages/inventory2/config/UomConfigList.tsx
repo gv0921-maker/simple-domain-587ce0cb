@@ -129,8 +129,8 @@ export default function UomConfigList() {
             setPage(0);
           }}
           searchPlaceholder="Search units…"
-          onNew={() => navigate('/inventory/config/uom/new')}
-          onRowClick={(u) => navigate(`/inventory/config/uom/${u.id}`)}
+          onNew={() => navigate('/inventory2/config/uom/new')}
+          onRowClick={(u) => navigate(`/inventory2/config/uom/${u.id}`)}
           page={{
             from: filtered.length ? safePage * PAGE_SIZE + 1 : 0,
             to: safePage * PAGE_SIZE + visible.length,

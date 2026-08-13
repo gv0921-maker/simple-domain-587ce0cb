@@ -138,8 +138,8 @@ export default function CategoriesConfigList() {
             setPage(0);
           }}
           searchPlaceholder="Search categories…"
-          onNew={() => navigate('/inventory/config/categories/new')}
-          onRowClick={(r) => navigate(`/inventory/config/categories/${r.id}`)}
+          onNew={() => navigate('/inventory2/config/categories/new')}
+          onRowClick={(r) => navigate(`/inventory2/config/categories/${r.id}`)}
           page={{
             from: filtered.length ? safePage * PAGE_SIZE + 1 : 0,
             to: safePage * PAGE_SIZE + visible.length,

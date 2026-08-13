@@ -14,7 +14,7 @@
  * A category may not be its own parent, nor be reparented under one of its own
  * descendants; the dropdown excludes both.
  *
- * Route: /inventory/config/categories/:id, where :id === 'new' creates.
+ * Route: /inventory2/config/categories/:id, where :id === 'new' creates.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -26,7 +26,7 @@ import { DocumentHeader, DocumentFields, type DocumentField } from '@/design-sys
 import '@/design-system/tokens.css';
 import { categoryPath, descendantIdsOf, indexById } from './configMeta';
 
-const LIST_PATH = '/inventory/config/categories';
+const LIST_PATH = '/inventory2/config/categories';
 
 const controlClass =
   'w-full rounded-[var(--ds-radius)] border border-[hsl(var(--ds-border-strong))] ' +

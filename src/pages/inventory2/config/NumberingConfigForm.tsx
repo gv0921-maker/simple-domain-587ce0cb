@@ -28,7 +28,7 @@
  * mentions document_type or fy_label) and `numbering_settings` (the two format
  * fields), both through the existing numbering service.
  *
- * Route: /inventory/config/numbering/:id, where :id === 'new' creates.
+ * Route: /inventory2/config/numbering/:id, where :id === 'new' creates.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -54,7 +54,7 @@ import {
   prefixFor,
 } from './numberingMeta';
 
-const LIST_PATH = '/inventory/config/numbering';
+const LIST_PATH = '/inventory2/config/numbering';
 
 const controlClass =
   'w-full rounded-[var(--ds-radius)] border border-[hsl(var(--ds-border-strong))] ' +
