@@ -207,6 +207,27 @@ per-module database dependencies, and shared-code inventory.
 Recorded so they are not rediscovered as surprises. Each one is deferred **on
 purpose**; fixing one is its own approved pass, not a "while I'm here".
 
+### Orphaned QC attachment uploads (Inventory 2) — found Pass 6, FIXED Pass 11, 2026-08-13
+
+**The cause is fixed.** `QcRunner` now holds the chosen `File` in memory and uploads
+only inside `submit()`, after pre-checking the same `requires_attachment` rule the RPC
+enforces. An abandoned dialog, a killed tab or a retaken photo now uploads **nothing**.
+Verified live: choosing a photo and closing the dialog left the bucket at 6 objects;
+submitting uploaded exactly 1, and it is referenced by the recorded result.
+
+A narrow window remains and is worth knowing: the RPC needs the attachment URLs in its
+payload, so a strict "upload only after the RPC succeeds" is impossible — the attachment
+is part of what the RPC validates. If a submit uploads and is then refused for a reason
+the client cannot anticipate (a permission error, a race), those objects are orphaned.
+The client-side pre-check removes the common rejection; it cannot remove all of them.
+
+**The one existing orphan below is NOT removed** — deleting a stored object is a rule-4
+deletion and it goes at the go-live wipe.
+
+---
+
+**Original entry, kept for the record:**
+
 ### Orphaned QC attachment uploads (Inventory 2) — found Pass 6, 2026-08-12
 
 `uploadQcAttachment()` in `src/lib/services/inventory2/qc.ts` puts the file in the

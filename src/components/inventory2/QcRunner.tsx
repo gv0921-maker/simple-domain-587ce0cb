@@ -14,7 +14,7 @@
  * re-tested shows both, which is the point — the earlier failure is a fact
  * about the goods, not a mistake to be tidied away.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Paperclip, Upload } from 'lucide-react';
 import { Button, StatusPill, cn } from '@/design-system';
 import { TextInput, ErrorBanner } from '@/components/inventory2/formControls';
@@ -30,15 +30,32 @@ import {
 
 const TD = 'px-2 py-1.5 border-b border-[hsl(var(--ds-border)/0.7)] align-top';
 
+/**
+ * A photo the inspector has chosen but which has NOT been uploaded yet.
+ *
+ * Holding the File in memory is the whole point. Previously the upload fired
+ * the moment the file was picked, so an abandoned dialog — closed, tab killed,
+ * checklist rejected, photo retaken — left an object in the bucket that nothing
+ * referenced and nothing could find except by diffing the bucket against
+ * inv_test_result. `previewUrl` is an object URL purely for the thumbnail and
+ * is revoked when the entry goes.
+ */
+interface PendingPhoto {
+  name: string;
+  file: File;
+  previewUrl: string;
+}
+
 /** What the operator has entered for one test, before submission. */
 interface Draft {
   result: boolean | null;
   value: string;
   notes: string;
-  attachments: QcAttachment[];
+  /** Chosen, not yet uploaded. Uploaded on submit — see submit(). */
+  pending: PendingPhoto[];
 }
 
-const EMPTY_DRAFT: Draft = { result: null, value: '', notes: '', attachments: [] };
+const EMPTY_DRAFT: Draft = { result: null, value: '', notes: '', pending: [] };
 
 export function QcRunner({
   stockItemId, productId, serial, currentStatus, operationId, onClose,
@@ -75,36 +92,98 @@ export function QcRunner({
   const answered = templates.filter((t) => draftFor(t.id).result !== null);
   const canSubmit = answered.length > 0 && !record.isPending;
 
-  async function attach(templateId: string, file: File) {
+  /** Choosing a photo touches nothing but memory. No network, no bucket. */
+  function attach(templateId: string, file: File) {
     setUploadFailure(null);
-    setBusyTemplate(templateId);
-    try {
-      const a = await upload.mutateAsync(file);
-      setDraft(templateId, { attachments: [...draftFor(templateId).attachments, a] });
-    } catch (e) {
-      setUploadFailure(errorText(e));
-    } finally {
-      setBusyTemplate(null);
-    }
+    setDraft(templateId, {
+      pending: [
+        ...draftFor(templateId).pending,
+        { name: file.name, file, previewUrl: URL.createObjectURL(file) },
+      ],
+    });
   }
 
+  /** Removing before submit costs nothing — nothing was ever uploaded. */
+  function detach(templateId: string, index: number) {
+    const list = draftFor(templateId).pending;
+    const gone = list[index];
+    if (gone) URL.revokeObjectURL(gone.previewUrl);
+    setDraft(templateId, { pending: list.filter((_, i) => i !== index) });
+  }
+
+  // Object URLs are per-render-session; release them when the dialog closes so
+  // a long QC session does not accumulate them.
+  useEffect(() => () => {
+    for (const d of Object.values(drafts)) {
+      for (const p of d.pending) URL.revokeObjectURL(p.previewUrl);
+    }
+    // Deliberately unmount-only: listing `drafts` would revoke URLs still on
+    // screen every time a draft changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * Upload happens HERE, not when the photo was picked.
+   *
+   * Order matters and is deliberate:
+   *   1. pre-check the same requires_attachment rule the RPC enforces, so the
+   *      commonest rejection never reaches the point of uploading anything;
+   *   2. upload every pending file;
+   *   3. call inv_record_qc_results with the resulting URLs.
+   *
+   * The RPC still needs the URLs in its payload, so a strict "upload only after
+   * the RPC succeeds" is not possible — the attachment IS part of what the RPC
+   * validates. What this does achieve is closing the dominant orphan source:
+   * an abandoned dialog, a killed tab, or a retaken photo now uploads nothing
+   * at all. The residual window is a submit that uploads and is then refused by
+   * the database for a reason step 1 cannot anticipate, such as a permission
+   * error. That is narrow, and it is honest to say it is not zero.
+   */
   async function submit() {
     setFailure(null);
-    const payload: QcSubmission[] = answered.map((t) => {
-      const d = draftFor(t.id);
-      return {
-        template_id: t.id,
-        result: d.result as boolean,
-        value: d.value.trim() || null,
-        notes: d.notes.trim() || null,
-        attachments: d.attachments,
-      };
-    });
+    setUploadFailure(null);
+
+    const needsPhoto = answered.filter(
+      (t) => t.requires_attachment && draftFor(t.id).pending.length === 0,
+    );
+    if (needsPhoto.length > 0) {
+      setFailure(
+        `${needsPhoto.map((t) => `"${t.name}"`).join(', ')} ` +
+        `${needsPhoto.length === 1 ? 'requires' : 'require'} at least one photo. ` +
+        `Nothing has been uploaded — add the photo and submit again.`,
+      );
+      return;
+    }
+
     try {
+      const payload: QcSubmission[] = [];
+      for (const t of answered) {
+        const d = draftFor(t.id);
+        setBusyTemplate(t.id);
+        const attachments: QcAttachment[] = [];
+        for (const p of d.pending) {
+          attachments.push(await upload.mutateAsync(p.file));
+        }
+        payload.push({
+          template_id: t.id,
+          result: d.result as boolean,
+          value: d.value.trim() || null,
+          notes: d.notes.trim() || null,
+          attachments,
+        });
+      }
+      setBusyTemplate(null);
+
       const status = await record.mutateAsync(payload);
       setOutcome(status);
-      setDrafts({});          // history now carries what was just entered
+      // History now carries what was just entered. Revoke the previews first —
+      // the uploaded copies are what the results reference from here on.
+      for (const d of Object.values(drafts)) {
+        for (const p of d.pending) URL.revokeObjectURL(p.previewUrl);
+      }
+      setDrafts({});
     } catch (e) {
+      setBusyTemplate(null);
       // Rule 5 — inv_record_qc_results names the test that blocked this.
       setFailure(errorText(e));
     }
@@ -318,29 +397,47 @@ export function QcRunner({
                                   )}
                                 >
                                   <Upload className="h-3 w-3" aria-hidden />
-                                  {busyTemplate === t.id ? 'Uploading…' : 'Upload'}
+                                  {busyTemplate === t.id ? 'Uploading…' : 'Choose'}
                                   <input
                                     type="file"
                                     className="sr-only"
                                     accept="image/*"
                                     onChange={(e) => {
                                       const f = e.target.files?.[0];
-                                      if (f) void attach(t.id, f);
+                                      if (f) attach(t.id, f);
                                       e.target.value = '';
                                     }}
                                   />
                                 </label>
-                                {d.attachments.map((a, i) => (
+                                {/*
+                                  Chosen, not uploaded. The link is a local object
+                                  URL, so it previews without the file having
+                                  touched the bucket. Removing one costs nothing.
+                                */}
+                                {d.pending.map((p, i) => (
                                   <div key={i} className="flex min-w-0 items-center gap-1 text-[var(--ds-fs-xs)]">
                                     <Paperclip className="h-3 w-3 shrink-0 text-[hsl(var(--ds-ink-subtle))]" aria-hidden />
                                     <a
-                                      href={a.url} target="_blank" rel="noreferrer" title={a.name}
+                                      href={p.previewUrl} target="_blank" rel="noreferrer" title={p.name}
                                       className="min-w-0 truncate text-[hsl(var(--ds-link))] hover:underline"
                                     >
-                                      {a.name}
+                                      {p.name}
                                     </a>
+                                    <button
+                                      type="button"
+                                      onClick={() => detach(t.id, i)}
+                                      aria-label={`Remove ${p.name}`}
+                                      className="shrink-0 text-[hsl(var(--ds-ink-subtle))] hover:text-[hsl(var(--ds-red))]"
+                                    >
+                                      ×
+                                    </button>
                                   </div>
                                 ))}
+                                {d.pending.length > 0 && (
+                                  <span className="text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-subtle))]">
+                                    uploads on submit
+                                  </span>
+                                )}
                               </div>
                             ) : (
                               <span className="text-[hsl(var(--ds-ink-subtle))]">—</span>
