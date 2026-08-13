@@ -193,54 +193,39 @@ export async function getVariant(id: string): Promise<VariantRecord | null> {
 /* ------------------------------------------------------------------- write */
 
 /**
- * Create a variant and its combination.
+ * Create a variant and its combination — ONE RPC, one transaction.
  *
- * Two statements, not one: the values are a child table, and the parent id is
- * only known after the insert. If the child insert fails — a duplicate
- * combination trips the unique index on the trigger-maintained combo_key — the
- * parent row is left behind, so it is removed on the way out. That cleanup is
- * NOT a Rule 4 deletion: it removes a half-built row this call created moments
- * earlier and that no one has seen, not a record with meaning. RLS forbids
- * deleting variants, so the tidy-up is best-effort and the original error is
- * always the one that surfaces.
+ * This cannot be done as two table writes from the client, and the reason is
+ * worth keeping: `product_variants_require_values` is a DEFERRABLE INITIALLY
+ * DEFERRED constraint trigger, so it fires at TRANSACTION COMMIT and demands
+ * the child rows exist by then. PostgREST commits every request separately, so
+ * "insert parent, then insert values" commits the parent alone and is refused —
+ * correctly. The first version of this function did exactly that and could
+ * never have worked.
+ *
+ * inv_create_variant does both inserts in one transaction, which is what the
+ * guard always required and what every other Inventory 2 write already does.
+ * There is no half-built row to clean up because there is no window in which
+ * one exists.
  */
 export async function createVariant(input: VariantInput): Promise<VariantRecord> {
-  const entries = Object.entries(input.values).filter(([, v]) => !!v);
-  if (entries.length === 0) {
-    throw new Error(
-      'A variant must state the combination it stands for — choose a value for at least one attribute.',
-    );
-  }
-
-  const { data: created, error: createErr } = await supabase
-    .from('product_variants')
-    .insert({
-      product_id: input.product_id,
-      sku: input.sku.trim(),
-      name: input.name.trim(),
-      barcode: input.barcode?.trim() ? input.barcode.trim() : null,
-      sale_price: input.sale_price,
-      cost_price: input.cost_price,
-      status: input.status,
-    })
-    .select('id')
-    .single();
-  if (createErr) throw createErr;
-
-  const { error: valuesErr } = await supabase.from('product_variant_values').insert(
-    entries.map(([attribute_id, value_id]) => ({
-      variant_id: created.id,
-      attribute_id,
-      value_id,
-    })),
+  const values = Object.fromEntries(
+    Object.entries(input.values).filter(([, v]) => !!v),
   );
 
-  if (valuesErr) {
-    await supabase.from('product_variants').delete().eq('id', created.id);
-    throw valuesErr;
-  }
+  const { data: newId, error } = await supabase.rpc('inv_create_variant', {
+    p_product_id: input.product_id,
+    p_sku: input.sku,
+    p_name: input.name,
+    p_barcode: input.barcode,
+    p_sale_price: input.sale_price,
+    p_cost_price: input.cost_price,
+    p_status: input.status,
+    p_values: values,
+  });
+  if (error) throw error;
 
-  const record = await getVariant(created.id);
+  const record = await getVariant(newId as string);
   if (!record) throw new Error('Variant was created but could not be read back.');
   return record;
 }

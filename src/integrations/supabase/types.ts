@@ -11105,6 +11105,19 @@ export type Database = {
         }
         Returns: Json
       }
+      inv_create_variant: {
+        Args: {
+          p_barcode: string
+          p_cost_price: number
+          p_name: string
+          p_product_id: string
+          p_sale_price: number
+          p_sku: string
+          p_status: Database["public"]["Enums"]["product_variant_status"]
+          p_values: Json
+        }
+        Returns: string
+      }
       inv_delete_stock_move: { Args: { _move_id: string }; Returns: undefined }
       inv_derive_operation_state: {
         Args: { p_operation_id: string }
