@@ -63,6 +63,10 @@ export type ProductType = (typeof PRODUCT_TYPES)[number];
 export const COST_METHODS = ['average', 'fifo', 'lifo'] as const;
 export type CostMethod = (typeof COST_METHODS)[number];
 
+/** enum product_mode. Which selling path the product uses. */
+export const PRODUCT_MODES = ['stocked', 'made_to_order', 'both'] as const;
+export type ProductMode = (typeof PRODUCT_MODES)[number];
+
 /**
  * The entire write surface, approved in Pass 9 Part B. Anything not in this
  * list is read-only from Inventory 2. Kept as a const array rather than only a
@@ -86,6 +90,12 @@ export const WRITABLE = [
   // either column, so they carry none of sale_price's shared-ownership risk.
   'weight',
   'volume',
+  // Pass 10C. Which selling path this product uses: stocked (pick a variant),
+  // made_to_order (customization picker), or both. Explicit rather than
+  // inferred from product_attribute_assignments — inference would let the same
+  // chair be recorded two different ways, which is the thing this column exists
+  // to prevent.
+  'mode',
 ] as const;
 
 export type WritableColumn = (typeof WRITABLE)[number];
@@ -106,6 +116,7 @@ export interface ProductInput {
   /** numeric(14,3), nullable — blank means "not recorded", not zero. */
   weight: number | null;
   volume: number | null;
+  mode: ProductMode;
 }
 
 export interface ProductListRow {
@@ -241,6 +252,7 @@ function toDetail(r: ProductRow): ProductDetail {
     category_id: r.category_id,
     uom_id: r.uom_id,
     // Null is meaningful here — it distinguishes "never measured" from 0.
+    mode: r.mode as ProductMode,
     weight: r.weight == null ? null : Number(r.weight),
     volume: r.volume == null ? null : Number(r.volume),
 

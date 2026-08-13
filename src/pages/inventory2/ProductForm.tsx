@@ -54,8 +54,8 @@ import {
   useCreateInv2Product, useUpdateInv2Product,
 } from '@/hooks/inventory2/products';
 import {
-  PRODUCT_TYPES, COST_METHODS,
-  type ProductInput, type ProductType, type CostMethod, type OnHandBucket,
+  PRODUCT_TYPES, COST_METHODS, PRODUCT_MODES,
+  type ProductInput, type ProductType, type CostMethod, type ProductMode, type OnHandBucket,
 } from '@/lib/services/inventory2/products';
 
 const LIST_PATH = '/inventory2/products';
@@ -70,6 +70,12 @@ const TYPE_LABEL: Record<ProductType, string> = {
   stockable: 'Stockable — tracked as units in stock',
   consumable: 'Consumable — not stock tracked',
   service: 'Service — no physical goods',
+};
+
+const MODE_LABEL: Record<ProductMode, string> = {
+  stocked: 'Stocked — sold as pre-defined versions',
+  made_to_order: 'Made to order — options chosen per sales line',
+  both: 'Both — stocked versions and made-to-order',
 };
 
 const COST_METHOD_LABEL: Record<CostMethod, string> = {
@@ -93,6 +99,9 @@ const EMPTY: ProductInput = {
   uom_id: null,
   weight: null,
   volume: null,
+  // made_to_order matches the column default and today's behaviour: a new
+  // product uses the customization picker until someone says otherwise.
+  mode: 'made_to_order',
 };
 
 /**
@@ -220,6 +229,7 @@ export default function Inv2ProductForm() {
         uom_id: existing.uom_id,
         weight: existing.weight,
         volume: existing.volume,
+        mode: existing.mode,
       });
       setDirty(false);
     }
@@ -302,6 +312,18 @@ export default function Inv2ProductForm() {
           <SelectInput id="type" value={form.type} onChange={(e) => set('type', e.target.value as ProductType)}>
             {PRODUCT_TYPES.map((t) => (
               <option key={t} value={t}>{TYPE_LABEL[t]}</option>
+            ))}
+          </SelectInput>
+        </Field>
+
+        <Field
+          label="Selling Mode"
+          htmlFor="mode"
+          hint="Stocked sells pre-defined versions; made-to-order uses the customization picker on the sales line."
+        >
+          <SelectInput id="mode" value={form.mode} onChange={(e) => set('mode', e.target.value as ProductMode)}>
+            {PRODUCT_MODES.map((m) => (
+              <option key={m} value={m}>{MODE_LABEL[m]}</option>
             ))}
           </SelectInput>
         </Field>
