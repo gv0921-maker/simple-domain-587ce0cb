@@ -57,6 +57,25 @@ export const MODULE_TABS: ModuleTabsConfig[] = [
       { id: 'reorder-rules', label: 'Reorder Rules', href: '/inventory/reorder-rules' },
       { id: 'reporting', label: 'Reporting', href: '/inventory/reporting' },
       { id: 'configuration', label: 'Configuration', href: '/inventory/configuration' },
+      // Inventory 2 — the rebuilt module. Same permission module ('inventory'),
+      // its own tabs so access can be granted per screen rather than all-or-nothing.
+      //
+      // These are NOT optional decoration. getTabFromPath matches a path against
+      // tab hrefs; with no tab covering /inventory2/*, tabId resolves to null and
+      // canAccessRoute falls into the `hasExplicitTabRestriction` branch. That
+      // branch is inert today only because tabPermissions is hardcoded to [] for
+      // every role (rbac.ts:357) — the moment tab permissions are actually
+      // populated, every /inventory2 page would deny at once. These entries make
+      // the pages addressable by the permission model instead.
+      //
+      // 'inv2-config' has no route until the config pages move; a tab href is a
+      // matching prefix, not a link, so declaring it early is correct and means
+      // the moved pages are covered the instant they land.
+      { id: 'inv2-receipts', label: 'Inventory 2 · Receipts', href: '/inventory2/receipts' },
+      { id: 'inv2-products', label: 'Inventory 2 · Products', href: '/inventory2/products' },
+      { id: 'inv2-qc', label: 'Inventory 2 · Quality', href: '/inventory2/qc' },
+      { id: 'inv2-barcode', label: 'Inventory 2 · Barcode', href: '/inventory2/barcode' },
+      { id: 'inv2-config', label: 'Inventory 2 · Configuration', href: '/inventory2/config' },
     ],
   },
   {

@@ -79,6 +79,15 @@ export type ModuleName = typeof MODULES[number];
 
 const ROUTE_MODULE_PREFIXES: Array<{ prefix: string; module: ModuleName }> = [
   { prefix: '/inventory', module: 'inventory' },
+  // Inventory 2 is the same business module for permission purposes, but it is
+  // a SEPARATE prefix and must be listed explicitly: the matcher below tests
+  // `normalized === prefix || normalized.startsWith(prefix + '/')`, and
+  // '/inventory2/receipts' satisfies neither against '/inventory'. Without this
+  // line getModuleForPath returns null, canAccessRoute falls through to
+  // "unmapped routes default to open", and every /inventory2 page is reachable
+  // by any authenticated user — which is exactly what it was from the first
+  // /inventory2 route until this entry was added.
+  { prefix: '/inventory2', module: 'inventory' },
   { prefix: '/barcode', module: 'inventory' },
   { prefix: '/sales', module: 'sales' },
   { prefix: '/crm', module: 'crm' },
