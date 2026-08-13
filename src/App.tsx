@@ -38,6 +38,9 @@ const UomConfigList = lazy(() => import("@/pages/inventory2/config/UomConfigList
 const UomConfigForm = lazy(() => import("@/pages/inventory2/config/UomConfigForm"));
 const AttributesConfigList = lazy(() => import("@/pages/inventory2/config/AttributesConfigList"));
 const AttributeConfigForm = lazy(() => import("@/pages/inventory2/config/AttributeConfigForm"));
+// Pass 10C — variants are a sibling of the attribute vocabulary, not a section
+// of it: attributes are global, a variant belongs to one product.
+const VariantsConfigList = lazy(() => import("@/pages/inventory2/config/VariantsConfigList"));
 const StockMoves = lazy(() => import("@/pages/inventory/StockMoves"));
 const StockMoveDetail = lazy(() => import("@/pages/inventory/StockMoveDetail"));
 const InventoryConfiguration = lazy(() => import("@/pages/inventory/InventoryConfiguration"));
@@ -467,6 +470,7 @@ const App = () => (
             <Route path="/inventory2/config/uom/:id" element={<ProtectedRoute><UomConfigForm /></ProtectedRoute>} />
             <Route path="/inventory2/config/attributes" element={<ProtectedRoute><AttributesConfigList /></ProtectedRoute>} />
             <Route path="/inventory2/config/attributes/:id" element={<ProtectedRoute><AttributeConfigForm /></ProtectedRoute>} />
+            <Route path="/inventory2/config/variants" element={<ProtectedRoute><VariantsConfigList /></ProtectedRoute>} />
 
             {/* Barcode module */}
             <Route path="/barcode" element={<ProtectedRoute><ScanQueueDashboard /></ProtectedRoute>} />

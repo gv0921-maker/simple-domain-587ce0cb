@@ -83,7 +83,10 @@ export const INVENTORY2_NAV = [
       { label: 'Numbering', href: '/inventory2/config/numbering' },
       { heading: true, label: 'Products' },
       { label: 'Product Categories', href: '/inventory2/config/categories' },
+      // Two sibling entries, not one mixed list: attributes are the global
+      // vocabulary, a variant belongs to exactly one product.
       { label: 'Product Attributes', href: '/inventory2/config/attributes' },
+      { label: 'Product Variants', href: '/inventory2/config/variants' },
       { label: 'Units & Packagings', href: '/inventory2/config/uom' },
     ],
   },
