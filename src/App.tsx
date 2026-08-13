@@ -41,6 +41,9 @@ const AttributeConfigForm = lazy(() => import("@/pages/inventory2/config/Attribu
 // Pass 10C — variants are a sibling of the attribute vocabulary, not a section
 // of it: attributes are global, a variant belongs to one product.
 const VariantsConfigList = lazy(() => import("@/pages/inventory2/config/VariantsConfigList"));
+// Pass 11 — inv_test_template finally gets a UI. Until now a new product had no
+// QC gate at all unless someone wrote SQL.
+const ChecklistsConfigList = lazy(() => import("@/pages/inventory2/config/ChecklistsConfigList"));
 const StockMoves = lazy(() => import("@/pages/inventory/StockMoves"));
 const StockMoveDetail = lazy(() => import("@/pages/inventory/StockMoveDetail"));
 const InventoryConfiguration = lazy(() => import("@/pages/inventory/InventoryConfiguration"));
@@ -471,6 +474,7 @@ const App = () => (
             <Route path="/inventory2/config/attributes" element={<ProtectedRoute><AttributesConfigList /></ProtectedRoute>} />
             <Route path="/inventory2/config/attributes/:id" element={<ProtectedRoute><AttributeConfigForm /></ProtectedRoute>} />
             <Route path="/inventory2/config/variants" element={<ProtectedRoute><VariantsConfigList /></ProtectedRoute>} />
+            <Route path="/inventory2/config/checklists" element={<ProtectedRoute><ChecklistsConfigList /></ProtectedRoute>} />
 
             {/* Barcode module */}
             <Route path="/barcode" element={<ProtectedRoute><ScanQueueDashboard /></ProtectedRoute>} />

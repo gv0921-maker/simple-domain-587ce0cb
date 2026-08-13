@@ -88,6 +88,8 @@ export const INVENTORY2_NAV = [
       { label: 'Product Attributes', href: '/inventory2/config/attributes' },
       { label: 'Product Variants', href: '/inventory2/config/variants' },
       { label: 'Units & Packagings', href: '/inventory2/config/uom' },
+      { heading: true, label: 'Quality' },
+      { label: 'QC Checklists', href: '/inventory2/config/checklists' },
     ],
   },
 ];
