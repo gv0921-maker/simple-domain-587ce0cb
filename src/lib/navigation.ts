@@ -1,4 +1,10 @@
-// Shared navigation items for the Inventory module
+// Navigation for the LEGACY Inventory module (/inventory/*).
+//
+// The Setup group used to carry the rebuilt config pages. Those now live at
+// /inventory2/config/* and appear in INVENTORY2_NAV below — one config surface,
+// owned by the new module. Legacy pages still READ the same config tables; they
+// have simply lost their edit links. The old /inventory/config/* URLs redirect,
+// so nothing here is a dead end.
 export const INVENTORY_NAV = [
   { label: 'Overview', href: '/inventory' },
   { label: 'Stock Dashboard', href: '/inventory/stock-dashboard' },
@@ -10,11 +16,6 @@ export const INVENTORY_NAV = [
     children: [
       { label: 'Overview', href: '/inventory/operations' },
       { label: 'Goods Receipts', href: '/inventory/goods-receipts' },
-      // Inventory 2 preview — the rebuilt module on the inv_ schema.
-      // Runs alongside the entry above; neither replaces the other yet.
-      { label: 'Goods Receipts (v2)', href: '/inventory2/receipts' },
-      { label: 'Quality Control (v2)', href: '/inventory2/qc' },
-      { label: 'Barcode (v2)', href: '/inventory2/barcode' },
       { label: 'Delivery Notes', href: '/inventory/delivery-notes' },
       { label: 'Internal Movements', href: '/inventory/internal-movements' },
     ],
@@ -33,24 +34,6 @@ export const INVENTORY_NAV = [
     href: '/inventory/configuration',
     children: [
       { label: 'Settings', href: '/inventory/configuration' },
-      { heading: true, label: 'Warehouse Management' },
-      // Rebuilt config pages (design system). The legacy pages stay routed and
-      // reachable by direct URL until sign-off — see "Legacy pages pending
-      // removal" in docs/REBUILD_MAP.md.
-      { label: 'Warehouses', href: '/inventory/config/warehouses' },
-      { label: 'Locations', href: '/inventory/config/locations' },
-      { label: 'Operation Types', href: '/inventory/config/operation-types' },
-      // New entry — the inventory Setup menu had no Numbering link before; the
-      // only one lives in SETTINGS_NAV and still points at /settings/numbering.
-      // Route is Super Admin-gated, matching the legacy page.
-      { label: 'Numbering', href: '/inventory/config/numbering' },
-      { heading: true, label: 'Products' },
-      // Rebuilt config page; legacy /inventory/setup/categories stays routed by URL.
-      { label: 'Product Categories', href: '/inventory/config/categories' },
-      // Rebuilt config page; legacy /inventory/setup/attributes stays routed by URL.
-      { label: 'Product Attributes', href: '/inventory/config/attributes' },
-      // Rebuilt config page; legacy /inventory/setup/units stays routed by URL.
-      { label: 'Units & Packagings', href: '/inventory/config/uom' },
       { heading: true, label: 'Replenishment' },
       { label: 'Reorder Rules', href: '/inventory/reorder-rules' },
       { label: 'Adjustments', href: '/inventory/adjustments' },
@@ -62,6 +45,46 @@ export const INVENTORY_NAV = [
     children: [
       { label: 'Reporting', href: '/inventory/reporting' },
       { label: 'Reports', href: '/inventory/reports' },
+    ],
+  },
+];
+
+// Navigation for INVENTORY 2 (/inventory2/*) — the rebuilt module.
+//
+// Its own menu rather than a shared one: while both modules used INVENTORY_NAV
+// the two felt like one system with duplicate entries ("Goods Receipts" next to
+// "Goods Receipts (v2)"), which is exactly the ambiguity this consolidation
+// exists to remove. A page belongs to whichever nav it renders.
+//
+// The route prefix stays /inventory2 until go-live, so the labels here are the
+// plain business names — there is no "(v2)" suffix, because within this menu
+// there is nothing to disambiguate against.
+export const INVENTORY2_NAV = [
+  {
+    label: 'Operations',
+    href: '/inventory2/receipts',
+    children: [
+      { label: 'Receipts', href: '/inventory2/receipts' },
+      { label: 'Barcode', href: '/inventory2/barcode' },
+    ],
+  },
+  { label: 'Products', href: '/inventory2/products' },
+  { label: 'Quality', href: '/inventory2/qc' },
+  {
+    label: 'Setup',
+    href: '/inventory2/config/warehouses',
+    children: [
+      { heading: true, label: 'Warehouse Management' },
+      { label: 'Warehouses', href: '/inventory2/config/warehouses' },
+      { label: 'Locations', href: '/inventory2/config/locations' },
+      { label: 'Operation Types', href: '/inventory2/config/operation-types' },
+      // Super Admin-gated at the route; shown to everyone and refused there
+      // rather than hidden, so a missing page is explained instead of absent.
+      { label: 'Numbering', href: '/inventory2/config/numbering' },
+      { heading: true, label: 'Products' },
+      { label: 'Product Categories', href: '/inventory2/config/categories' },
+      { label: 'Product Attributes', href: '/inventory2/config/attributes' },
+      { label: 'Units & Packagings', href: '/inventory2/config/uom' },
     ],
   },
 ];
