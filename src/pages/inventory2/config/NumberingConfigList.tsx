@@ -18,7 +18,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { INVENTORY_NAV } from '@/lib/navigation';
+import { INVENTORY2_NAV } from '@/lib/navigation';
 import {
   useNumberingSequences,
   useNumberingSettings,
@@ -154,7 +154,7 @@ export default function NumberingConfigList() {
   const loadError = sequencesQuery.error ?? settingsQuery.error ?? fyQuery.error;
 
   return (
-    <AppLayout title="Inventory" moduleNav={INVENTORY_NAV}>
+    <AppLayout title="Inventory" moduleNav={INVENTORY2_NAV}>
       <div className="ds-root bg-[hsl(var(--ds-canvas))] min-h-full p-4">
         <nav aria-label="Breadcrumb" className="mb-2">
           <ol className="flex items-center gap-1 text-[var(--ds-fs-xs)]">

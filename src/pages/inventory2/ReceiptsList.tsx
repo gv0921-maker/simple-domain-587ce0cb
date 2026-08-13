@@ -9,7 +9,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { INVENTORY_NAV } from '@/lib/navigation';
+import { INVENTORY2_NAV } from '@/lib/navigation';
 import { DocumentList, StatusPill, type ListColumn, type StatusTone } from '@/design-system';
 import '@/design-system/tokens.css';
 import { useInv2Receipts } from '@/hooks/inventory2/receipts';
@@ -81,7 +81,7 @@ export default function ReceiptsList() {
   ];
 
   return (
-    <AppLayout title="Receipts" moduleNav={INVENTORY_NAV}>
+    <AppLayout title="Receipts" moduleNav={INVENTORY2_NAV}>
       <div className="ds-root p-3 md:p-4">
         {/* Rule 5 — show the real error, never a blank page. */}
         {error && (

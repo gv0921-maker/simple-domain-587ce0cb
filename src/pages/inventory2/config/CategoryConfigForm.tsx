@@ -19,7 +19,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { INVENTORY_NAV } from '@/lib/navigation';
+import { INVENTORY2_NAV } from '@/lib/navigation';
 import { useProductCategories, useSaveProductCategory } from '@/hooks/inventory/config';
 import type { ProductCategory } from '@/lib/services/inventory/categories';
 import { DocumentHeader, DocumentFields, type DocumentField } from '@/design-system';
@@ -210,7 +210,7 @@ export default function CategoryConfigForm() {
   const headerTitle = isNew ? 'New' : current ? categoryPath(current, byId) : '…';
 
   return (
-    <AppLayout title="Inventory" moduleNav={INVENTORY_NAV}>
+    <AppLayout title="Inventory" moduleNav={INVENTORY2_NAV}>
       <div className="ds-root bg-[hsl(var(--ds-canvas))] min-h-full p-4">
         <DocumentHeader
           breadcrumb={['Product Categories', isNew ? 'New' : current?.name ?? '…']}

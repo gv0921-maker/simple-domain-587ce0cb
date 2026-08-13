@@ -18,7 +18,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { INVENTORY_NAV } from '@/lib/navigation';
+import { INVENTORY2_NAV } from '@/lib/navigation';
 import { useProductCategories } from '@/hooks/inventory/config';
 import type { ProductCategory } from '@/lib/services/inventory/categories';
 import { DocumentList, StatusPill, type ListColumn } from '@/design-system';
@@ -103,7 +103,7 @@ export default function CategoriesConfigList() {
   ];
 
   return (
-    <AppLayout title="Inventory" moduleNav={INVENTORY_NAV}>
+    <AppLayout title="Inventory" moduleNav={INVENTORY2_NAV}>
       <div className="ds-root bg-[hsl(var(--ds-canvas))] min-h-full p-4">
         <nav aria-label="Breadcrumb" className="mb-2">
           <ol className="flex items-center gap-1 text-[var(--ds-fs-xs)]">

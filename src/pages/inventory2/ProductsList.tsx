@@ -15,7 +15,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { INVENTORY_NAV } from '@/lib/navigation';
+import { INVENTORY2_NAV } from '@/lib/navigation';
 import { DocumentList, StatusPill, type ListColumn } from '@/design-system';
 import '@/design-system/tokens.css';
 import { ErrorBanner } from '@/components/inventory2/formControls';
@@ -89,7 +89,7 @@ export default function Inv2ProductsList() {
   ];
 
   return (
-    <AppLayout title="Products" moduleNav={INVENTORY_NAV}>
+    <AppLayout title="Products" moduleNav={INVENTORY2_NAV}>
       <div className="ds-root p-3 md:p-4">
         {/* Rule 5 — show the real error, never a blank page. */}
         {error && (

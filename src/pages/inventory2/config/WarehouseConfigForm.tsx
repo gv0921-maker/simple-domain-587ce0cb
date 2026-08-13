@@ -17,7 +17,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { INVENTORY_NAV } from '@/lib/navigation';
+import { INVENTORY2_NAV } from '@/lib/navigation';
 import { useWarehouses, useSaveWarehouse } from '@/hooks/inventory';
 import type { Warehouse } from '@/lib/services/inventory';
 import { DocumentHeader, DocumentFields, type DocumentField } from '@/design-system';
@@ -163,7 +163,7 @@ export default function WarehouseConfigForm() {
   const loadError = warehousesQuery.error;
 
   return (
-    <AppLayout title="Inventory" moduleNav={INVENTORY_NAV}>
+    <AppLayout title="Inventory" moduleNav={INVENTORY2_NAV}>
       <div className="ds-root bg-[hsl(var(--ds-canvas))] min-h-full p-4">
         <DocumentHeader
           breadcrumb={['Warehouses', isNew ? 'New' : current?.name ?? '…']}

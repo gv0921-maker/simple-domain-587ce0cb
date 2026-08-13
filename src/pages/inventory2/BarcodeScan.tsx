@@ -26,7 +26,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, Loader2, PackageCheck, Wifi, WifiOff } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { INVENTORY_NAV } from '@/lib/navigation';
+import { INVENTORY2_NAV } from '@/lib/navigation';
 import { Button, cn } from '@/design-system';
 import '@/design-system/tokens.css';
 import { ScanCapture } from '@/components/inventory2/ScanCapture';
@@ -69,7 +69,7 @@ function DocumentPicker() {
   const { data: docs = [], isLoading, error } = useOpenScanDocuments(ADAPTER.kind);
 
   return (
-    <AppLayout title="Barcode" moduleNav={INVENTORY_NAV}>
+    <AppLayout title="Barcode" moduleNav={INVENTORY2_NAV}>
       <div className="ds-root p-3 md:p-4">
         <h1 className="text-[var(--ds-fs-lg)] font-semibold text-[hsl(var(--ds-ink))]">
           Scan into a {ADAPTER.documentNoun}

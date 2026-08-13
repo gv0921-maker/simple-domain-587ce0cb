@@ -16,7 +16,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { INVENTORY_NAV } from '@/lib/navigation';
+import { INVENTORY2_NAV } from '@/lib/navigation';
 import { useUnitsOfMeasure, useSaveUnitOfMeasure } from '@/hooks/inventory/config';
 import type { UnitOfMeasure, UomType } from '@/lib/services/inventory/unitsOfMeasure';
 import { DocumentHeader, DocumentFields, type DocumentField } from '@/design-system';
@@ -210,7 +210,7 @@ export default function UomConfigForm() {
   ];
 
   return (
-    <AppLayout title="Inventory" moduleNav={INVENTORY_NAV}>
+    <AppLayout title="Inventory" moduleNav={INVENTORY2_NAV}>
       <div className="ds-root bg-[hsl(var(--ds-canvas))] min-h-full p-4">
         <DocumentHeader
           breadcrumb={['Units of Measure', isNew ? 'New' : current?.name ?? '…']}

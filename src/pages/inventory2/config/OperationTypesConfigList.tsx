@@ -15,7 +15,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { INVENTORY_NAV } from '@/lib/navigation';
+import { INVENTORY2_NAV } from '@/lib/navigation';
 import { useOperationTypes } from '@/hooks/inventory/config';
 import { useLocationsQuery } from '@/hooks/inventory/useLocations';
 import type { OperationType } from '@/lib/services/inventory/operationTypes';
@@ -91,7 +91,7 @@ export default function OperationTypesConfigList() {
   const loadError = typesQuery.error ?? locationsQuery.error;
 
   return (
-    <AppLayout title="Inventory" moduleNav={INVENTORY_NAV}>
+    <AppLayout title="Inventory" moduleNav={INVENTORY2_NAV}>
       <div className="ds-root bg-[hsl(var(--ds-canvas))] min-h-full p-4">
         <nav aria-label="Breadcrumb" className="mb-2">
           <ol className="flex items-center gap-1 text-[var(--ds-fs-xs)]">

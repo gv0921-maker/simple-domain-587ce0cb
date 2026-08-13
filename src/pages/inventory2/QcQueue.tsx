@@ -12,7 +12,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { INVENTORY_NAV } from '@/lib/navigation';
+import { INVENTORY2_NAV } from '@/lib/navigation';
 import { DocumentList, StatusPill, Button, cn, type ListColumn } from '@/design-system';
 import '@/design-system/tokens.css';
 import { QcRunner } from '@/components/inventory2/QcRunner';
@@ -119,7 +119,7 @@ export default function QcQueue() {
   ];
 
   return (
-    <AppLayout title="Quality Control" moduleNav={INVENTORY_NAV}>
+    <AppLayout title="Quality Control" moduleNav={INVENTORY2_NAV}>
       <div className="ds-root p-3 md:p-4">
         {error && (
           <div className="mb-3 rounded border border-destructive/40 bg-destructive/5 p-4">

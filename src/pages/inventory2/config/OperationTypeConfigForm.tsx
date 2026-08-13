@@ -24,7 +24,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { INVENTORY_NAV } from '@/lib/navigation';
+import { INVENTORY2_NAV } from '@/lib/navigation';
 import { useOperationTypes, useSaveOperationType } from '@/hooks/inventory/config';
 import { useLocationsQuery } from '@/hooks/inventory/useLocations';
 import { useWarehouses } from '@/hooks/inventory';
@@ -512,7 +512,7 @@ export default function OperationTypeConfigForm() {
   const headerTitle = isNew ? 'New' : current?.name ?? '…';
 
   return (
-    <AppLayout title="Inventory" moduleNav={INVENTORY_NAV}>
+    <AppLayout title="Inventory" moduleNav={INVENTORY2_NAV}>
       <div className="ds-root bg-[hsl(var(--ds-canvas))] min-h-full p-4">
         <DocumentHeader
           breadcrumb={['Operation Types', headerTitle]}

@@ -18,7 +18,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { INVENTORY_NAV } from '@/lib/navigation';
+import { INVENTORY2_NAV } from '@/lib/navigation';
 import {
   DocumentHeader, Button,
   type RibbonStage, type HeaderAction,
@@ -108,7 +108,7 @@ export default function ReceiptNew() {
   ];
 
   return (
-    <AppLayout title="New Receipt" moduleNav={INVENTORY_NAV}>
+    <AppLayout title="New Receipt" moduleNav={INVENTORY2_NAV}>
       <div className="ds-root p-3 md:p-4">
         <div className="mx-auto max-w-4xl">
           <DocumentHeader

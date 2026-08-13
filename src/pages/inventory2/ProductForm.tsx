@@ -38,7 +38,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { INVENTORY_NAV } from '@/lib/navigation';
+import { INVENTORY2_NAV } from '@/lib/navigation';
 import {
   DocumentHeader, DocumentTabs, Button, StatusPill, SectionLabel, cn,
   type RibbonStage, type HeaderAction, type DocumentTab,
@@ -624,7 +624,7 @@ export default function Inv2ProductForm() {
   const title = isNew ? 'New Product' : (existing?.name ?? '…');
 
   return (
-    <AppLayout title={isNew ? 'New Product' : 'Product'} moduleNav={INVENTORY_NAV}>
+    <AppLayout title={isNew ? 'New Product' : 'Product'} moduleNav={INVENTORY2_NAV}>
       <div className="ds-root p-3 md:p-4">
         <div className="mx-auto max-w-5xl">
           <DocumentHeader

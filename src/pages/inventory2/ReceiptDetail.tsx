@@ -32,7 +32,7 @@ import { useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { format, parseISO, isToday, isYesterday } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { INVENTORY_NAV } from '@/lib/navigation';
+import { INVENTORY2_NAV } from '@/lib/navigation';
 import {
   DocumentHeader, DocumentFields, DocumentTabs, Chatter, StatusPill, Button, cn,
   type DocumentField, type DocumentTab, type RibbonStage, type HeaderAction,
@@ -528,7 +528,7 @@ export default function ReceiptDetail() {
 
   if (isLoading) {
     return (
-      <AppLayout title="Receipt" moduleNav={INVENTORY_NAV}>
+      <AppLayout title="Receipt" moduleNav={INVENTORY2_NAV}>
         <div className="p-6 text-sm text-muted-foreground">Loading…</div>
       </AppLayout>
     );
@@ -537,7 +537,7 @@ export default function ReceiptDetail() {
   // Rule 5 — real error text, never a swallowed blank page.
   if (error) {
     return (
-      <AppLayout title="Receipt" moduleNav={INVENTORY_NAV}>
+      <AppLayout title="Receipt" moduleNav={INVENTORY2_NAV}>
         <div className="p-6">
           <div className="rounded border border-destructive/40 bg-destructive/5 p-4">
             <p className="font-semibold text-destructive">Failed to load receipt</p>
@@ -552,7 +552,7 @@ export default function ReceiptDetail() {
 
   if (!detail) {
     return (
-      <AppLayout title="Receipt" moduleNav={INVENTORY_NAV}>
+      <AppLayout title="Receipt" moduleNav={INVENTORY2_NAV}>
         <div className="p-6 text-sm text-muted-foreground">
           No receipt found for id <code>{id}</code>.
         </div>
@@ -843,7 +843,7 @@ export default function ReceiptDetail() {
   const totalDocumentUnits = detail.documentUnits.reduce((s, b) => s + b.qty, 0);
 
   return (
-    <AppLayout title={`Receipt ${r.number}`} moduleNav={INVENTORY_NAV}>
+    <AppLayout title={`Receipt ${r.number}`} moduleNav={INVENTORY2_NAV}>
       <div className="ds-root p-3 md:p-4">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
           <div className="min-w-0">

@@ -29,7 +29,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { INVENTORY_NAV } from '@/lib/navigation';
+import { INVENTORY2_NAV } from '@/lib/navigation';
 import {
   useProductAttributes,
   useSaveProductAttribute,
@@ -311,7 +311,7 @@ export default function AttributeConfigForm() {
   ];
 
   return (
-    <AppLayout title="Inventory" moduleNav={INVENTORY_NAV}>
+    <AppLayout title="Inventory" moduleNav={INVENTORY2_NAV}>
       <div className="ds-root bg-[hsl(var(--ds-canvas))] min-h-full p-4">
         <DocumentHeader
           breadcrumb={['Product Attributes', isNew ? 'New' : current?.name ?? '…']}
