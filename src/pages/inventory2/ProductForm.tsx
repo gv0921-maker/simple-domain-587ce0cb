@@ -8,7 +8,14 @@
  * lib/services/inventory2/products.ts (`WRITABLE`) and enforced there at
  * runtime; this file must not widen it.
  *
- * THREE VALUES ARE SHOWN BUT NOT EDITABLE, each for a different reason:
+ * SALES PRICE IS INVENTORY-OWNED (Pass 10D). Products belong to Inventory and
+ * every other module consumes them, so the catalogue price is set here. It is
+ * safe to edit because nothing recalculates from it: order_lines,
+ * quotation_lines, invoice_lines and subscription_lines each carry their own
+ * NOT NULL unit_price, snapshotted when the line is written. Editing the
+ * catalogue price seeds the NEXT line and cannot rewrite a past invoice.
+ *
+ * TWO VALUES ARE SHOWN BUT NOT EDITABLE, each for a different reason:
  *
  *   Quantity On Hand  Derived from inv_stock_item, never from
  *                     products.stock_on_hand. Odoo does the same — its
@@ -17,11 +24,6 @@
  *                     number with its status split is what makes the legacy
  *                     column visibly obsolete: the one product reads 10 in
  *                     stock_on_hand and 24 here.
- *
- *   Sales Price       Owned by Sales. It feeds order_lines, quotation_lines,
- *                     invoice_lines and pricelist_items. Displayed so the
- *                     product is legible, marked so nobody expects to set it
- *                     from Inventory.
  *
  *   Track Serials     Under investigation. The flag is false on the one
  *                     product in the database, which carries 24
@@ -118,6 +120,9 @@ const EMPTY: ProductInput = {
   // made_to_order matches the column default and today's behaviour: a new
   // product uses the customization picker until someone says otherwise.
   mode: 'made_to_order',
+  sale_price: 0,
+  warranty_eligible: false,
+  factory_eligible: false,
 };
 
 /**
@@ -249,6 +254,9 @@ export default function Inv2ProductForm() {
         weight: existing.weight,
         volume: existing.volume,
         mode: existing.mode,
+        sale_price: existing.sale_price,
+        warranty_eligible: existing.warranty_eligible,
+        factory_eligible: existing.factory_eligible,
       });
       setDirty(false);
     }
@@ -444,11 +452,49 @@ export default function Inv2ProductForm() {
           />
         </Field>
 
-        <Field label="Sales Price">
-          <LockedValue
-            value={money(existing?.sale_price ?? 0)}
-            reason="Owned by Sales — it feeds quotations, orders, invoices and pricelists. Not editable from Inventory."
+        <Field
+          label="Sales Price"
+          htmlFor="saleprice"
+          hint="Sales reads this to seed a new quotation, order or invoice line. Existing documents keep the price they were written with — changing it here never rewrites one."
+        >
+          <TextInput
+            id="saleprice"
+            type="number"
+            step="0.01"
+            min="0"
+            value={String(form.sale_price)}
+            onChange={(e) => set('sale_price', Number(e.target.value) || 0)}
           />
+        </Field>
+
+        <Field
+          label="Warranty Eligible"
+          htmlFor="warranty"
+          hint="Warranty invoices only offer products marked eligible, and refuse one that is not."
+        >
+          <SelectInput
+            id="warranty"
+            value={form.warranty_eligible ? 'yes' : 'no'}
+            onChange={(e) => set('warranty_eligible', e.target.value === 'yes')}
+          >
+            <option value="no">Not warranty eligible</option>
+            <option value="yes">Warranty eligible</option>
+          </SelectInput>
+        </Field>
+
+        <Field
+          label="Factory Eligible"
+          htmlFor="factory"
+          hint="Factory invoices only offer products marked eligible, and refuse one that is not. Factory invoices are also raised without GST."
+        >
+          <SelectInput
+            id="factory"
+            value={form.factory_eligible ? 'yes' : 'no'}
+            onChange={(e) => set('factory_eligible', e.target.value === 'yes')}
+          >
+            <option value="no">Not factory eligible</option>
+            <option value="yes">Factory eligible</option>
+          </SelectInput>
         </Field>
 
         <Field label="Internal Notes" htmlFor="desc">
@@ -751,9 +797,12 @@ export default function Inv2ProductForm() {
           title="Not built in this pass"
           body={
             <>
-              Sales pricing is owned by Sales. <code>sale_price</code> is shown read-only on
-              General Information, and <code>pricelist_items</code> (currently empty) is the
-              module that will fill this tab. Nothing here writes a price.
+              The product's own price is <code>sale_price</code> on General Information, and
+              it is Inventory-owned. This tab is for <code>pricelists</code> —
+              customer-specific and quantity-break pricing — which are currently empty and
+              still written from Sales. Note that a pricelist is recorded on a quotation or
+              order today but never applied to a line, so the feature is half-built on the
+              Sales side; building this tab means finishing that first.
             </>
           }
         />
@@ -820,11 +869,12 @@ export default function Inv2ProductForm() {
           </div>
 
           <ReadOnlyNote>
-            Products are shared with Sales. This screen writes only: reference, name, type,
-            notes, cost, reorder level, costing method, barcode, inventory tracking, status,
-            category, unit of measure, weight and volume. It never writes stock_on_hand,
-            sale_price, the legacy category/unit_of_measure text pair, or variants — and it
-            cannot delete.
+            Products are owned by Inventory; every other module reads them. This screen
+            writes: reference, name, type, notes, selling mode, cost, sales price, reorder
+            level, costing method, barcode, inventory tracking, warranty and factory
+            eligibility, status, category, unit of measure, weight and volume. It never
+            writes stock_on_hand, the legacy category/unit_of_measure text pair, or the
+            legacy variants JSONB — and it cannot delete.
           </ReadOnlyNote>
         </div>
       </div>

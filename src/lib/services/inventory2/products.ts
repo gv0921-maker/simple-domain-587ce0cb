@@ -96,6 +96,19 @@ export const WRITABLE = [
   // chair be recorded two different ways, which is the thing this column exists
   // to prevent.
   'mode',
+  // Pass 10D. sale_price is now INVENTORY-owned: V's ownership decision is that
+  // products belong to Inventory and every other module consumes them. Safe to
+  // edit because no document recalculates from it — order_lines,
+  // quotation_lines, invoice_lines and subscription_lines each carry their own
+  // NOT NULL unit_price, snapshotted when the line is created. Changing the
+  // catalogue price seeds the NEXT line and cannot rewrite a past one.
+  'sale_price',
+  // Both gate which products may appear on a restricted invoice type
+  // (pages/invoicing/InvoiceForm.tsx): warranty invoices filter to
+  // warranty_eligible, factory invoices to factory_eligible, and adding an
+  // ineligible product is refused. Inventory-owned facts about the product.
+  'warranty_eligible',
+  'factory_eligible',
 ] as const;
 
 export type WritableColumn = (typeof WRITABLE)[number];
@@ -117,6 +130,10 @@ export interface ProductInput {
   weight: number | null;
   volume: number | null;
   mode: ProductMode;
+  /** Inventory-owned since Pass 10D. Sales reads it; nothing recalculates from it. */
+  sale_price: number;
+  warranty_eligible: boolean;
+  factory_eligible: boolean;
 }
 
 export interface ProductListRow {
@@ -137,8 +154,6 @@ export interface ProductListRow {
 
 export interface ProductDetail extends ProductInput {
   id: string;
-  /** Sales-owned, read-only here. */
-  sale_price: number;
   /**
    * Read-only in this pass. The flag is false on the one product in the
    * database, which nonetheless carries 24 serial-identified units, because
@@ -251,12 +266,14 @@ function toDetail(r: ProductRow): ProductDetail {
     is_active: r.is_active,
     category_id: r.category_id,
     uom_id: r.uom_id,
-    // Null is meaningful here — it distinguishes "never measured" from 0.
     mode: r.mode as ProductMode,
+    // Null is meaningful here — it distinguishes "never measured" from 0.
     weight: r.weight == null ? null : Number(r.weight),
     volume: r.volume == null ? null : Number(r.volume),
-
     sale_price: Number(r.sale_price ?? 0),
+    warranty_eligible: r.warranty_eligible,
+    factory_eligible: r.factory_eligible,
+
     track_serials: r.track_serials,
     legacy_category_text: r.category ?? '',
     legacy_uom_text: r.unit_of_measure ?? '',
