@@ -208,9 +208,24 @@ export function QualitySegment({ operationId }: QualitySegmentProps) {
                 </div>
 
                 {u.missingChecklist ? (
-                  <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-[2px] border border-[hsl(var(--ds-amber)/0.4)] bg-[hsl(var(--ds-amber-bg))] px-2 py-1 text-[var(--ds-fs-xs)] font-semibold text-[hsl(var(--ds-amber))]">
+                  /*
+                    Pass 11: the warning now leads somewhere. Until the checklist
+                    config surface existed there was nothing to link to, and a
+                    warning with no route to the fix just trains people to ignore
+                    it. Deep-links to the product's Quality tab, where a check can
+                    be added for exactly this product.
+                  */
+                  <p className="mt-1.5 inline-flex flex-wrap items-center gap-1.5 rounded-[2px] border border-[hsl(var(--ds-amber)/0.4)] bg-[hsl(var(--ds-amber-bg))] px-2 py-1 text-[var(--ds-fs-xs)] font-semibold text-[hsl(var(--ds-amber))]">
                     <AlertTriangle className="h-3.5 w-3.5" />
                     QC required, but no checklist is defined for this product
+                    {u.product_id && (
+                      <a
+                        href={`/inventory2/products/${u.product_id}?tab=quality`}
+                        className="underline underline-offset-2 hover:no-underline"
+                      >
+                        Configure checks
+                      </a>
+                    )}
                   </p>
                 ) : (
                   <TestChips unit={u} />

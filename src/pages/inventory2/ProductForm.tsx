@@ -37,7 +37,7 @@
  * keys reference products.id. Archiving via is_active is the supported path.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { INVENTORY2_NAV } from '@/lib/navigation';
@@ -61,6 +61,8 @@ import {
 } from '@/lib/services/inventory2/products';
 import { AttributeAssignment } from '@/components/inventory2/AttributeAssignment';
 import { VariantEditor } from '@/components/inventory2/VariantEditor';
+import { ChecklistEditor } from '@/components/inventory2/ChecklistEditor';
+import { useInv2Checklists } from '@/hooks/inventory2/checklists';
 import { useInv2Variants, useInv2AssignedAttributes } from '@/hooks/inventory2/variants';
 import type { VariantStatus } from '@/lib/services/inventory2/variants';
 
@@ -212,6 +214,13 @@ export default function Inv2ProductForm() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   /**
+   * ?tab= opens a specific tab. The Quality segment on a receipt links here
+   * with tab=quality when a product has no checklist, so the person who saw the
+   * warning lands on the place that fixes it rather than on General Information.
+   */
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') ?? 'general';
+  /**
    * Two routes render this component: the static /products/new and the dynamic
    * /products/:id. On the static route React Router binds no `:id` param, so
    * `id` is undefined — testing only for the literal 'new' would treat the
@@ -229,6 +238,8 @@ export default function Inv2ProductForm() {
   const { data: assignedAttributes = [] } = useInv2AssignedAttributes(productId);
   const [addingVariant, setAddingVariant] = useState(false);
   const [altBarcode, setAltBarcode] = useState('');
+  const { data: checklists = [], error: checklistsError } = useInv2Checklists(productId);
+  const [addingCheck, setAddingCheck] = useState(false);
 
   const create = useCreateInv2Product();
   const update = useUpdateInv2Product(productId);
@@ -849,6 +860,128 @@ export default function Inv2ProductForm() {
     </div>
   );
 
+  /* -------------------------------------------------------------- Quality -- */
+  //
+  // The narrower half of the checklist surface, matching how variants are
+  // split: this shows what applies to THIS product and lets a check be added
+  // for it. Cross-product work, global checks and archiving live at
+  // /inventory2/config/checklists.
+  //
+  // The list is the APPLICABLE set — the product's own checks plus every global
+  // one — because that is what an inspector is actually shown. Listing only the
+  // product's own rows would make a product look unconfigured while a global
+  // check was quietly covering it.
+
+  const activeChecklists = checklists.filter((c) => c.is_active);
+
+  const qualityTab = isNew ? (
+    <Placeholder
+      title="Available once the product exists"
+      body="Checks are configured per product, so this product has to be saved before it can carry any."
+    />
+  ) : (
+    <div className="space-y-4">
+      {activeChecklists.length === 0 && (
+        <div className="flex items-start gap-2 rounded-[var(--ds-radius)] border border-[hsl(var(--ds-amber)/0.4)] bg-[hsl(var(--ds-amber-bg))] px-3 py-2">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--ds-amber))]" />
+          <div className="text-[var(--ds-fs-sm)]">
+            <p className="font-semibold text-[hsl(var(--ds-amber))]">
+              This product has no QC gate
+            </p>
+            <p className="mt-0.5 text-[hsl(var(--ds-ink))]">
+              Units of it can be received but never inspected, so they stay quarantined and
+              never become sellable. Add a check below, or a global one under Setup → QC
+              Checklists.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div>
+        <div className="flex items-center justify-between gap-3">
+          <SectionLabel>Checks applied to units of this product</SectionLabel>
+          {!addingCheck && (
+            <Button size="sm" variant="primary" onClick={() => setAddingCheck(true)}>
+              Add check
+            </Button>
+          )}
+        </div>
+
+        {checklistsError && (
+          <div className="mt-2">
+            <ErrorBanner title="Failed to load checks" message={errorText(checklistsError)} />
+          </div>
+        )}
+
+        {addingCheck && (
+          <div className="mt-2 rounded-[var(--ds-radius)] border border-[hsl(var(--ds-border))] p-3">
+            <ChecklistEditor
+              lockedProductId={productId!}
+              lockedProductName={existing?.name}
+              existing={checklists}
+              onDone={() => setAddingCheck(false)}
+              onCancel={() => setAddingCheck(false)}
+            />
+          </div>
+        )}
+
+        {activeChecklists.length === 0 ? (
+          <p className="mt-2 text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">
+            No active checks apply to this product.
+          </p>
+        ) : (
+          <div className="mt-2 overflow-x-auto">
+            <table className="w-full min-w-[560px] border-collapse text-[var(--ds-fs-sm)]">
+              <thead>
+                <tr className="border-b border-[hsl(var(--ds-border))] text-left text-[var(--ds-fs-xs)] uppercase tracking-wide text-[hsl(var(--ds-ink-subtle))]">
+                  <th className="py-1.5 pr-3 font-semibold">Check</th>
+                  <th className="py-1.5 pr-3 font-semibold">Scope</th>
+                  <th className="py-1.5 pr-3 font-semibold">Rules</th>
+                  <th className="py-1.5 text-right font-semibold">Order</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeChecklists.map((c) => (
+                  <tr key={c.id} className="border-b border-[hsl(var(--ds-border))]">
+                    <td className="py-1.5 pr-3">
+                      <div className="font-medium text-[hsl(var(--ds-ink))]">{c.name}</div>
+                      {c.description && (
+                        <div className="text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-subtle))]">
+                          {c.description}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-1.5 pr-3">
+                      {c.product_id
+                        ? <StatusPill tone="grey">This product</StatusPill>
+                        : <StatusPill tone="blue">Global</StatusPill>}
+                    </td>
+                    <td className="py-1.5 pr-3">
+                      <span className="flex flex-wrap gap-1">
+                        <StatusPill tone={c.is_required ? 'red' : 'grey'}>
+                          {c.is_required ? 'Required' : 'Advisory'}
+                        </StatusPill>
+                        {c.requires_value && <StatusPill tone="amber">Reading</StatusPill>}
+                        {c.requires_attachment && <StatusPill tone="amber">Photo</StatusPill>}
+                      </span>
+                    </td>
+                    <td className="py-1.5 text-right tabular-nums">{c.sort_order}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="mt-2 text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-subtle))]">
+              Editing, archiving and global checks live on{' '}
+              <a href="/inventory2/config/checklists" className="text-[hsl(var(--ds-link))] hover:underline">
+                Setup → QC Checklists
+              </a>.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   const tabs: DocumentTab[] = [
     { key: 'general', label: 'General Information', content: generalTab },
     {
@@ -877,6 +1010,12 @@ export default function Inv2ProductForm() {
       ),
     },
     { key: 'inventory', label: 'Inventory', content: inventoryTab },
+    {
+      key: 'quality',
+      label: 'Quality',
+      badge: isNew ? undefined : checklists.filter((c) => c.is_active).length || undefined,
+      content: qualityTab,
+    },
   ];
 
   /* ---------------------------------------------------------------- render */
@@ -921,7 +1060,7 @@ export default function Inv2ProductForm() {
               </div>
             ) : (
               <>
-                <DocumentTabs tabs={tabs} defaultValue="general" />
+                <DocumentTabs tabs={tabs} defaultValue={initialTab} />
 
                 <div className="flex items-center gap-2 border-t border-[hsl(var(--ds-border))] p-3">
                   <Button variant="primary" onClick={() => void save()} disabled={!canSave}>
