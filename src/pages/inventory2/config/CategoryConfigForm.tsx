@@ -25,6 +25,7 @@ import type { ProductCategory } from '@/lib/services/inventory/categories';
 import { DocumentHeader, DocumentFields, type DocumentField } from '@/design-system';
 import '@/design-system/tokens.css';
 import { categoryPath, descendantIdsOf, indexById } from './configMeta';
+import { CategoryValueScoping } from '@/components/inventory2/CategoryValueScoping';
 
 const LIST_PATH = '/inventory2/config/categories';
 
@@ -284,6 +285,24 @@ export default function CategoryConfigForm() {
                 />
               </div>
               <DocumentFields columns={[left, right]} />
+
+              {/*
+                Value scoping lives here rather than at its own route: the data
+                is per-category, and sitting directly under the Parent Category
+                selector is what makes a reparent legible — the inherited list
+                re-reads from the SELECTED parent, so the consequence is on
+                screen before it is saved.
+
+                Only on an existing category: a link needs a category_id, so
+                there is nothing to attach until the row exists.
+              */}
+              {!isNew && current && (
+                <CategoryValueScoping
+                  categoryId={current.id}
+                  categories={categories}
+                  pendingParentId={form.parentCategoryId || null}
+                />
+              )}
             </>
           )}
         </div>
