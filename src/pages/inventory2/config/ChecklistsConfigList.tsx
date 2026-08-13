@@ -23,7 +23,8 @@ import '@/design-system/tokens.css';
 import { ErrorBanner } from '@/components/inventory2/formControls';
 import { errorText } from '@/lib/inventory2/errorText';
 import { ChecklistEditor } from '@/components/inventory2/ChecklistEditor';
-import { useInv2Checklists, useSetChecklistActive } from '@/hooks/inventory2/checklists';
+import { useInv2Checklists, useSetChecklistActive, useRequiredCheckImpact } from '@/hooks/inventory2/checklists';
+import { RequiredCheckWarning } from '@/components/inventory2/RequiredCheckWarning';
 import type { ChecklistTemplate } from '@/lib/services/inventory2/checklists';
 
 type Filter = 'active' | 'archived' | 'global' | 'all';
@@ -44,6 +45,12 @@ export default function ChecklistsConfigList() {
   const [editing, setEditing] = useState<ChecklistTemplate | null>(null);
   const [creating, setCreating] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  /** A required check awaiting restore confirmation. */
+  const [restoring, setRestoring] = useState<ChecklistTemplate | null>(null);
+  const { data: restoreImpact, isLoading: restoreImpactLoading } = useRequiredCheckImpact(
+    restoring?.product_id ?? null,
+    !!restoring,
+  );
 
   const counts = useMemo(() => {
     const m: Record<string, number> = { all: rows.length, active: 0, archived: 0, global: 0 };
@@ -67,10 +74,31 @@ export default function ChecklistsConfigList() {
         .some((v) => (v ?? '').toLowerCase().includes(q)));
   }, [rows, filter, search]);
 
+  /**
+   * Restore is a SECOND path that can put a required check back into the
+   * applicable set, and it does not go through ChecklistEditor — so it needs
+   * the same warning, or the confirmation would be trivially sidestepped by
+   * archiving and restoring instead of editing.
+   *
+   * Archiving never needs it: removing a check can only ever make a unit's
+   * inspection more complete, never less.
+   */
   async function toggle(t: ChecklistTemplate) {
     setActionError(null);
+    if (!t.is_active && t.is_required) { setRestoring(t); return; }
     try {
       await setActive.mutateAsync({ id: t.id, isActive: !t.is_active });
+    } catch (e) {
+      setActionError(errorText(e));
+    }
+  }
+
+  async function confirmRestore() {
+    if (!restoring) return;
+    setActionError(null);
+    try {
+      await setActive.mutateAsync({ id: restoring.id, isActive: true });
+      setRestoring(null);
     } catch (e) {
       setActionError(errorText(e));
     }
@@ -198,6 +226,21 @@ export default function ChecklistsConfigList() {
             </button>
           ))}
         </div>
+
+        {restoring && (
+          <div className="mb-3">
+            <RequiredCheckWarning
+              isGlobal={restoring.product_id === null}
+              productName={restoring.product_name}
+              impact={restoreImpact}
+              loading={restoreImpactLoading}
+              confirmLabel="Restore anyway"
+              busy={setActive.isPending}
+              onConfirm={() => void confirmRestore()}
+              onCancel={() => setRestoring(null)}
+            />
+          </div>
+        )}
 
         {(creating || editing) && (
           <div className="mb-3 rounded-[var(--ds-radius)] border border-[hsl(var(--ds-border))] bg-[hsl(var(--ds-surface))] p-3">

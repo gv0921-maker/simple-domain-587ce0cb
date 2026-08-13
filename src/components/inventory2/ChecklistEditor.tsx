@@ -18,8 +18,9 @@ import { Button, StatusPill, cn } from '@/design-system';
 import { Field, TextInput, TextArea, SelectInput, ErrorBanner } from './formControls';
 import { errorText } from '@/lib/inventory2/errorText';
 import {
-  useCreateChecklist, useUpdateChecklist, useInv2ChecklistProducts,
+  useCreateChecklist, useUpdateChecklist, useInv2ChecklistProducts, useRequiredCheckImpact,
 } from '@/hooks/inventory2/checklists';
+import { RequiredCheckWarning } from './RequiredCheckWarning';
 import type { ChecklistTemplate } from '@/lib/services/inventory2/checklists';
 
 export interface ChecklistEditorProps {
@@ -75,7 +76,36 @@ export function ChecklistEditor({
 
   const canSubmit = !!name.trim() && !saving;
 
+  /**
+   * Does saving put a REQUIRED check into the applicable set that was not there
+   * before? Three transitions do:
+   *   - creating one that is required and active
+   *   - promoting an active advisory check to required
+   *   - un-archiving a check that is required
+   * Editing the name of an already-live required check does not, because the
+   * applicable set is unchanged.
+   *
+   * Advisory checks never qualify — see requiredCheckImpact for why the RPC
+   * makes that safe.
+   */
+  const scopeProductId = isEdit ? (template!.product_id) : (scope === GLOBAL ? null : scope);
+  const wasLiveRequired = isEdit && template!.is_required && template!.is_active;
+  const willBeLiveRequired = isRequired && isActive;
+  const needsWarning = willBeLiveRequired && !wasLiveRequired;
+
+  const [pendingConfirm, setPendingConfirm] = useState(false);
+  const { data: impact, isLoading: impactLoading } = useRequiredCheckImpact(
+    scopeProductId,
+    pendingConfirm,
+  );
+
+  function onSubmitClick() {
+    if (needsWarning) { setPendingConfirm(true); return; }
+    void submit();
+  }
+
   async function submit() {
+    setPendingConfirm(false);
     setFailure(null);
     try {
       if (isEdit && template) {
@@ -250,12 +280,29 @@ export function ChecklistEditor({
         </div>
       )}
 
-      <div className="flex items-center gap-2 border-t border-[hsl(var(--ds-border))] pt-3">
-        <Button variant="primary" onClick={() => void submit()} disabled={!canSubmit}>
-          {saving ? 'Saving…' : isEdit ? 'Save' : 'Add check'}
-        </Button>
-        <Button variant="subtle" onClick={onCancel}>Cancel</Button>
-      </div>
+      {pendingConfirm ? (
+        <RequiredCheckWarning
+          isGlobal={scopeProductId === null}
+          productName={
+            isEdit
+              ? template!.product_name
+              : (lockedProductName ?? products.find((p) => p.id === scope)?.name)
+          }
+          impact={impact}
+          loading={impactLoading}
+          confirmLabel={isEdit ? 'Save anyway' : 'Add check anyway'}
+          busy={saving}
+          onConfirm={() => void submit()}
+          onCancel={() => setPendingConfirm(false)}
+        />
+      ) : (
+        <div className="flex items-center gap-2 border-t border-[hsl(var(--ds-border))] pt-3">
+          <Button variant="primary" onClick={onSubmitClick} disabled={!canSubmit}>
+            {saving ? 'Saving…' : isEdit ? 'Save' : 'Add check'}
+          </Button>
+          <Button variant="subtle" onClick={onCancel}>Cancel</Button>
+        </div>
+      )}
     </div>
   );
 }

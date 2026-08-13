@@ -163,6 +163,60 @@ export async function setChecklistActive(id: string, isActive: boolean): Promise
   if (error) throw error;
 }
 
+/**
+ * How many units a REQUIRED check would newly apply to, and how many of those
+ * are currently passing.
+ *
+ * WHY THIS EXISTS. inv_record_qc_results does not evaluate only the results
+ * being submitted — it re-derives the unit's status against the ENTIRE
+ * applicable checklist every time it runs:
+ *
+ *     WHEN v_req_failed > 0          THEN 'rejected'
+ *     WHEN v_req_passed < v_required THEN 'quarantined'   -- incomplete
+ *     WHEN v_adv_failed > 0          THEN 'attention'
+ *     ELSE                                'ok'
+ *
+ * Add a required template and `v_required` goes up for every applicable unit
+ * while `v_req_passed` does not, so an already-inspected unit becomes
+ * incomplete. It does NOT change immediately — the row is only rewritten the
+ * next time QC is recorded for that unit — which is exactly the part that
+ * surprises people.
+ *
+ * ADVISORY CHECKS CARRY NO SUCH RISK, and the same CASE is why: `v_adv_failed`
+ * counts `NOT is_required AND l.result IS FALSE`. An unanswered advisory has no
+ * latest row at all, so `l.result` is NULL, `NULL IS FALSE` is false, and it
+ * contributes nothing. An advisory check can only ever move a unit to
+ * 'attention' by being actively failed; it can never un-pass one.
+ *
+ * `destroyed` and `lost` units are exempt — the RPC returns their status
+ * unchanged before the CASE is applied — and they are not counted here because
+ * they are not 'ok' either.
+ */
+export interface RequiredCheckImpact {
+  /** Units the check would apply to. */
+  applicable: number;
+  /** Of those, the ones currently passing — the visible drop. */
+  currentlyOk: number;
+}
+
+export async function requiredCheckImpact(
+  productId: string | null,
+): Promise<RequiredCheckImpact> {
+  // A global check (product_id NULL) applies to every unit in the system, which
+  // is precisely when this warning matters most.
+  let query = supabase.from('inv_stock_item').select('status');
+  if (productId) query = query.eq('product_id', productId);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const rows = data ?? [];
+  return {
+    applicable: rows.length,
+    currentlyOk: rows.filter((r) => r.status === 'ok').length,
+  };
+}
+
 /** Products to attach a template to, plus the global option. */
 export async function listChecklistProductOptions(): Promise<{ id: string; name: string; sku: string }[]> {
   const { data, error } = await supabase

@@ -207,6 +207,46 @@ per-module database dependencies, and shared-code inventory.
 Recorded so they are not rediscovered as surprises. Each one is deferred **on
 purpose**; fixing one is its own approved pass, not a "while I'm here".
 
+### A new REQUIRED QC check retroactively un-completes past inspections — INTENDED, warned, 2026-08-13
+
+**This is correct behaviour, not a bug.** It is recorded here because it is genuinely
+surprising, and someone reading the code later should find the reasoning rather than
+rediscover it as a mystery.
+
+`inv_record_qc_results` does not evaluate only the results being submitted. It
+re-derives the unit's status against the **entire applicable checklist** every time it
+runs:
+
+```
+WHEN v_req_failed > 0          THEN 'rejected'
+WHEN v_req_passed < v_required THEN 'quarantined'   -- incomplete
+WHEN v_adv_failed > 0          THEN 'attention'
+ELSE                                'ok'
+```
+
+Add a **required** template and `v_required` rises for every applicable unit while
+`v_req_passed` does not, so a previously complete inspection becomes incomplete and the
+unit drops to `quarantined`.
+
+**The delay is the surprising part.** Nothing changes when the check is saved. The status
+is only rewritten the *next time QC is recorded for that unit* — possibly days later, by
+someone with no connection to the config change.
+
+**Advisory checks carry no such risk**, and the same CASE is why: `v_adv_failed` counts
+`NOT is_required AND l.result IS FALSE`. An unanswered advisory has no latest row, so
+`l.result` is NULL, `NULL IS FALSE` is false, and it contributes nothing. An advisory can
+only move a unit to `attention` by being actively failed; it can never un-pass one.
+`destroyed` and `lost` units are exempt — the RPC returns their status before the CASE.
+
+**What was built instead of a fix:** `RequiredCheckWarning` warns and asks for
+confirmation on every path that can put a required check into the applicable set —
+creating one, promoting an advisory one, un-archiving from the edit form, and the Restore
+button on the config list. It shows how many units are affected and how many are
+currently OK. It never blocks, and **no RPC was changed**. Archiving needs no warning:
+removing a check can only make an inspection more complete.
+
+If the RPC is ever changed here, this warning is the thing to revisit.
+
 ### Orphaned QC attachment uploads (Inventory 2) — found Pass 6, FIXED Pass 11, 2026-08-13
 
 **The cause is fixed.** `QcRunner` now holds the chosen `File` in memory and uploads

@@ -24,6 +24,18 @@ export const useInv2Checklists = (productId?: string) =>
     queryFn: () => checklists.listChecklists(productId),
   });
 
+/**
+ * Scale of a required check, fetched only when a warning is actually pending —
+ * a global check counts every unit in the system, so this is not something to
+ * run on every keystroke.
+ */
+export const useRequiredCheckImpact = (productId: string | null, enabled: boolean) =>
+  useQuery({
+    queryKey: [...inv2ChecklistKeys.all, 'impact', productId ?? 'global'],
+    queryFn: () => checklists.requiredCheckImpact(productId),
+    enabled,
+  });
+
 export const useInv2ChecklistProducts = () =>
   useQuery({
     queryKey: inv2ChecklistKeys.productOptions(),
