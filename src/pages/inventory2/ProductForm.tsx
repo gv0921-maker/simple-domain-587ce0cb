@@ -41,7 +41,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { INVENTORY2_NAV } from '@/lib/navigation';
 import {
   DocumentHeader, DocumentTabs, Button, StatusPill, SectionLabel, cn,
-  type RibbonStage, type HeaderAction, type DocumentTab,
+  type RibbonStage, type HeaderAction, type DocumentTab, type StatusTone,
 } from '@/design-system';
 import '@/design-system/tokens.css';
 import {
@@ -57,6 +57,22 @@ import {
   PRODUCT_TYPES, COST_METHODS, PRODUCT_MODES,
   type ProductInput, type ProductType, type CostMethod, type ProductMode, type OnHandBucket,
 } from '@/lib/services/inventory2/products';
+import { AttributeAssignment } from '@/components/inventory2/AttributeAssignment';
+import { VariantEditor } from '@/components/inventory2/VariantEditor';
+import { useInv2Variants, useInv2AssignedAttributes } from '@/hooks/inventory2/variants';
+import type { VariantStatus } from '@/lib/services/inventory2/variants';
+
+const VARIANT_TONE: Record<VariantStatus, StatusTone> = {
+  provisional: 'blue',
+  permanent: 'green',
+  archived: 'grey',
+};
+
+const VARIANT_LABEL: Record<VariantStatus, string> = {
+  provisional: 'Provisional',
+  permanent: 'Permanent',
+  archived: 'Archived',
+};
 
 const LIST_PATH = '/inventory2/products';
 
@@ -203,6 +219,9 @@ export default function Inv2ProductForm() {
   const { data: onHand = [], error: onHandError } = useInv2ProductOnHand(productId);
   const { data: categories = [] } = useInv2Categories();
   const { data: uoms = [] } = useInv2Uoms();
+  const { data: variants = [], error: variantsError } = useInv2Variants(productId);
+  const { data: assignedAttributes = [] } = useInv2AssignedAttributes(productId);
+  const [addingVariant, setAddingVariant] = useState(false);
 
   const create = useCreateInv2Product();
   const update = useUpdateInv2Product(productId);
@@ -601,26 +620,128 @@ export default function Inv2ProductForm() {
     </div>
   );
 
+  /* --------------------------------------------- Attributes & Variants ---- */
+  //
+  // Two sections, in the order the work happens: assign the attributes that MAY
+  // be combined, then create the combinations actually sold. Assignment creates
+  // nothing on its own — generation is opt-in per combination, which is what
+  // stops 8 sizes x 5 polishes becoming 40 rows nobody asked for.
+  //
+  // This is the narrower surface. Editing, archiving and cross-product work
+  // live at /inventory2/config/variants.
+
+  const showVariants = form.mode !== 'made_to_order';
+
+  const variantsTab = isNew ? (
+    <Placeholder
+      title="Available once the product exists"
+      body="Attributes are assigned per product, so this product has to be saved before it can carry any."
+    />
+  ) : (
+    <div className="space-y-5">
+      <AttributeAssignment productId={productId!} variants={variants} />
+
+      {!showVariants ? (
+        <div className="rounded-[var(--ds-radius)] border border-dashed border-[hsl(var(--ds-border-strong))] bg-[hsl(var(--ds-surface-sunken))] p-4">
+          <SectionLabel>Versions are hidden for made-to-order products</SectionLabel>
+          <p className="mt-2 max-w-2xl text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">
+            This product is set to <strong>Made to order</strong>, so options are chosen per
+            sales line through the customization picker rather than sold as pre-defined
+            versions. The attributes above still apply — the picker reads them. Change the
+            selling mode on General Information to sell fixed versions.
+          </p>
+        </div>
+      ) : (
+        <div>
+          <div className="flex items-center justify-between gap-3">
+            <SectionLabel>Versions of this product</SectionLabel>
+            {!addingVariant && (
+              <Button size="sm" variant="primary" onClick={() => setAddingVariant(true)}>
+                Add version
+              </Button>
+            )}
+          </div>
+
+          {variantsError && (
+            <div className="mt-2">
+              <ErrorBanner title="Failed to load versions" message={errorText(variantsError)} />
+            </div>
+          )}
+
+          {addingVariant && (
+            <div className="mt-2 rounded-[var(--ds-radius)] border border-[hsl(var(--ds-border))] p-3">
+              <VariantEditor
+                productId={productId!}
+                productName={existing?.name}
+                attributes={assignedAttributes}
+                existing={variants}
+                createStatus="permanent"
+                canEdit
+                onDone={() => setAddingVariant(false)}
+                onCancel={() => setAddingVariant(false)}
+              />
+            </div>
+          )}
+
+          {variants.length === 0 ? (
+            <p className="mt-2 text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">
+              No versions yet. Assign attributes above, then add the combinations you sell.
+            </p>
+          ) : (
+            <div className="mt-2 overflow-x-auto">
+              <table className="w-full min-w-[560px] border-collapse text-[var(--ds-fs-sm)]">
+                <thead>
+                  <tr className="border-b border-[hsl(var(--ds-border))] text-left text-[var(--ds-fs-xs)] uppercase tracking-wide text-[hsl(var(--ds-ink-subtle))]">
+                    <th className="py-1.5 pr-3 font-semibold">Version</th>
+                    <th className="py-1.5 pr-3 font-semibold">Combination</th>
+                    <th className="py-1.5 pr-3 text-right font-semibold">Price</th>
+                    <th className="py-1.5 pr-3 text-right font-semibold">On Hand</th>
+                    <th className="py-1.5 font-semibold">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {variants.map((v) => (
+                    <tr key={v.id} className="border-b border-[hsl(var(--ds-border))]">
+                      <td className="py-1.5 pr-3">
+                        <div className="font-medium text-[hsl(var(--ds-ink))]">{v.name}</div>
+                        <div className="text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-subtle))]">{v.sku}</div>
+                      </td>
+                      <td className="py-1.5 pr-3">
+                        <span className="flex flex-wrap gap-1">
+                          {v.values.map((x) => (
+                            <StatusPill key={x.attribute_id} tone="grey">{x.value}</StatusPill>
+                          ))}
+                        </span>
+                      </td>
+                      <td className="py-1.5 pr-3 text-right tabular-nums">{money(v.sale_price)}</td>
+                      <td className="py-1.5 pr-3 text-right tabular-nums">{v.on_hand}</td>
+                      <td className="py-1.5">
+                        <StatusPill tone={VARIANT_TONE[v.status]}>{VARIANT_LABEL[v.status]}</StatusPill>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="mt-2 text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-subtle))]">
+                Editing and archiving versions happens on{' '}
+                <a href="/inventory2/config/variants" className="text-[hsl(var(--ds-link))] hover:underline">
+                  Setup → Product Variants
+                </a>.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
   const tabs: DocumentTab[] = [
     { key: 'general', label: 'General Information', content: generalTab },
     {
       key: 'variants',
       label: 'Attributes & Variants',
-      content: (
-        <Placeholder
-          title="Not built in this pass"
-          body={
-            <>
-              Attributes and values are configured and live (<code>product_attributes</code>,{' '}
-              <code>product_attribute_values</code>), but <code>product_attribute_assignments</code>{' '}
-              — the table that would link them to a product — is empty and read by nothing.
-              The legacy <code>variants</code> JSONB column is what the old form wrote; it is
-              left untouched rather than extended. This tab is rendered so the form's shape is
-              right when variants land.
-            </>
-          }
-        />
-      ),
+      badge: isNew ? undefined : variants.length || undefined,
+      content: variantsTab,
     },
     {
       key: 'prices',
