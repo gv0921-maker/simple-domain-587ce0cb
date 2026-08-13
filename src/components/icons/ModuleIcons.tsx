@@ -27,6 +27,24 @@ export const InventoryIcon = () => (
   </svg>
 );
 
+/**
+ * Inventory 2 — the rebuilt module.
+ *
+ * Deliberately the same warehouse silhouette as InventoryIcon so the two read
+ * as the same business area, in violet rather than magenta so they are never
+ * mistaken for each other in the tile grid. The stacked bars are the inv_ layer
+ * sitting under the same roof.
+ */
+export const Inventory2Icon = () => (
+  <svg viewBox="0 0 48 48" className="w-full h-full">
+    <path d="M8 18L24 8L40 18V38H8V18Z" fill="#6d28d9" />
+    <path d="M24 8L40 18V38H24V8Z" fill="#8b5cf6" />
+    <rect x="15" y="24" width="18" height="4" rx="1" fill="#ede9fe" />
+    <rect x="15" y="30" width="18" height="4" rx="1" fill="#ede9fe" />
+    <rect x="15" y="36" width="18" height="2" rx="1" fill="#c4b5fd" />
+  </svg>
+);
+
 export const ManufacturingIcon = () => (
   <svg viewBox="0 0 48 48" className="w-full h-full">
     <rect x="8" y="28" width="14" height="12" rx="2" fill="#1976d2" />
@@ -196,6 +214,7 @@ export const MODULE_ICONS: Record<string, React.FC> = {
   crm: CRMIcon,
   sales: SalesIcon,
   inventory: InventoryIcon,
+  inventory2: Inventory2Icon,
   manufacturing: ManufacturingIcon,
   plm: PLMIcon,
   accounting: AccountingIcon,

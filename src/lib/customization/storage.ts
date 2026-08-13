@@ -5,7 +5,12 @@ import { CustomizationState, DEFAULT_CUSTOMIZATION } from './types';
 
 const CUSTOMIZATION_KEY = 'customization';
 const CUSTOMIZATION_VERSION_KEY = 'customization_version';
-const CURRENT_VERSION = 8; // Bump to force refresh when module structure changes
+// Bump to force refresh when module structure changes.
+// 9 — added the Inventory 2 tile at order 3. The "ensure all default modules
+// exist" merge below would have appended it at the END instead, so without this
+// bump the new tile would land after Settings for anyone with saved
+// customization. A bump discards local tile ordering, which is the lesser cost.
+const CURRENT_VERSION = 9;
 
 export function getCustomization(): CustomizationState {
   // Force reset if version changed (e.g. modules were restructured)
