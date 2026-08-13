@@ -202,6 +202,35 @@ per-module database dependencies, and shared-code inventory.
 
 ---
 
+## TESTING — a test can pass without exercising what it claims to
+
+This has now happened **three times**, each time going green while proving nothing:
+
+| Pass | The test | Why it was worthless |
+|---|---|---|
+| 10B | Deferred-trigger success case | Ran inside one SQL transaction, where a `DEFERRABLE INITIALLY DEFERRED` constraint is satisfied. It could never have caught the real failure — a client doing two calls in two transactions. The bug shipped |
+| 10B | `product_variant_auto_archive` feature guard | Asserted the "not safe to run yet" refusal, but the call was refused earlier by the `is_admin()` permission check. The guard under test was never reached |
+| Pass A | `RESTRICT` on deleting a linked attribute value | The value was also referenced by a variant, so the delete was refused by `product_variant_values_value_matches_attribute`. The assertion checked only `SQLSTATE = '23503'`, so a refusal from an entirely different constraint passed |
+
+**The rule:** assert on the **specific** constraint, function or error identity under test —
+never on a generic SQLSTATE or a bare "it was refused". Where a refusal has more than one
+possible cause, prove the others are absent.
+
+In practice that means:
+
+- Match the constraint or function **name** in the error text, not just the code.
+- If a guard sits behind a permission check, satisfy the permission first so execution
+  actually reaches the guard.
+- If the mechanism under test only engages at COMMIT, a rolled-back test proves nothing —
+  it has to commit, or be proved another way.
+- Before trusting a refusal, check what *else* could have produced it. Use a fixture
+  nothing else references.
+
+A green suite is not evidence. Evidence is a test that would fail if the thing under test
+were removed.
+
+---
+
 ## KNOWN ISSUES — deferred, do not fix opportunistically
 
 Recorded so they are not rediscovered as surprises. Each one is deferred **on
