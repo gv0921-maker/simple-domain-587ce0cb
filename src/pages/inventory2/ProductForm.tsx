@@ -42,7 +42,7 @@ import { AlertTriangle } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { INVENTORY2_NAV } from '@/lib/navigation';
 import {
-  DocumentHeader, DocumentTabs, Button, StatusPill, SectionLabel, cn,
+  DocumentHeader, DocumentTabs, Button, StatusPill, SectionLabel, FilterChip, cn,
   type RibbonStage, type HeaderAction, type DocumentTab, type StatusTone,
 } from '@/design-system';
 import '@/design-system/tokens.css';
@@ -111,6 +111,7 @@ const EMPTY: ProductInput = {
   reorder_level: 0,
   cost_method: 'average',
   barcode: null,
+  barcodes: [],
   track_inventory: true,
   is_active: true,
   category_id: null,
@@ -227,6 +228,7 @@ export default function Inv2ProductForm() {
   const { data: variants = [], error: variantsError } = useInv2Variants(productId);
   const { data: assignedAttributes = [] } = useInv2AssignedAttributes(productId);
   const [addingVariant, setAddingVariant] = useState(false);
+  const [altBarcode, setAltBarcode] = useState('');
 
   const create = useCreateInv2Product();
   const update = useUpdateInv2Product(productId);
@@ -247,6 +249,7 @@ export default function Inv2ProductForm() {
         reorder_level: existing.reorder_level,
         cost_method: existing.cost_method,
         barcode: existing.barcode,
+        barcodes: existing.barcodes,
         track_inventory: existing.track_inventory,
         is_active: existing.is_active,
         category_id: existing.category_id,
@@ -265,6 +268,28 @@ export default function Inv2ProductForm() {
   function set<K extends keyof ProductInput>(key: K, value: ProductInput[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
     setDirty(true);
+  }
+
+  /**
+   * An alternate is only worth adding if it resolves to something new. A
+   * duplicate of the primary barcode already resolves, and a duplicate within
+   * the list is noise — the scan resolver would behave identically either way,
+   * so both are refused with the reason rather than silently accepted.
+   *
+   * Uniqueness ACROSS products is not checked here: the array carries no
+   * constraint, so the honest place to catch a clash is the scan resolver,
+   * which reports it by name. Pretending to validate it here would be a check
+   * that only works while the form happens to hold every product.
+   */
+  const altBarcodeValid =
+    !!altBarcode.trim() &&
+    altBarcode.trim() !== (form.barcode ?? '').trim() &&
+    !form.barcodes.includes(altBarcode.trim());
+
+  function addAltBarcode() {
+    if (!altBarcodeValid) return;
+    set('barcodes', [...form.barcodes, altBarcode.trim()]);
+    setAltBarcode('');
   }
 
   const canSave = !!form.sku.trim() && !!form.name.trim() && !saving && (isNew || dirty);
@@ -383,12 +408,55 @@ export default function Inv2ProductForm() {
           </SelectInput>
         </Field>
 
-        <Field label="Barcode" htmlFor="barcode">
+        <Field label="Barcode" htmlFor="barcode" hint="The primary code. Must be unique across all products.">
           <TextInput
             id="barcode"
             value={form.barcode ?? ''}
             onChange={(e) => set('barcode', e.target.value || null)}
           />
+        </Field>
+
+        <Field
+          label="Alternate Barcodes"
+          htmlFor="altbarcode"
+          hint="Extra codes that also identify this product — a supplier's own label, or a reprint. Scanning any of them resolves to this product."
+        >
+          <div>
+            {form.barcodes.length > 0 && (
+              <div className="mb-1.5 flex flex-wrap gap-1">
+                {form.barcodes.map((b) => (
+                  <FilterChip
+                    key={b}
+                    value={b}
+                    onRemove={() => set('barcodes', form.barcodes.filter((x) => x !== b))}
+                  />
+                ))}
+              </div>
+            )}
+            <div className="flex gap-1.5">
+              <TextInput
+                id="altbarcode"
+                value={altBarcode}
+                onChange={(e) => setAltBarcode(e.target.value)}
+                onKeyDown={(e) => {
+                  // Enter is how a handheld scanner terminates a code, so the
+                  // field doubles as a scan target: scan, scan, scan.
+                  if (e.key === 'Enter') { e.preventDefault(); addAltBarcode(); }
+                }}
+                placeholder="Type or scan, then Enter"
+              />
+              <Button variant="outline" onClick={addAltBarcode} disabled={!altBarcodeValid}>
+                Add
+              </Button>
+            </div>
+            {altBarcode.trim() && !altBarcodeValid && (
+              <p className="mt-1 text-[var(--ds-fs-xs)] text-[hsl(var(--ds-amber))]">
+                {form.barcodes.includes(altBarcode.trim())
+                  ? 'Already listed on this product.'
+                  : 'Same as the primary barcode — it already resolves.'}
+              </p>
+            )}
+          </div>
         </Field>
 
         <Field label="Status" htmlFor="active" hint="Products are archived, never deleted.">

@@ -127,7 +127,7 @@ export interface ResolvedProduct {
   kind: 'product';
   code: string;
   /** Which column matched — shown to the operator so a surprise is legible. */
-  matched: 'barcode' | 'sku';
+  matched: 'barcode' | 'alternate barcode' | 'sku';
   product_id: string;
   product_name: string;
   product_sku: string | null;
@@ -158,15 +158,34 @@ export type ScanResolution =
 /**
  * Resolve a scanned string to a product or a unit.
  *
- * EXACT MATCH ONLY, in this order: products.barcode → products.sku →
- * inv_stock_item.serial. All three columns are UNIQUE in the database, so
- * `maybeSingle()` is safe.
+ * EXACT MATCH ONLY, in this order: products.barcode → products.barcodes[] →
+ * products.sku → inv_stock_item.serial.
  *
- * No prefix, LIKE, or fuzzy matching — deliberately, and this is not a
+ * NO PREFIX, LIKE, OR FUZZY MATCHING — deliberately, and this is not a
  * performance choice. The seeded serials are `101205-2627-0001`, and `101205`
  * is the product's barcode. Under prefix matching every serial in the system
  * would also resolve as a product scan, and the operator would silently select
- * a line instead of receiving a unit.
+ * a line instead of receiving a unit. That prohibition still stands.
+ *
+ * The barcodes[] step does not weaken it. Array containment (`@>`) tests whole
+ * elements, not substrings: `barcodes @> ARRAY['101205']` matches a product
+ * whose array holds exactly "101205" and never one holding
+ * "101205-2627-0001". It is exact matching applied to each element, which is
+ * the same discipline as the columns either side of it.
+ *
+ * UNIQUENESS IS NOT SYMMETRIC HERE, which is why this step is written
+ * differently from its neighbours. `barcode`, `sku` and `inv_stock_item.serial`
+ * each have a unique index, so `maybeSingle()` on them is safe. `barcodes[]`
+ * has NO uniqueness of any kind — nothing stops two products listing the same
+ * alternate — so a match is fetched as a list and an ambiguous result is
+ * reported as the data problem it is, rather than letting maybeSingle() throw
+ * something the operator cannot act on.
+ *
+ * `.contains()` rather than a hand-built `.or(...)` filter string: the scanned
+ * code is untrusted input, and a code containing a comma, brace or quote would
+ * corrupt PostgREST's filter grammar. `.contains()` lets the client library do
+ * the escaping. The cost is one extra round trip, and only when the primary
+ * barcode misses.
  */
 export async function resolveScan(rawCode: string): Promise<ScanResolution> {
   const code = rawCode.trim();
@@ -186,6 +205,33 @@ export async function resolveScan(rawCode: string): Promise<ScanResolution> {
       product_id: byBarcode.data.id,
       product_name: byBarcode.data.name,
       product_sku: byBarcode.data.sku,
+    };
+  }
+
+  const byAltBarcode = await supabase
+    .from('products')
+    .select('id, name, sku')
+    .contains('barcodes', [code]);
+  if (byAltBarcode.error) throw byAltBarcode.error;
+  if ((byAltBarcode.data?.length ?? 0) > 1) {
+    // Rule 5: name the conflict. Silently picking the first would send units to
+    // whichever product happened to sort first, and nothing downstream would
+    // ever reveal it.
+    throw new Error(
+      `Barcode ${code} is listed as an alternate on more than one product (` +
+      `${byAltBarcode.data!.map((p) => p.sku).join(', ')}). ` +
+      `Alternate barcodes must identify exactly one product — fix the duplicate before scanning it.`,
+    );
+  }
+  if (byAltBarcode.data?.length === 1) {
+    const p = byAltBarcode.data[0];
+    return {
+      kind: 'product',
+      code,
+      matched: 'alternate barcode',
+      product_id: p.id,
+      product_name: p.name,
+      product_sku: p.sku,
     };
   }
 

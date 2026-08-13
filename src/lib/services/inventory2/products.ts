@@ -3,11 +3,15 @@
  *
  * THIS IS THE FIRST INVENTORY 2 FILE THAT WRITES `products`.
  *
- * `products` is shared with Sales: 37 tables carry a FK to products.id and
- * ~24 call sites read it across sales, invoicing, manufacturing, reports and
- * dashboards. The write surface below is therefore deliberately narrow and
- * enumerated in one place (`WRITABLE`), so a future reader can see the whole
- * boundary without reading the form.
+ * OWNERSHIP (Pass 10): products belong to INVENTORY. Every other module — Sales,
+ * invoicing, manufacturing, CRM — reads them and never writes them. That is why
+ * sale_price is on the write surface below rather than shown locked: it is a
+ * product attribute that lives on the product, and Sales merely consumes it.
+ *
+ * 37 tables carry a FK to products.id and ~24 call sites read it, so the write
+ * surface is still enumerated in one place (`WRITABLE`) and enforced at runtime
+ * by pickWritable() — a future reader can see the whole boundary without
+ * reading the form.
  *
  * WHAT THIS FILE MUST NEVER WRITE, and why:
  *
@@ -18,9 +22,6 @@
  *                   from inv_stock_item instead. Writing it would make a stale
  *                   column look authoritative again. Read the derived figure
  *                   via `getProductOnHand()`.
- *
- *   sale_price      Sales-owned. Feeds order_lines, quotation_lines,
- *                   invoice_lines and pricelist_items. Displayed read-only.
  *
  *   category,       The legacy free-text pair. Both are NOT NULL with defaults
  *   unit_of_measure ('' and 'unit'), so an INSERT that omits them succeeds and
@@ -82,6 +83,9 @@ export const WRITABLE = [
   'reorder_level',
   'cost_method',
   'barcode',
+  // Alternate barcodes. Inventory 2's scan resolver matches these by array
+  // containment, so adding one here makes it scannable — see resolveScan.
+  'barcodes',
   'track_inventory',
   'is_active',
   'category_id',
@@ -122,6 +126,8 @@ export interface ProductInput {
   reorder_level: number;
   cost_method: CostMethod;
   barcode: string | null;
+  /** Alternate barcodes. Never null — the column is NOT NULL DEFAULT {}. */
+  barcodes: string[];
   track_inventory: boolean;
   is_active: boolean;
   category_id: string | null;
@@ -262,6 +268,7 @@ function toDetail(r: ProductRow): ProductDetail {
     reorder_level: Number(r.reorder_level ?? 0),
     cost_method: r.cost_method as CostMethod,
     barcode: r.barcode,
+    barcodes: r.barcodes ?? [],
     track_inventory: r.track_inventory,
     is_active: r.is_active,
     category_id: r.category_id,
