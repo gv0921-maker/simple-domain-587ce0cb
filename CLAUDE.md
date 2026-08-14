@@ -309,6 +309,53 @@ transit/packing, godown → showroom.
 
 ---
 
+## THE DESTINATION OF A MOVE IS TAKEN ON TRUST — 2026-08-14
+
+**`inv_transfer_stock_item` asserts where a unit came FROM and accepts on faith where it is
+going TO.** The asymmetry is deliberate on the "from" side and unexamined on the "to" side.
+Read the function body before assuming otherwise; this was verified against the live
+`prosrc`, not inferred from the migration.
+
+| Parameter | What the RPC does with it |
+|---|---|
+| `p_expected_from_location_id` | **Asserted.** Compared against `inv_stock_item.location_id` and raised on if they disagree: *"Stock item % (serial %) is not where it was expected: it is in location %, but the caller expected %. Refusing to move it."* |
+| `p_to_location_id` | **Taken as given.** Checked only for NOT NULL, that the row exists, and that `is_active` — never against the move, the operation, or the operation type. Any active location is accepted |
+| `p_document_id` | **Also taken as given.** Nothing compares it to the operation that owns `p_move_id`. The ledger's citation of the document is the caller's word |
+
+`p_move_id` sits in between: the move's `product_id` **is** asserted against the unit's
+`product_id`, and a unit already on that move is refused. So the RPC does check that the
+right *product* is being moved onto the right *line* — it just never checks that the line,
+the destination and the document belong to each other.
+
+**What this nearly shipped.** `commitUnit`'s `useCallback` in `BarcodeScan.tsx` did not list
+`operationId` or `doc.dest_location_id` in its dependency array. A stale closure would have
+sent units to the **previous document's destination**, cited the **previous document** in the
+append-only ledger, and the database would have recorded all of it as a real move with a real
+ledger row — because every value involved is structurally valid. There is no server-side
+assertion that would have caught it.
+
+**Caught by lint, not by typecheck.** `tsc` had nothing to say: the types were all correct.
+`react-hooks/exhaustive-deps` was the only thing standing between this and corrupt movement
+history. Do not treat the exhaustive-deps rule as noise anywhere in this module.
+
+**The rule for anything built on top of this:**
+
+- **Any future adapter must treat the destination as its own responsibility.** The server
+  will not second-guess it. If an adapter passes a destination, the adapter is the last line
+  of defence for that value being right.
+- The same goes for `p_document_id`. An adapter that cites the wrong document writes a
+  permanently wrong ledger row, and the ledger is append-only.
+- **Do not "fix" this by re-reading `inv_operation.dest_location_id` server-side.** That was
+  considered and rejected: `mandatory_scan_dest_location` exists precisely so an operator can
+  confirm a destination, so on any type using that flag, only the screen knows what was
+  actually confirmed. Re-deriving it server-side would make the promise *look* kept while
+  discarding the operator's answer.
+- If the "to" side is ever tightened, the shape is a check that the destination is reachable
+  for the document (its operation's `dest_location_id`, or a descendant of it) — not a
+  re-derivation that ignores what was passed.
+
+---
+
 ## PLANNED DOCUMENT TYPES — designed, not built
 
 Not known issues. These are shapes the model is expected to grow, recorded so the design is
