@@ -11179,7 +11179,26 @@ export type Database = {
         Returns: number
       }
       inv_cancel_receipt: { Args: { p_operation_id: string }; Returns: Json }
+      inv_complete_operation: {
+        Args: { p_operation_id: string }
+        Returns: Json
+      }
       inv_complete_receipt: { Args: { p_operation_id: string }; Returns: Json }
+      inv_create_operation: {
+        Args: {
+          p_dest_location_id?: string
+          p_fy_label?: string
+          p_notes?: string
+          p_operation_type_id: string
+          p_partner_customer_id?: string
+          p_partner_vendor_id?: string
+          p_purchase_order_id?: string
+          p_scheduled_at?: string
+          p_source_document?: string
+          p_source_location_id?: string
+        }
+        Returns: Json
+      }
       inv_create_receipt: {
         Args: {
           p_dest_location_id?: string
