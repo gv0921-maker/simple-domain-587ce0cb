@@ -279,10 +279,99 @@ drift — the migration files in `supabase/migrations/` are the record.
 
 ---
 
+## INTERNAL TRANSFERS — the landscape, established 2026-08-14
+
+**Three parallel legacy transfer models exist. Only one is live.**
+
+| Model | Tables | Rows | Status |
+|---|---|---|---|
+| `transfers` + `transfer_lines` | Odoo-shaped picking | 0 / 0 | **Dead.** Never used |
+| `internal_movements` + `internal_movement_items` | location→location, has an unused `operation_type_id` | 0 / 0 | **Dead schema, LIVE SCREENS** at `/inventory/internal-movements{,/new,/:id}` |
+| `internal_transfer_orders` + `internal_transfer_order_lines` | keyed to `sales_order_id` | **4 / 4** | **LIVE** |
+| `inv_operation` kind=`internal` | the new model | 0 | Type `ITEM ESTIMATE` exists, active, never used |
+
+The live ITO rows are `ITO-2627-0002..0005`, all `confirmed`/`completed`, all carrying a
+`sales_order_id`. Their `operation_type_id`, `source_location_id` and `dest_location_id` are
+**NULL on every row** — bridge columns added toward `inv_` and never populated. The ITO also
+drives a *fourth* scan system, `scan_queue` (5 rows) behind `pages/barcode/ScanWorkspace`,
+which is separate from `/inventory2/barcode`.
+
+### What an ITO is — V's definition, 2026-08-14
+
+A **location-to-location move of units**, typically picking for a sales order — showroom →
+transit/packing, godown → showroom.
+
+| | |
+|---|---|
+| The operation TYPE carries fixed source and destination | "Showroom → Packing" and "Godown → Showroom" are **separate operation types**, not one type with variable locations |
+| Consequence | Transfers are the **first real consumer of `locks_source`**, which has existed on `inv_operation_type` since Step 2 and is read by nothing |
+| The sales-order link | A **reference on the document**, not the document's identity. Do **not** model an ITO as a child of a sales order the way legacy `internal_transfer_orders` does |
+
+---
+
+## PLANNED DOCUMENT TYPES — designed, not built
+
+Not known issues. These are shapes the model is expected to grow, recorded so the design is
+not re-derived from scratch.
+
+### Return-to-vendor — how rejected stock leaves
+
+**Movement is controlled by WHICH DOCUMENT TYPE is used, not by who is clicking.** This is
+consistent with `locks_source` / `locks_destination`, which already constrain operations by
+configuration rather than by role.
+
+Rejected and quarantined units do **not** need a supervisor override to move, and no override
+mechanism should be built. They leave via a **dedicated operation type** that sends units from
+the quarantine/rejected location out to the vendor or factory for repair or replacement. The
+unit re-enters stock later through a **normal Goods Receipt** when it comes back.
+
+An override was considered and **explicitly rejected** on 2026-08-14. Do not reintroduce one.
+
+**Two open questions, both business decisions, neither answered:**
+
+1. **Is a returning unit the SAME unit or a NEW one?** A repair returns the same serial; a
+   replacement is a new unit with the original written off. These need different handling and
+   the choice cannot be inferred from the data.
+2. **Does a replacement create a claim or credit against the vendor?** If so it reaches
+   **purchasing**, not inventory, and the pass is larger than it looks.
+
+---
+
 ## KNOWN ISSUES — deferred, do not fix opportunistically
 
 Recorded so they are not rediscovered as surprises. Each one is deferred **on
 purpose**; fixing one is its own approved pass, not a "while I'm here".
+
+### `inv_test_result` has no `operation_id` — `requires_qc` MUST stay false on every non-receipt type, 2026-08-14
+
+**This is a live constraint on configuration, not a someday-problem.** Turning on
+`requires_qc` for an internal, outgoing or adjustment type today would silently corrupt
+receipt history.
+
+`inv_test_result` is `(stock_item_id, template_id, result, value, notes, attachments,
+tested_by, tested_at, seq)`. There is **no `operation_id`**. An inspection is therefore
+**unit-scoped, not document-scoped** — it is a permanent fact about the unit, with no record
+of which document it was performed on.
+
+`inv_record_qc_results(p_stock_item_id, p_results)` re-derives the unit's status against its
+**entire** applicable checklist and marks prior rows not-latest. Run it from a transfer and
+it **overwrites the receipt's verdict for that unit**. The Quality segment would then render
+receipt-era results on a transfer document with nothing on screen saying they belong to a
+different event.
+
+| Decision (V, 2026-08-14) | |
+|---|---|
+| `requires_qc` on `internal` | **stays false** |
+| Quality segment on the transfer page | **not adopted** |
+| The eventual fix | Add a nullable `operation_id` to `inv_test_result`, make "latest" per (unit, template, operation), backfill the existing 25 rows to their origin receipt |
+| Why it is deferred | It is a schema change to a table with live data, so it gets its own approved pass |
+
+`QualitySegment` already refuses safely: `documentRequiresQc()` returns false and it renders
+"not configured to require QC" rather than implying the units passed. **That refusal is the
+marker for this issue** — it comes out when `operation_id` lands.
+
+**Do not turn on `requires_qc` for a non-receipt type to "see what happens".** The damage is
+to data, and it is not visible on the screen that causes it.
 
 ### `product_attribute_values.extra_price` has NO LIVE READER on the attribute path — Pass C applied, 2026-08-14
 
