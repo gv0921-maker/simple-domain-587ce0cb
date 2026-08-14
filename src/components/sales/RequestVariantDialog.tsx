@@ -48,7 +48,8 @@ export interface RequestVariantDialogProps {
 export function RequestVariantDialog({
   open, onOpenChange, productId, productName,
 }: RequestVariantDialogProps) {
-  const { data: attributes = [], isLoading } = useInv2AssignedAttributes(open ? productId : undefined);
+  const { data: scope, isLoading } = useInv2AssignedAttributes(open ? productId : undefined);
+  const attributes = useMemo(() => scope?.attributes ?? [], [scope]);
   const { data: existing = [] } = useInv2Variants(open ? productId : undefined);
   const create = useCreateVariant();
   const { toast } = useToast();

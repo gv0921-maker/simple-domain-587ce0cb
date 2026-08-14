@@ -65,7 +65,9 @@ export default function VariantsConfigList() {
   const [showCreate, setShowCreate] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const { data: attributes = [] } = useInv2AssignedAttributes(creatingFor || undefined);
+  // The scope object, not just the attributes: the editor needs the category to
+  // explain an empty candidate space rather than showing a blank dropdown.
+  const { data: scope } = useInv2AssignedAttributes(creatingFor || undefined);
 
   const counts = useMemo(() => {
     const m: Record<string, number> = { all: rows.length, live: 0 };
@@ -257,7 +259,7 @@ export default function VariantsConfigList() {
               <VariantEditor
                 productId={editing ? editing.product_id : creatingFor}
                 productName={editing ? editing.product_name : selectedProduct?.name}
-                attributes={attributes}
+                scope={scope}
                 existing={rows}
                 createStatus="permanent"
                 canEdit

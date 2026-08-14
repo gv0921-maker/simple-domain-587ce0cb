@@ -235,7 +235,7 @@ export default function Inv2ProductForm() {
   const { data: categories = [] } = useInv2Categories();
   const { data: uoms = [] } = useInv2Uoms();
   const { data: variants = [], error: variantsError } = useInv2Variants(productId);
-  const { data: assignedAttributes = [] } = useInv2AssignedAttributes(productId);
+  const { data: attributeScope } = useInv2AssignedAttributes(productId);
   const [addingVariant, setAddingVariant] = useState(false);
   const [altBarcode, setAltBarcode] = useState('');
   const { data: checklists = [], error: checklistsError } = useInv2Checklists(productId);
@@ -798,7 +798,7 @@ export default function Inv2ProductForm() {
               <VariantEditor
                 productId={productId!}
                 productName={existing?.name}
-                attributes={assignedAttributes}
+                scope={attributeScope}
                 existing={variants}
                 createStatus="permanent"
                 canEdit

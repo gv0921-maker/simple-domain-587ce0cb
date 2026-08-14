@@ -31,6 +31,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import { resolvedValuesForProduct } from './valueResolution';
 
 type Tables = Database['public']['Tables'];
 type VariantRow = Tables['product_variants']['Row'];
@@ -262,20 +263,50 @@ export interface AttributeOption {
   id: string;
   name: string;
   display_type: string;
-  values: { id: string; value: string; color_hex: string | null }[];
+  values: {
+    id: string;
+    value: string;
+    color_hex: string | null;
+    /** Effective adjustment for this product's category. 0 means "adds nothing". */
+    extra_price: number;
+    /** Which category declared it — for showing where a value came from. */
+    source_category_name: string;
+  }[];
 }
 
 /**
- * The attributes assigned to a product, with their values — the candidate space
- * for generation. Assignment defines what MAY be combined; it creates nothing.
- * Generation is opt-in per combination, so a product with 8 sizes and 5 polishes
- * offers 40 candidates and creates only the ones actually sold.
+ * The candidate space for generation, SCOPED TO THE PRODUCT'S CATEGORY.
+ *
+ * Two things decide what a product may be built from, and they are different
+ * questions:
+ *   assignment  which ATTRIBUTES this product varies by (Size, Polish)
+ *   scoping     which VALUES of those attributes its category allows, and at
+ *               what price — `product_category_values_resolved`, nearest wins
+ *
+ * Before Pass C only the first was applied, so every product offered every
+ * value of an assigned attribute and a Dining Chair could be built in a polish
+ * only sold on wardrobes. Assignment still creates nothing: a product with 8
+ * allowed sizes and 5 allowed polishes offers 40 candidates and only the
+ * combinations actually sold get created.
+ *
+ * NO CATEGORY MEANS NO VALUES. `categoryId: null` comes back with the assigned
+ * attributes still listed but every value list empty — deliberately not a
+ * fallback to all values, which is the behaviour this replaced. The caller
+ * shows the reason; see ProductForm's banner.
  */
-export async function listAssignedAttributes(productId: string): Promise<AttributeOption[]> {
-  const [assignRes, attrsRes, valsRes] = await Promise.all([
+export interface AssignedAttributes {
+  /** null when the product has no category — the screen must say why. */
+  categoryId: string | null;
+  categoryName: string | null;
+  attributes: AttributeOption[];
+}
+
+export async function listAssignedAttributes(productId: string): Promise<AssignedAttributes> {
+  const [assignRes, attrsRes, valsRes, scope] = await Promise.all([
     supabase.from('product_attribute_assignments').select('attribute_id').eq('product_id', productId),
     supabase.from('product_attributes').select('id, name, display_type, sort_order').eq('is_active', true),
     supabase.from('product_attribute_values').select('id, attribute_id, value, color_hex, sort_order'),
+    resolvedValuesForProduct(productId),
   ]);
   if (assignRes.error) throw assignRes.error;
   if (attrsRes.error) throw attrsRes.error;
@@ -284,12 +315,22 @@ export async function listAssignedAttributes(productId: string): Promise<Attribu
   const assigned = new Set((assignRes.data ?? []).map((a) => a.attribute_id));
   const valsByAttr = new Map<string, AttributeOption['values']>();
   for (const v of valsRes.data ?? []) {
+    // The scope filter. An uncategorised product has an empty map, so nothing
+    // survives this line — which is the intended answer, not a failure.
+    const allowed = scope.byValueId.get(v.id);
+    if (!allowed) continue;
     const list = valsByAttr.get(v.attribute_id) ?? [];
-    list.push({ id: v.id, value: v.value, color_hex: v.color_hex });
+    list.push({
+      id: v.id,
+      value: v.value,
+      color_hex: v.color_hex,
+      extra_price: allowed.extraPrice,
+      source_category_name: allowed.sourceCategoryName,
+    });
     valsByAttr.set(v.attribute_id, list);
   }
 
-  return (attrsRes.data ?? [])
+  const attributes = (attrsRes.data ?? [])
     .filter((a) => assigned.has(a.id))
     .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name))
     .map((a) => ({
@@ -298,6 +339,8 @@ export async function listAssignedAttributes(productId: string): Promise<Attribu
       display_type: a.display_type,
       values: valsByAttr.get(a.id) ?? [],
     }));
+
+  return { categoryId: scope.categoryId, categoryName: scope.categoryName, attributes };
 }
 
 /** Which products exist, for the config-side variant creator. */

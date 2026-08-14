@@ -28,14 +28,18 @@ import { Field, TextInput, SelectInput, ErrorBanner } from './formControls';
 import { errorText } from '@/lib/inventory2/errorText';
 import { useCreateVariant, useUpdateVariant } from '@/hooks/inventory2/variants';
 import type {
-  AttributeOption, VariantRecord, VariantStatus,
+  AssignedAttributes, VariantRecord, VariantStatus,
 } from '@/lib/services/inventory2/variants';
 
 export interface VariantEditorProps {
   productId: string;
   productName?: string | null;
-  /** The candidate space — attributes assigned to this product. */
-  attributes: AttributeOption[];
+  /**
+   * The candidate space: the attributes assigned to this product AND the values
+   * its category allows. `undefined` means still loading — distinct from a
+   * loaded scope that is empty, which is a real answer with a reason to show.
+   */
+  scope: AssignedAttributes | undefined;
   /** Existing variants of this product, for the duplicate pre-check. */
   existing: VariantRecord[];
   /** REQUIRED, never defaulted. See the header. */
@@ -63,10 +67,11 @@ function suggestSkuSuffix(chosen: string[]): string {
 }
 
 export function VariantEditor({
-  productId, productName, attributes, existing,
+  productId, productName, scope, existing,
   createStatus, canEdit, variant, onDone, onCancel,
 }: VariantEditorProps) {
   const isEdit = !!variant;
+  const attributes = useMemo(() => scope?.attributes ?? [], [scope]);
   const create = useCreateVariant();
   const update = useUpdateVariant();
   const saving = create.isPending || update.isPending;

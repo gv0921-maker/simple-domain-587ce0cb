@@ -1,4 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
+// The only import from the new module, and the only safe direction: inventory2
+// never imports this file back, so retiring this service later unpicks nothing.
+import { resolvedValuesForProduct } from '@/lib/services/inventory2/valueResolution';
 
 export type AttributeDisplayType = 'radio' | 'select' | 'color' | 'pills';
 
@@ -15,6 +18,22 @@ export interface ProductAttributeValue {
   id: string;
   attributeId: string;
   value: string;
+  /**
+   * ⚠ SUPERSEDED on the attribute path, from Pass C (2026-08-14).
+   *
+   * The number carried here is no longer `product_attribute_values.extra_price`.
+   * `listAttributesForProduct` overwrites it with the per-category figure from
+   * `product_category_attribute_values.extra_price`, resolved nearest-wins by
+   * `product_category_values_resolved`. Price belongs to the category LINK, not
+   * to the value: the same "Walnut" is priced differently on a chair and on a
+   * wardrobe, and a fallback to the global column would put one silent figure
+   * back in charge of every link nobody priced.
+   *
+   * The global column is NOT dropped (Rule 4) and is still the real source in
+   * `listAttributes` and `saveAttributeValue`, which the config editors use.
+   * It also remains the only price for the `product_customization_options`
+   * path, which is a different mechanism.
+   */
   extraPrice: number;
   colorHex?: string | null;
   sortOrder: number;
@@ -125,21 +144,44 @@ export async function setAssignmentsForProduct(productId: string, attributeIds: 
   if (error) throw error;
 }
 
-/** Fetch the attributes assigned to a product with their values. */
+/**
+ * The attributes assigned to a product with their values — SCOPED TO THE
+ * PRODUCT'S CATEGORY as of Pass C (2026-08-14).
+ *
+ * Two changes, and the second is the one to know about:
+ *
+ * 1. Values are filtered to what the product's category allows, resolved by
+ *    `product_category_values_resolved` (nearest declaration wins). A product
+ *    with NO category offers NO values — an empty list, never a fallback to
+ *    every value in the system. CustomizationPicker renders the reason.
+ *
+ * 2. `extraPrice` no longer comes from `product_attribute_values.extra_price`.
+ *    It is the per-category figure from the resolved link. Because
+ *    CustomizationPicker reads `attribute.values[].extraPrice` for both the
+ *    line's priceAdjustment and the "(+₹…)" label, repointing it here moves
+ *    both without touching that component — which matters, since it is on the
+ *    shared boundary list.
+ *
+ * This function is repointed, not moved: CLAUDE.md records this service as
+ * unmovable while legacy still imports it.
+ */
 export async function listAttributesForProduct(productId: string): Promise<ProductAttribute[]> {
   const assigns = await listAssignmentsForProduct(productId);
   if (assigns.length === 0) return [];
   const ids = assigns.map((a) => a.attributeId);
-  const [{ data: attrs, error: e1 }, { data: vals, error: e2 }] = await Promise.all([
+  const [{ data: attrs, error: e1 }, { data: vals, error: e2 }, scope] = await Promise.all([
     supabase.from('product_attributes').select('*').in('id', ids).eq('is_active', true).order('sort_order'),
     supabase.from('product_attribute_values').select('*').in('attribute_id', ids).order('sort_order'),
+    resolvedValuesForProduct(productId),
   ]);
   if (e1) throw e1;
   if (e2) throw e2;
   const byAttr = new Map<string, ProductAttributeValue[]>();
   (vals ?? []).forEach((v) => {
+    const allowed = scope.byValueId.get(v.id);
+    if (!allowed) return; // not offered by this category — or there is no category
     const arr = byAttr.get(v.attribute_id) ?? [];
-    arr.push(mapVal(v));
+    arr.push({ ...mapVal(v), extraPrice: allowed.extraPrice });
     byAttr.set(v.attribute_id, arr);
   });
   return (attrs ?? []).map((a) => ({ ...mapAttr(a), values: byAttr.get(a.id) ?? [] }));
