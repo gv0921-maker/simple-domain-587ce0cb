@@ -6,21 +6,20 @@
  * values themselves stay shared, so "012" is one row used by many categories,
  * each with its own price.
  *
- * NOTHING RESOLVES THROUGH THIS YET. The variant editor and the made-to-order
- * picker still offer every value of an assigned attribute — that repoint is
- * Pass C. This module exists so the scoping can be configured before it is
- * enforced, which is the order V asked for.
+ * IT IS ENFORCED AS OF PASS C (2026-08-14). The variant editor and the
+ * made-to-order picker now offer only what the product's category allows, and
+ * price it from the link rather than from the value. Configuring the scoping
+ * before it was enforced was deliberate — the order V asked for — so nothing
+ * changed underneath anyone when the resolvers were repointed.
  *
- * INHERITANCE IS DISPLAY-ONLY HERE. `resolveInherited` walks the parent chain to
- * show where an inherited value came from, because the configuration screen has
- * to name the ancestor. The AUTHORITATIVE resolver is the WITH RECURSIVE view
- * planned for Pass C — one definition, read by both consumers. When that lands,
- * this walk should be re-pointed at it rather than left as a second
- * implementation of the same rule.
+ * THIS MODULE HOLDS NO INHERITANCE RULE. The Pass B parent-chain walk is gone;
+ * see the note above `buildScopedValues`. The rule lives in
+ * `product_category_values_resolved` and is read through ./valueResolution.
  *
  * Rule 5: nothing here catches.
  */
 import { supabase } from '@/integrations/supabase/client';
+import type { ResolvedValue } from './valueResolution';
 
 export interface CategoryValueLink {
   category_id: string;
@@ -111,68 +110,46 @@ export async function removeCategoryValueLink(
 
 /* -------------------------------------------------------------- inheritance */
 
-interface CategoryNode {
-  id: string;
-  name: string;
-  parentCategoryId?: string | null;
-}
-
 /**
- * The ancestor chain of a category, nearest parent first.
+ * THE WALK IS GONE — Pass C, 2026-08-14.
  *
- * Cycle-guarded for the same reason `categoryPath` is: nothing in the database
- * prevents a loop in parent_category_id, and a config screen must degrade to a
- * partial chain rather than hang.
- */
-export function ancestorsOf<T extends CategoryNode>(
-  categoryId: string,
-  byId: Map<string, T>,
-): T[] {
-  const chain: T[] = [];
-  const seen = new Set<string>([categoryId]);
-  let cursor = byId.get(categoryId)?.parentCategoryId
-    ? byId.get(byId.get(categoryId)!.parentCategoryId!)
-    : undefined;
-  while (cursor && !seen.has(cursor.id)) {
-    chain.push(cursor);
-    seen.add(cursor.id);
-    cursor = cursor.parentCategoryId ? byId.get(cursor.parentCategoryId) : undefined;
-  }
-  return chain;
-}
-
-/**
- * What one category offers for one attribute: its own declarations plus
- * everything inherited from ancestors, each marked with its origin.
+ * `ancestorsOf` and `resolveScopedValues` used to live here and re-derived
+ * inheritance in TypeScript. They are archived at
+ * `src/_archive/inventory2/categoryValues.walk.legacy.ts` (Rule 4) and replaced
+ * by reads of the views, in `./valueResolution`:
  *
- * A value can be BOTH declared here and inherited. That is not an error — it is
- * how a category overrides an ancestor's price. Which price wins at resolution
- * time is a Pass C decision; this screen shows both so the choice is visible
- * rather than hidden.
+ *   listAncestors(categoryId)       product_category_ancestors
+ *   listResolvedValues(categoryId)  product_category_values_resolved
+ *
+ * Two implementations of nearest-wins is one more than the rule can survive.
+ * Anything needing inheritance reads the view; this module is now only the
+ * link table's CRUD.
+ *
+ * `buildScopedValues` below is the ONE piece of client logic that remains, and
+ * it deliberately holds no inheritance rule: it merges this category's own
+ * links with an ALREADY-RESOLVED inherited set that the caller fetched from the
+ * view. It exists because the config screen must preview an UNSAVED reparent,
+ * which the view cannot do — the view resolves from the saved
+ * parent_category_id. The caller resolves for the PENDING parent instead and
+ * hands the result in, so the rule still comes from SQL either way.
  */
-export function resolveScopedValues(
+export function buildScopedValues(
   categoryId: string,
   attributeValues: { id: string; attribute_id: string; value: string; color_hex: string | null }[],
   links: CategoryValueLink[],
-  ancestors: CategoryNode[],
+  /** What the PENDING parent offers — already resolved by the view. */
+  inheritedFromParent: ResolvedValue[],
+  /** Names by category id, for labelling where an inherited value came from. */
+  categoryNames: Map<string, string>,
 ): ScopedValue[] {
   const own = new Map(
     links.filter((l) => l.category_id === categoryId).map((l) => [l.value_id, l]),
   );
-
-  // Nearest ancestor wins for the "inherited from" label — walking in order and
-  // keeping the first hit means a grandparent never masks a parent.
-  const inherited = new Map<string, { category_id: string; name: string; extra_price: number }>();
-  for (const a of ancestors) {
-    for (const l of links) {
-      if (l.category_id !== a.id) continue;
-      if (inherited.has(l.value_id)) continue;
-      inherited.set(l.value_id, { category_id: a.id, name: a.name, extra_price: l.extra_price });
-    }
-  }
+  const inherited = new Map(inheritedFromParent.map((r) => [r.valueId, r]));
 
   return attributeValues.map((v) => {
     const mine = own.get(v.id);
+    const up = inherited.get(v.id);
     return {
       value_id: v.id,
       attribute_id: v.attribute_id,
@@ -180,7 +157,15 @@ export function resolveScopedValues(
       color_hex: v.color_hex,
       declaredHere: !!mine,
       extra_price: mine ? mine.extra_price : null,
-      inheritedFrom: inherited.get(v.id) ?? null,
+      inheritedFrom: up
+        ? {
+            category_id: up.sourceCategoryId,
+            // The view already names the winning declaration; the map is only a
+            // fallback for a category the caller happens to have loaded.
+            name: up.sourceCategoryName || categoryNames.get(up.sourceCategoryId) || '—',
+            extra_price: up.extraPrice,
+          }
+        : null,
     };
   });
 }

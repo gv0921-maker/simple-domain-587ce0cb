@@ -25,9 +25,10 @@ import { errorText } from '@/lib/inventory2/errorText';
 import { useProductAttributes } from '@/hooks/inventory/config';
 import {
   useCategoryValueLinks, useSetCategoryValueLink, useRemoveCategoryValueLink,
+  useResolvedCategoryValues, useCategoryAncestors,
 } from '@/hooks/inventory2/categoryValues';
 import {
-  ancestorsOf, resolveScopedValues, type ScopedValue,
+  buildScopedValues, type ScopedValue,
 } from '@/lib/services/inventory2/categoryValues';
 
 interface CategoryNode {
@@ -55,18 +56,35 @@ export function CategoryValueScoping({
   const [priceDraft, setPriceDraft] = useState<Record<string, string>>({});
 
   /**
-   * Ancestors are computed from the parent currently SELECTED, not the parent
-   * last saved. Changing the dropdown re-reads the inherited set immediately,
-   * so the consequence of a reparent is on screen before it is committed.
+   * PASS C: INHERITANCE COMES FROM THE VIEW, NOT FROM A WALK HERE.
+   *
+   * The trick that keeps the unsaved-reparent preview working: what this
+   * category would inherit is exactly what the SELECTED parent offers, so we
+   * resolve for `pendingParentId` rather than for this category. That answer
+   * already has nearest-wins applied and names the winning declaration, and it
+   * updates the moment the dropdown changes — before anything is saved.
+   *
+   * Resolving for `categoryId` itself would be wrong twice over: it would use
+   * the SAVED parent, and it would fold this category's own declarations into
+   * the result, hiding the very override the screen exists to show.
    */
-  const byId = useMemo(() => {
-    const m = new Map<string, CategoryNode>(categories.map((c) => [c.id, c]));
-    const self = m.get(categoryId);
-    if (self) m.set(categoryId, { ...self, parentCategoryId: pendingParentId });
-    return m;
-  }, [categories, categoryId, pendingParentId]);
+  const { data: inheritedFromParent = [], isLoading: inheritedLoading } =
+    useResolvedCategoryValues(pendingParentId);
+  const { data: parentChain = [] } = useCategoryAncestors(pendingParentId);
 
-  const ancestors = useMemo(() => ancestorsOf(categoryId, byId), [categoryId, byId]);
+  const categoryNames = useMemo(
+    () => new Map(categories.map((c) => [c.id, c.name])),
+    [categories],
+  );
+
+  /** The parent and its own ancestors, nearest first — for the "inherits from" line. */
+  const ancestors = useMemo(
+    () =>
+      [...parentChain]
+        .sort((x, y) => x.distance - y.distance)
+        .map((r) => ({ id: r.categoryId, name: r.name })),
+    [parentChain],
+  );
 
   const savedParentId = categories.find((c) => c.id === categoryId)?.parentCategoryId ?? null;
   const parentChanged = (savedParentId ?? '') !== (pendingParentId ?? '');
@@ -77,16 +95,17 @@ export function CategoryValueScoping({
         .filter((a) => a.isActive)
         .map((a) => ({
           attribute: a,
-          values: resolveScopedValues(
+          values: buildScopedValues(
             categoryId,
             (a.values ?? []).map((v) => ({
               id: v.id, attribute_id: a.id, value: v.value, color_hex: v.colorHex ?? null,
             })),
             links,
-            ancestors,
+            inheritedFromParent,
+            categoryNames,
           ),
         })),
-    [attributes, categoryId, links, ancestors],
+    [attributes, categoryId, links, inheritedFromParent, categoryNames],
   );
 
   async function toggle(v: ScopedValue) {
@@ -145,14 +164,16 @@ export function CategoryValueScoping({
       </div>
 
       {/*
-        Nothing enforces this yet. Saying so on the screen is the difference
-        between "configured, waiting" and "configured and apparently ignored".
+        This said "not enforced yet" through Pass B. It is enforced now, and the
+        screen has to say so — the consequence of un-ticking a value is no
+        longer theoretical.
       */}
       <p className="mt-1.5 text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-subtle))]">
-        <strong>Not enforced yet.</strong> Products still see every value of an attribute
-        assigned to them — the variant editor and the sales customization picker are
-        repointed in a later pass. Configuring it now is deliberate: the scoping is set up
-        before it starts filtering, so nothing changes underneath anyone.
+        <strong>This is enforced.</strong> Products in this category can be built only from
+        the values listed here — both the version editor and the sales customization picker
+        read it. Un-ticking a value removes it as an option for every product in this
+        category and everything below it; versions already built keep the value they were
+        created with.
       </p>
 
       {ancestors.length > 0 && (
@@ -198,7 +219,7 @@ export function CategoryValueScoping({
         </div>
       )}
 
-      {attrsLoading || linksLoading ? (
+      {attrsLoading || linksLoading || inheritedLoading ? (
         <p className="mt-3 text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">Loading…</p>
       ) : perAttribute.length === 0 ? (
         <p className="mt-3 text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">
