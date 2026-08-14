@@ -231,42 +231,107 @@ were removed.
 
 ---
 
+## DATABASE FINGERPRINT BASELINE — taken 2026-08-14, after Pass C
+
+Around any applied migration the expected proof is a **before/after fingerprint**: md5
+snapshots taken *before* applying and re-run *after*, showing the blast radius was exactly
+what was approved. The baseline must be taken **BEFORE** the migration runs — it cannot be
+reconstructed afterwards.
+
+**The pre-Pass-C baseline was LOST.** The session that applied Pass C ended on a spend
+limit and the editor closed; the baseline lived only in that session's context. Commit
+`6f9df26` quotes a constraint fingerprint `b5901cff` and a trigger fingerprint `876e3880`,
+but not the SQL that produced them, so those two digests **cannot be reproduced or checked**
+and should not be trusted as comparable to anything computed later.
+
+**No attempt was made to reconstruct it.** A fabricated proof is worse than a missing one.
+What Pass C can honestly claim instead is inspection, not hashes: the migration body is
+3 × `CREATE VIEW` + 3 × `COMMENT ON VIEW` and nothing else — no `ALTER`, `DROP`, `GRANT`
+or DML — and the post-state counts match what the commit predicted (views 8 → 11,
+functions 211 unchanged, policies 568 unchanged).
+
+**These are the values to diff the NEXT migration against.** Captured 2026-08-14 on a
+database with Pass A, B and C applied:
+
+| Part | md5 | Count |
+|---|---|---|
+| schema, non-`inv_` base tables (`table.column:type:nullable:default`) | `81825307e130975fc64b72e7047a9ab2` | 160 base tables |
+| policies, non-`inv_` (`tablename\|policyname\|cmd\|qual\|with_check\|roles`) | `4ed0b8182618a244fd061c91788ed0de` | 568 all schemas / 547 `public` |
+| functions (`proname(identity_args)=md5(prosrc)`, all of `public`) | `863b01cfcb6f538ec8ded6ac1fdaf333` | 211 |
+| constraints (`relation:conname:contype:def`) | `4a32dc578a4a12d66343f8e8bb5ce083` | 734 |
+| triggers, non-internal (`relname:tgname:def`) | `498b81ea024c1441eff67a7e601e4335` | 188 |
+
+The three legacy namesakes, which must stay byte-identical:
+
+| Function | md5 | length |
+|---|---|---|
+| `inv_save_stock_move` | `d625abaf323a12e55d84c7a4c677ae84` | 3116 |
+| `inv_validate_stock_move` | `4160c526a51e51534aa39e52cd9e91b6` | 1143 |
+| `inv_delete_stock_move` | `6c37e9aedd167dd2f7c79628342c2cd8` | 135 |
+
+**Record the exact SQL alongside any future digest.** The whole reason `b5901cff` is
+useless is that its formula was not written down.
+
+Note also that `supabase_migrations.schema_migrations` stops at `20260725091618`. Passes A,
+B and C are absent from the ledger because they were applied with
+`supabase db query --linked --file`, which does not record there. That is expected, not
+drift — the migration files in `supabase/migrations/` are the record.
+
+---
+
 ## KNOWN ISSUES — deferred, do not fix opportunistically
 
 Recorded so they are not rediscovered as surprises. Each one is deferred **on
 purpose**; fixing one is its own approved pass, not a "while I'm here".
 
-### `product_attribute_values.extra_price` is SUPERSEDED for the attribute path — from Pass C, 2026-08-13
+### `product_attribute_values.extra_price` has NO LIVE READER on the attribute path — Pass C applied, 2026-08-14
 
-Category-scoped attribute values (Pass A, applied 2026-08-13) put the price adjustment on
-the **category link**: `product_category_attribute_values.extra_price`, `NOT NULL DEFAULT 0`
-with **no fallback** to the global column. The link row is the whole answer — a fallback
-would put the global figure silently back in charge of any link nobody priced, which is
-the two-sources problem the change exists to remove.
+**This is now fact, not a prediction.** Pass C landed on 2026-08-14 (commits `6f9df26`
+migration, `e88f84d`/`0763c7a`/`43a3e11`/`7c9ffb6` frontend) and the repoint is done.
 
-**The global column stays** (Rule 4) and is still the live source until Pass C repoints the
-readers. Current readers of the global column:
+Category-scoped attribute values put the price adjustment on the **category link**:
+`product_category_attribute_values.extra_price`, `NOT NULL DEFAULT 0`, with **no fallback**
+to the global column. The link row is the whole answer — a fallback would put the global
+figure silently back in charge of any link nobody priced, which is the two-sources problem
+the change exists to remove.
 
-| Reader | What it does |
+**What actually happens now.** `listAttributesForProduct()`
+(`src/lib/services/inventory/attributes.ts`) overwrites `extraPrice` with the per-category
+figure resolved by `product_category_values_resolved` before the value ever reaches the
+picker. `CustomizationPicker` was **not** edited to follow it — it still reads
+`attribute.values[].extraPrice` at `:96` (sums into `priceAdjustment`) and `:198` (the
+`(+₹…)` label), and both now carry the category price. That was deliberate: the picker is
+on the SHARED BOUNDARY list, so the repoint happened upstream of it.
+
+**The predicted consequence has arrived.** An uncategorised product now offers **no**
+values, so every value reaching the picker arrived through a category link. The global
+column therefore has **no live reader at all on the attribute path**.
+
+| Remaining users of the global column | What they do |
 |---|---|
-| `components/sales/CustomizationPicker.tsx:83` | sums `extraPrice` into the line's `priceAdjustment` |
-| `components/sales/CustomizationPicker.tsx:160` | renders the `(+₹…)` label |
-| `pages/inventory2/config/AttributeConfigForm.tsx`, `components/inventory/config/AttributesConfig.tsx` | write it |
+| `pages/inventory2/config/AttributeConfigForm.tsx`, `components/inventory/config/AttributesConfig.tsx` | **write** it |
+| `listAttributes()` / `saveAttributeValue()` in `services/inventory/attributes.ts` | read/write it for those config editors |
+| the `product_customization_options` path | **reads it — a different mechanism entirely** |
 
-**After Pass C** the picker should read the resolved per-category price. And note the
-consequence: if Pass C makes an uncategorised product offer **no** values, every value
-reaching the picker will have arrived through a category link, so the global column has
-**no live reader at all** on the attribute path.
+**DO NOT DROP IT.** Rule 4 aside, it is still the only price for the
+`product_customization_options` path. It is marked superseded in a comment on
+`ProductAttributeValue.extraPrice`. Being unread on one path is not the same as being dead.
 
-**Do not drop it.** Mark it superseded in a comment. It is still the only price for the
-`product_customization_options` path, which is a different mechanism.
+**Related, and intentional:** `AttributeOption.values[]` in
+`services/inventory2/variants.ts` carries `extra_price` and `source_category_name` that
+nothing currently renders. That is not dead code — it is the data variant pricing will
+need when it surfaces, and the resolver already has it in hand. Leave it.
 
-### `products.category_id` is ON DELETE SET NULL — becomes a silent failure once scoping is live, 2026-08-13
+### `products.category_id` is ON DELETE SET NULL — NOW LIVE, no longer cosmetic, 2026-08-13 / escalated 2026-08-14
 
-Today this is cosmetic. Once category-scoped values are resolved (Pass C), deleting a
-category leaves its products with `category_id = NULL`, which means **they can offer no
-attribute values at all** — a silent failure of exactly the kind this module refuses
-everywhere else.
+**Status changed when Pass C applied.** This entry used to open "today this is cosmetic".
+That is no longer true: scoping is now resolved and enforced, so deleting a category leaves
+its products with `category_id = NULL`, which means **they can offer no attribute values at
+all** — a silent failure of exactly the kind this module refuses everywhere else.
+
+The one mercy is that it is no longer *silent* on screen: the Pass C messaging in
+`VariantEditor`, `RequestVariantDialog` and `CustomizationPicker` names "this product has
+no category" as the reason. The data damage is still silent, and still unreversed by that.
 
 **RESTRICT is recommended**, deferred to its own pass because it alters an existing FK on a
 shared table and Pass A was deliberately additive.
