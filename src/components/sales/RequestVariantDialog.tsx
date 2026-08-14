@@ -152,14 +152,37 @@ export function RequestVariantDialog({
               </Alert>
             )}
 
-            {isLoading ? (
+            {isLoading || !scope ? (
               <p className="text-sm text-muted-foreground">Loading…</p>
+            ) : scope.categoryId === null ? (
+              /*
+                Pass C. A product with no category offers no values at all, so
+                there is nothing for a salesperson to pick. Saying "no
+                attributes" here would send them to the wrong person.
+              */
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  This product has no category, and the values a version can be built from
+                  are declared on the category. Ask Inventory to categorise it before
+                  requesting a version.
+                </AlertDescription>
+              </Alert>
             ) : attributes.length === 0 ? (
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription>
                   This product has no attributes set up, so there is no combination to
                   request. Ask Inventory to assign attributes to it first.
+                </AlertDescription>
+              </Alert>
+            ) : attributes.every((a) => a.values.length === 0) ? (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  {scope.categoryName ?? 'This product’s category'} declares no values for{' '}
+                  {attributes.map((a) => a.name).join(', ')}, so there is no combination to
+                  request. Ask Inventory to declare them on the category.
                 </AlertDescription>
               </Alert>
             ) : (

@@ -23,6 +23,7 @@
  * toward.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { Button, StatusPill, cn } from '@/design-system';
 import { Field, TextInput, SelectInput, ErrorBanner } from './formControls';
 import { errorText } from '@/lib/inventory2/errorText';
@@ -171,13 +172,64 @@ export function VariantEditor({
     }
   }
 
-  if (attributes.length === 0 && !isEdit) {
+  /*
+   * FOUR REASONS THERE MAY BE NOTHING TO CHOOSE FROM, and they are not the same
+   * problem, so they do not get the same message. Before Pass C a product with
+   * no category still offered every value in the system; now it offers none,
+   * which is correct but would be baffling without being told why.
+   */
+  if (!isEdit && !scope) {
+    return (
+      <p className="p-4 text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">
+        Loading the available values…
+      </p>
+    );
+  }
+
+  const noValuesAnywhere =
+    !isEdit && attributes.length > 0 && attributes.every((a) => a.values.length === 0);
+
+  if (!isEdit && (attributes.length === 0 || scope!.categoryId === null || noValuesAnywhere)) {
+    const uncategorised = scope!.categoryId === null;
     return (
       <div className="rounded-[var(--ds-radius)] border border-dashed border-[hsl(var(--ds-border-strong))] bg-[hsl(var(--ds-surface-sunken))] p-4">
-        <p className="text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">
-          This product has no attributes assigned, so there is no combination to define.
-          Assign attributes first — a variant must state what it stands for.
-        </p>
+        {uncategorised ? (
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--ds-amber))]" />
+            <div className="text-[var(--ds-fs-sm)]">
+              <p className="font-semibold text-[hsl(var(--ds-amber))]">
+                This product has no category, so no values are available
+              </p>
+              <p className="mt-0.5 text-[hsl(var(--ds-ink))]">
+                Which values a product may be built from is declared on its category —
+                a Dining Chair offers the polishes chairs are sold in, not every polish in
+                the system. Without a category there is nothing to draw that list from.
+                Set a category on the General Information tab, then declare its values
+                under Setup → Product Categories.
+              </p>
+            </div>
+          </div>
+        ) : attributes.length === 0 ? (
+          <p className="text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">
+            This product has no attributes assigned, so there is no combination to define.
+            Assign attributes first — a variant must state what it stands for.
+          </p>
+        ) : (
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--ds-amber))]" />
+            <div className="text-[var(--ds-fs-sm)]">
+              <p className="font-semibold text-[hsl(var(--ds-amber))]">
+                {scope!.categoryName ?? 'This category'} offers no values for these attributes
+              </p>
+              <p className="mt-0.5 text-[hsl(var(--ds-ink))]">
+                {attributes.map((a) => a.name).join(', ')}{' '}
+                {attributes.length === 1 ? 'is' : 'are'} assigned to this product, but the
+                category declares none of their values — so there is no combination to
+                build. Declare them on the category, or on one of its parents.
+              </p>
+            </div>
+          </div>
+        )}
         <div className="mt-3">
           <Button variant="subtle" onClick={onCancel}>Close</Button>
         </div>
@@ -243,6 +295,17 @@ export function VariantEditor({
                   <option key={v.id} value={v.id}>{v.value}</option>
                 ))}
               </SelectInput>
+              {/*
+                An attribute the category declares nothing for. The dropdown
+                would otherwise be silently empty and Create permanently
+                unreachable, since every attribute must be answered.
+              */}
+              {a.values.length === 0 && (
+                <p className="mt-1 text-[var(--ds-fs-xs)] text-[hsl(var(--ds-amber))]">
+                  {scope!.categoryName ?? 'This category'} declares no {a.name.toLowerCase()}{' '}
+                  values, so this cannot be answered. Declare them on the category first.
+                </p>
+              )}
             </Field>
           ))
         )}

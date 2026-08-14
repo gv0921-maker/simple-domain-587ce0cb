@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useProductCustomizationOptions } from '@/hooks/products/customizationOptions';
 import { useProductAssignedAttributes } from '@/hooks/inventory/config';
+import { useInv2ProductValueScope } from '@/hooks/inventory2/valueScope';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type {
@@ -52,6 +53,18 @@ const fmtPrice = (n: number) =>
 export function CustomizationPicker({ productId, value, onChange, disabled }: Props) {
   const { data: options = [] } = useProductCustomizationOptions(productId);
   const { data: assignedAttrs = [] } = useProductAssignedAttributes(productId);
+  /*
+   * PASS C. Values are now scoped to the product's category and priced by the
+   * category link, so `v.extraPrice` below is the per-category figure — the
+   * global product_attribute_values.extra_price no longer reaches this screen.
+   * Repointed inside listAttributesForProduct so this component did not have to
+   * change to follow it.
+   *
+   * The scope read is only for EXPLAINING an empty list. An uncategorised
+   * product legitimately offers nothing, and without a reason on screen that
+   * looks like a broken dropdown.
+   */
+  const { data: valueScope } = useInv2ProductValueScope(productId);
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -131,6 +144,31 @@ export function CustomizationPicker({ productId, value, onChange, disabled }: Pr
 
   return (
     <div className="space-y-3 rounded-md border border-dashed border-border p-3 bg-muted/20">
+      {/*
+        Pass C: the product has attributes but its category offers no values for
+        them, so every dropdown below would be empty. Say which of the two
+        reasons it is — they need different people to fix them.
+      */}
+      {assignedAttrs.length > 0 &&
+        assignedAttrs.every((a) => (a.values ?? []).length === 0) &&
+        valueScope && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-50 px-3 py-2 dark:bg-amber-950/30">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <div className="text-xs">
+              <p className="font-semibold text-amber-700 dark:text-amber-500">
+                {valueScope.categoryId === null
+                  ? 'This product has no category, so no options are available'
+                  : `${valueScope.categoryName ?? 'This category'} offers no options for this product`}
+              </p>
+              <p className="mt-0.5 text-muted-foreground">
+                {valueScope.categoryId === null
+                  ? 'The choices a product offers are declared on its category. Ask Inventory to categorise it.'
+                  : 'The category declares none of this product’s attribute values. Ask Inventory to declare them on the category or one of its parents.'}
+              </p>
+            </div>
+          </div>
+        )}
+
       {assignedAttrs.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           {assignedAttrs.map((a) => {
