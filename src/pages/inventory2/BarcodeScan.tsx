@@ -202,6 +202,14 @@ function Scanner({ operationId }: { operationId: string }) {
     try {
       await commit.mutateAsync({
         moveId: line.move_id,
+        // Both added in the transfer pass. The receipt adapter ignores them —
+        // inv_receive_serial derives the operation and the destination from the
+        // move itself — but every adapter that calls inv_transfer_stock_item
+        // directly needs them, and the destination in particular can only come
+        // from here: mandatory_scan_dest_location means the screen holds the
+        // answer, not the operation row.
+        operationId,
+        toLocationId: doc?.dest_location_id ?? null,
         serial,
         cost: unitCost,
         // Receipts create the unit, so there is no existing unit to assert a
@@ -215,7 +223,11 @@ function Scanner({ operationId }: { operationId: string }) {
       // Verbatim (Rule 5). These RPCs raise sentences meant to be read.
       settle(id, 'failed', errorText(e), { moveId: line.move_id, serial, cost: unitCost });
     }
-  }, [commit, push, settle, refetch]);
+    // operationId and the destination are real dependencies, not noise: a
+    // stale closure here would commit units against the previous document or
+    // send them to the previous destination, and inv_transfer_stock_item would
+    // accept that happily because both values are structurally valid.
+  }, [commit, push, settle, refetch, operationId, doc?.dest_location_id]);
 
   /* -- the scan handler -------------------------------------------------- */
 

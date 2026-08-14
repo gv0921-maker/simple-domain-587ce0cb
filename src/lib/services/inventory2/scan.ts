@@ -4,9 +4,31 @@
  * DOCUMENT-TYPE-AGNOSTIC BY CONSTRUCTION. Everything in this file works on
  * inv_operation / inv_move / inv_move_line, which all four operation kinds
  * (receipt, internal, outgoing, adjustment) already share. Nothing here knows
- * what a receipt is. The kind-specific verb lives behind `ScanAdapter`, and the
- * only implementation today is `scanReceipt.ts` — generalising means ADDING an
- * adapter file, not editing this one.
+ * what a receipt is. The kind-specific verb lives behind `ScanAdapter`.
+ *
+ * ── WHERE THAT CLAIM HELD AND WHERE IT DID NOT ────────────────────────────
+ * Pass 7 promised that adding a kind meant writing a sibling adapter and NOT
+ * editing this file. Writing `scanTransfer.ts` tested it. The result, recorded
+ * honestly because a promise nobody checks is worth nothing:
+ *
+ *   HELD    every read, every type, resolveScan, getScanDocument,
+ *           listOpenScanDocuments, the ScanAdapter seam itself — untouched.
+ *   FAILED  `CommitUnitInput` was missing two fields a transfer cannot work
+ *           without: the operation id and the DESTINATION location.
+ *
+ * The original design was so focused on keeping the document's SOURCE out of
+ * reach — the bug it was defending against — that it never supplied the
+ * destination at all. On a receipt that is invisible, because
+ * inv_receive_serial derives both ends from the operation internally. Every
+ * other kind calls inv_transfer_stock_item directly, which demands
+ * `p_to_location_id` and cites the document in the ledger.
+ *
+ * The destination genuinely cannot be re-read from the operation either:
+ * `mandatory_scan_dest_location` exists so an operator can confirm one, so
+ * the screen is the only thing that knows the answer.
+ *
+ * So: the seam was right, the payload was incomplete. Adding a kind still
+ * costs one adapter file plus, this once, two fields on the shared input.
  *
  * ── THE ONE RULE THAT IS EASY TO GET WRONG ────────────────────────────────
  * A unit's "from" location is `inv_stock_item.location_id` — where the unit
@@ -290,16 +312,39 @@ export interface ScannedUnitRef {
 
 export interface CommitUnitInput {
   moveId: string;
+  /**
+   * The document being scanned into.
+   *
+   * ADDED IN THE TRANSFER PASS — see the note above `ScanAdapter`. Any adapter
+   * that calls inv_transfer_stock_item directly has to cite the document in
+   * the append-only ledger (`document_type` 'inv_operation', `document_id`
+   * this). inv_receive_serial looks the operation up from the move itself, so
+   * the receipt adapter ignores this field.
+   */
+  operationId: string;
   serial: string;
   cost: number;
+  /**
+   * Where the unit is GOING.
+   *
+   * ADDED IN THE TRANSFER PASS. This is the document's destination as the
+   * screen has it — which is not always `inv_operation.dest_location_id`,
+   * because `mandatory_scan_dest_location` exists precisely so an operator can
+   * confirm (and in future scan) a destination. That is why it is passed in
+   * rather than re-read from the operation: the server cannot know what the
+   * operator confirmed.
+   *
+   * Null on a receipt: inv_receive_serial derives the destination itself.
+   */
+  toLocationId: string | null;
   /**
    * The unit when it already exists in stock, else null.
    *
    * Receipts create the unit, so this is null on a receipt scan and the
-   * receipt adapter ignores it. A future transfer/delivery adapter MUST pass
+   * receipt adapter ignores it. A transfer/delivery adapter MUST pass
    * `currentLocationId` through to inv_transfer_stock_item's
    * `p_expected_from_location_id`. Note what is absent: this input has no
-   * field for the document's source location, by design.
+   * field for the document's SOURCE location, by design.
    */
   existing: ScannedUnitRef | null;
 }
