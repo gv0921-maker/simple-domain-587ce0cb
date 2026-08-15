@@ -75,6 +75,12 @@ export interface ScanFeedProps {
    */
   onRetry: (event: ScanEvent, serial: string) => void;
   onDismiss: (id: string) => void;
+  /**
+   * The chip on a confirmed row. Defaults to "Received", which is only true on
+   * a receipt — a transfer passes "Moved". The caller supplies it from the scan
+   * adapter's `unitCommittedVerb` rather than this component testing the kind.
+   */
+  confirmedLabel?: string;
 }
 
 /** Failed row: the database's sentence, plus the value kept for correction. */
@@ -116,7 +122,9 @@ function FailedActions({
   );
 }
 
-export function ScanFeed({ events, onRetry, onDismiss }: ScanFeedProps) {
+export function ScanFeed({
+  events, onRetry, onDismiss, confirmedLabel = 'Received',
+}: ScanFeedProps) {
   const failedCount = events.filter((e) => e.phase === 'failed').length;
 
   return (
@@ -155,7 +163,7 @@ export function ScanFeed({ events, onRetry, onDismiss }: ScanFeedProps) {
                       )}
                     >
                       <PhaseIcon phase={e.phase} />
-                      {tone.label}
+                      {e.phase === 'confirmed' ? confirmedLabel : tone.label}
                     </span>
                     <code className="min-w-0 flex-1 truncate font-mono text-[var(--ds-fs-sm)] font-semibold text-[hsl(var(--ds-ink))]">
                       {e.code}

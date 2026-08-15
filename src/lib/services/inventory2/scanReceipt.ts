@@ -30,6 +30,9 @@ import type { CommitUnitInput, ScanAdapter, ScanDocument } from './scan';
 export const RECEIPT_SCAN_ADAPTER: ScanAdapter = {
   kind: 'receipt',
   documentNoun: 'receipt',
+  unitCommittedVerb: 'received',
+  /** inv_receive_serial takes p_cost: a receipt is where a unit is costed. */
+  capturesUnitCost: true,
 
   /**
    * `input.existing` is ignored here, and that is correct: on a receipt the

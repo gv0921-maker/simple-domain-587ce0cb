@@ -857,7 +857,10 @@ export default function ReceiptDetail() {
                 // Barcode is not a view on this page — it hands off to the
                 // scan screen with this receipt preselected.
                 if (k === 'barcode') {
-                  navigate(`/inventory2/barcode?receipt=${id}`);
+                  // `?operation=` since the transfer pass — the scan screen
+                  // takes any kind. `?receipt=` is still read there, so links
+                  // saved before this change keep working.
+                  navigate(`/inventory2/barcode?operation=${id}`);
                   return;
                 }
                 setSegment(k as 'details' | 'moves' | 'quality' | 'traceability');

@@ -5,10 +5,18 @@
  * chromed once scanning starts, because this is used at the delivery bay at
  * arm's length and one-handed, not at a desk.
  *
- * WHAT IS RECEIPT-SPECIFIC HERE: the adapter, and the two words in the picker.
- * Everything else — resolution, line selection, the over-receipt gate, the
- * session feed, validate — runs off `ScanDocument`, which is built from
- * inv_operation / inv_move / inv_move_line and knows nothing about receipts.
+ * NOTHING ON THIS SCREEN IS RECEIPT-SPECIFIC ANY MORE. It used to open with
+ * `const ADAPTER = RECEIPT_SCAN_ADAPTER` and a comment promising the constant
+ * would move when a second adapter landed. It has moved: the adapter is looked
+ * up from `SCAN_ADAPTERS` by the loaded document's OWN kind, and every
+ * kind-specific word on screen — the noun, the past-tense verb, whether a unit
+ * cost is captured — comes off that adapter.
+ *
+ * THE KIND COMES FROM THE DOCUMENT, NEVER FROM THE URL. `getScanDocument()`
+ * reads inv_operation_type.kind. A query parameter could be stale or
+ * hand-edited, and choosing an adapter from one would mean calling the wrong
+ * RPC against a real document — inv_receive_serial on a delivery would INVENT
+ * units on a document meant to ship them out.
  *
  * SCAN FLAGS ARE UI POLICY. mandatory_scan_product, mandatory_scan_serial,
  * mandatory_scan_dest_location and allow_extra_products are read from
@@ -16,6 +24,11 @@
  * none of them is enforced by the database: it will accept a unit that was
  * never scanned, and it will accept more units than were ordered. This screen
  * being strict is a promise the screen makes, not a guarantee the data carries.
+ *
+ * THE DESTINATION IS THIS SCREEN'S RESPONSIBILITY. inv_transfer_stock_item
+ * asserts where a unit came FROM and takes where it is going TO on trust — see
+ * CLAUDE.md. `commitUnit` therefore lists the destination in its dependency
+ * array, and that is load-bearing, not tidiness.
  *
  * OFFLINE: not supported, deliberately. Connection state is shown prominently
  * and every scan is a live RPC round trip carrying its own pending/confirmed/
@@ -36,12 +49,27 @@ import { errorText } from '@/lib/inventory2/errorText';
 import {
   useCommitUnit, useCompleteScanDocument, useOpenScanDocuments, useScanDocument,
 } from '@/hooks/inventory2/scan';
-import { resolveScan, type ScanDocLine } from '@/lib/services/inventory2/scan';
-import { RECEIPT_SCAN_ADAPTER } from '@/lib/services/inventory2/scanReceipt';
+import {
+  resolveScan, type ScanAdapter, type ScanDocKind, type ScanDocLine, type ScanDocument,
+} from '@/lib/services/inventory2/scan';
+import {
+  SCAN_ADAPTERS, SCANNABLE_KINDS, adapterFor, unsupportedKindReason,
+} from '@/lib/services/inventory2/scanAdapters';
 
-/** Pass 7 builds the receipt case. The picker and adapter are the only spots
- *  that name a kind; both move together when the next adapter lands. */
-const ADAPTER = RECEIPT_SCAN_ADAPTER;
+/**
+ * Where a new document of each kind is created.
+ *
+ * Routes are a page concern, so they live here rather than on the service-layer
+ * adapter. A kind with no entry simply gets no button — the empty state still
+ * explains itself, which is better than a link to a route that does not exist.
+ */
+const NEW_DOCUMENT_PATH: Partial<Record<ScanDocKind, string>> = {
+  receipt: '/inventory2/receipts/new',
+  internal: '/inventory2/transfers/new',
+};
+
+/** The scan screen's own URL for a document. */
+const scanPath = (operationId: string) => `/inventory2/barcode?operation=${operationId}`;
 
 let seq = 0;
 const nextId = () => `scan-${Date.now()}-${seq++}`;
@@ -64,72 +92,100 @@ function useOnline(): boolean {
 
 /* ------------------------------------------------------------- the picker */
 
-function DocumentPicker() {
+/**
+ * One section of the picker: the open documents of a single kind.
+ *
+ * Rendered once per registered adapter. The list of adapters is a module-level
+ * constant, so the number and order of these components — and therefore of the
+ * hooks inside them — is fixed for the life of the page.
+ */
+function KindSection({ adapter }: { adapter: ScanAdapter }) {
   const navigate = useNavigate();
-  const { data: docs = [], isLoading, error } = useOpenScanDocuments(ADAPTER.kind);
+  const { data: docs = [], isLoading, error } = useOpenScanDocuments(adapter.kind);
+  const newPath = NEW_DOCUMENT_PATH[adapter.kind];
 
+  return (
+    <section className="mt-5 first:mt-4">
+      <h2 className="text-[var(--ds-fs-base)] font-semibold capitalize text-[hsl(var(--ds-ink))]">
+        {adapter.documentNoun}s
+      </h2>
+
+      {error && (
+        <div className="mt-2">
+          <ErrorBanner
+            title={`Failed to load open ${adapter.documentNoun}s`}
+            message={errorText(error)}
+          />
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="py-4 text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">Loading…</div>
+      ) : docs.length === 0 ? (
+        <div className="mt-2 rounded-[var(--ds-radius)] border border-dashed border-[hsl(var(--ds-border-strong))] p-5 text-center">
+          <p className="text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">
+            No open {adapter.documentNoun}s. Create one first.
+          </p>
+          {newPath && (
+            <Button className="mt-3" onClick={() => navigate(newPath)}>
+              New {adapter.documentNoun}
+            </Button>
+          )}
+        </div>
+      ) : (
+        <ul className="mt-2 grid list-none grid-cols-1 gap-2 p-0 md:grid-cols-2">
+          {docs.map((d) => (
+            <li key={d.id}>
+              <button
+                type="button"
+                onClick={() => navigate(scanPath(d.id))}
+                className={cn(
+                  'w-full rounded-[var(--ds-radius)] border p-3 text-left transition-colors',
+                  'border-[hsl(var(--ds-border-strong))] bg-[hsl(var(--ds-surface))]',
+                  'hover:border-[hsl(var(--ds-primary))] hover:bg-[hsl(var(--ds-primary)/0.04)]',
+                )}
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-[var(--ds-fs-base)] font-bold text-[hsl(var(--ds-ink))]">
+                    {d.number}
+                  </span>
+                  <span className="text-[var(--ds-fs-xs)] uppercase tracking-wide text-[hsl(var(--ds-ink-subtle))]">
+                    {d.state}
+                  </span>
+                </div>
+                <div className="mt-1 text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">
+                  {d.vendor_name ?? d.type_name}
+                  {d.dest_location_name && ` → ${d.dest_location_name}`}
+                </div>
+                <div className="mt-2 text-[var(--ds-fs-sm)] tabular-nums text-[hsl(var(--ds-ink))]">
+                  <strong className="text-[18px]">{d.received_qty}</strong>
+                  <span className="text-[hsl(var(--ds-ink-subtle))]"> / {d.demand_qty} units</span>
+                </div>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function DocumentPicker() {
   return (
     <AppLayout title="Barcode" moduleNav={INVENTORY2_NAV}>
       <div className="ds-root p-3 md:p-4">
         <h1 className="text-[var(--ds-fs-lg)] font-semibold text-[hsl(var(--ds-ink))]">
-          Scan into a {ADAPTER.documentNoun}
+          Scan into a document
         </h1>
         <p className="mt-1 text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">
-          Pick the document you are working, then scan units into it. Only open
-          {' '}{ADAPTER.documentNoun}s are listed — a validated one cannot take further units.
+          Pick the document you are working, then scan units into it. Only open documents are
+          listed — a validated one cannot take further units.
         </p>
 
-        {error && (
-          <div className="mt-3">
-            <ErrorBanner title="Failed to load open documents" message={errorText(error)} />
-          </div>
-        )}
-
-        {isLoading ? (
-          <div className="p-6 text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">Loading…</div>
-        ) : docs.length === 0 ? (
-          <div className="mt-4 rounded-[var(--ds-radius)] border border-dashed border-[hsl(var(--ds-border-strong))] p-6 text-center">
-            <p className="text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">
-              No open {ADAPTER.documentNoun}s. Create one first.
-            </p>
-            <Button className="mt-3" onClick={() => navigate('/inventory2/receipts/new')}>
-              New receipt
-            </Button>
-          </div>
-        ) : (
-          <ul className="mt-4 grid list-none grid-cols-1 gap-2 p-0 md:grid-cols-2">
-            {docs.map((d) => (
-              <li key={d.id}>
-                <button
-                  type="button"
-                  onClick={() => navigate(`/inventory2/barcode?receipt=${d.id}`)}
-                  className={cn(
-                    'w-full rounded-[var(--ds-radius)] border p-3 text-left transition-colors',
-                    'border-[hsl(var(--ds-border-strong))] bg-[hsl(var(--ds-surface))]',
-                    'hover:border-[hsl(var(--ds-primary))] hover:bg-[hsl(var(--ds-primary)/0.04)]',
-                  )}
-                >
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[var(--ds-fs-base)] font-bold text-[hsl(var(--ds-ink))]">
-                      {d.number}
-                    </span>
-                    <span className="text-[var(--ds-fs-xs)] uppercase tracking-wide text-[hsl(var(--ds-ink-subtle))]">
-                      {d.state}
-                    </span>
-                  </div>
-                  <div className="mt-1 text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">
-                    {d.vendor_name ?? d.type_name}
-                    {d.dest_location_name && ` → ${d.dest_location_name}`}
-                  </div>
-                  <div className="mt-2 text-[var(--ds-fs-sm)] tabular-nums text-[hsl(var(--ds-ink))]">
-                    <strong className="text-[18px]">{d.received_qty}</strong>
-                    <span className="text-[hsl(var(--ds-ink-subtle))]"> / {d.demand_qty} units</span>
-                  </div>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        {SCANNABLE_KINDS.map((kind) => {
+          const adapter = SCAN_ADAPTERS[kind];
+          return adapter ? <KindSection key={kind} adapter={adapter} /> : null;
+        })}
       </div>
     </AppLayout>
   );
@@ -137,23 +193,46 @@ function DocumentPicker() {
 
 /* ------------------------------------------------------------ the scanner */
 
-interface OverReceipt {
+/** A unit already in stock, as an adapter needs it. */
+type ExistingUnit = { stockItemId: string; currentLocationId: string };
+
+interface OverScan {
   code: string;
   line: ScanDocLine;
   nextCount: number;
+  /**
+   * The unit as it resolved a moment ago, carried rather than re-resolved.
+   * The operator confirmed the unit they were shown; re-running resolveScan on
+   * confirm could return a different answer if the unit moved in between.
+   */
+  existing: ExistingUnit | null;
 }
 
-function Scanner({ operationId }: { operationId: string }) {
+/**
+ * The scanning session for ONE document, with its adapter already resolved.
+ *
+ * Split out from the loader below so the adapter is a prop rather than
+ * something guessed before the document arrives: the mutations here are built
+ * from it, and building them from a placeholder would mean the first render
+ * held a mutation pointed at the wrong RPC.
+ */
+function ScanSession({
+  doc, adapter, operationId, refetch,
+}: {
+  doc: ScanDocument;
+  adapter: ScanAdapter;
+  operationId: string;
+  refetch: () => Promise<unknown>;
+}) {
   const navigate = useNavigate();
   const online = useOnline();
-  const { data: doc, isLoading, error, refetch } = useScanDocument(operationId);
-  const commit = useCommitUnit(ADAPTER, operationId);
-  const complete = useCompleteScanDocument(ADAPTER, operationId);
+  const commit = useCommitUnit(adapter, operationId);
+  const complete = useCompleteScanDocument(adapter, operationId);
 
   const [events, setEvents] = useState<ScanEvent[]>([]);
   const [activeMoveId, setActiveMoveId] = useState<string | null>(null);
   const [cost, setCost] = useState('0');
-  const [overReceipt, setOverReceipt] = useState<OverReceipt | null>(null);
+  const [overScan, setOverScan] = useState<OverScan | null>(null);
   const [confirmValidate, setConfirmValidate] = useState(false);
   const [validateError, setValidateError] = useState<string | null>(null);
   /** Honours mandatory_scan_dest_location without inventing a fourth scan
@@ -173,18 +252,18 @@ function Scanner({ operationId }: { operationId: string }) {
     setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, phase, message, retry } : e)));
   }, []);
 
-  const refuseReason = doc ? ADAPTER.refuseScanReason(doc) : null;
-  const needsDestAck = !!doc?.flags.mandatory_scan_dest_location && !destAck;
+  const refuseReason = adapter.refuseScanReason(doc);
+  const needsDestAck = !!doc.flags.mandatory_scan_dest_location && !destAck;
 
   const activeLine = useMemo(
-    () => doc?.lines.find((l) => l.move_id === activeMoveId) ?? null,
+    () => doc.lines.find((l) => l.move_id === activeMoveId) ?? null,
     [doc, activeMoveId],
   );
 
   // A single-line document has nothing to choose; pre-select it unless the
   // operation type insists the product is scanned first.
   useEffect(() => {
-    if (!doc || activeMoveId) return;
+    if (activeMoveId) return;
     if (doc.flags.mandatory_scan_product) return;
     if (doc.lines.length === 1) setActiveMoveId(doc.lines[0].move_id);
   }, [doc, activeMoveId]);
@@ -194,9 +273,11 @@ function Scanner({ operationId }: { operationId: string }) {
   const commitUnit = useCallback(async (
     line: ScanDocLine,
     serial: string,
+    /** The resolved unit, when the scan found one already in stock. */
+    existing: ExistingUnit | null,
     eventId?: string,
   ) => {
-    const id = eventId ?? push('pending', serial, `Receiving onto ${line.product_name}…`);
+    const id = eventId ?? push('pending', serial, `Sending ${serial} onto ${line.product_name}…`);
     if (eventId) settle(eventId, 'pending', `Retrying ${serial}…`, undefined);
     const unitCost = Number(costRef.current) || 0;
     try {
@@ -209,15 +290,16 @@ function Scanner({ operationId }: { operationId: string }) {
         // from here: mandatory_scan_dest_location means the screen holds the
         // answer, not the operation row.
         operationId,
-        toLocationId: doc?.dest_location_id ?? null,
+        toLocationId: doc.dest_location_id,
         serial,
         cost: unitCost,
-        // Receipts create the unit, so there is no existing unit to assert a
-        // location for. A transfer/delivery adapter passes unitRef(resolved)
-        // here — the unit's OWN location, never the operation's source.
-        existing: null,
+        // Receipts CREATE the unit, so this is null on a receipt scan and the
+        // receipt adapter ignores it. A transfer MOVES an existing one and its
+        // adapter requires it — carrying the unit's OWN location, never the
+        // operation's source.
+        existing,
       });
-      settle(id, 'confirmed', `${serial} received onto ${line.product_name}.`);
+      settle(id, 'confirmed', `${serial} ${adapter.unitCommittedVerb} onto ${line.product_name}.`);
       await refetch();
     } catch (e) {
       // Verbatim (Rule 5). These RPCs raise sentences meant to be read.
@@ -226,8 +308,9 @@ function Scanner({ operationId }: { operationId: string }) {
     // operationId and the destination are real dependencies, not noise: a
     // stale closure here would commit units against the previous document or
     // send them to the previous destination, and inv_transfer_stock_item would
-    // accept that happily because both values are structurally valid.
-  }, [commit, push, settle, refetch, operationId, doc?.dest_location_id]);
+    // accept that happily because BOTH values are structurally valid and
+    // NEITHER is checked server-side. See CLAUDE.md.
+  }, [commit, push, settle, refetch, operationId, doc.dest_location_id, adapter]);
 
   /* -- the scan handler -------------------------------------------------- */
 
@@ -239,7 +322,7 @@ function Scanner({ operationId }: { operationId: string }) {
     // over-receipt gate.
     chain.current = chain.current.then(async () => {
       const code = raw.trim();
-      if (!code || !doc) return;
+      if (!code) return;
 
       let resolution;
       try {
@@ -257,16 +340,21 @@ function Scanner({ operationId }: { operationId: string }) {
         if (line) {
           setActiveMoveId(line.move_id);
           push('info', code,
-            `Line selected: ${line.product_name} (matched on ${resolution.matched}). ${line.received_qty} of ${line.demand_qty} received. Scan each unit's serial now.`);
+            `Line selected: ${line.product_name} (matched on ${resolution.matched}). ${line.received_qty} of ${line.demand_qty} done. Scan each unit's serial now.`);
           return;
         }
         push('failed', code, doc.flags.allow_extra_products
-          ? `${resolution.product_name} is not on ${doc.number}. This ${ADAPTER.documentNoun} allows extra products, but the line must be added on the receipt page first — the scan screen does not create lines.`
+          ? `${resolution.product_name} is not on ${doc.number}. This ${adapter.documentNoun} allows extra products, but the line must be added on the ${adapter.documentNoun} page first — the scan screen does not create lines.`
           : `${resolution.product_name} is not on ${doc.number}, and this operation type does not allow extra products (allow_extra_products is off).`);
         return;
       }
 
-      /* an existing unit → either a re-scan of ours, or a foreign serial */
+      /*
+       * An existing unit. Two things to settle before it can be committed:
+       * whether it is already on THIS document, and — the part that differs
+       * per kind — whether the adapter needs the unit at all.
+       */
+      let existing: ExistingUnit | null = null;
       if (resolution.kind === 'unit') {
         const mine = doc.units.find((u) => u.stock_item_id === resolution.stock_item_id);
         if (mine) {
@@ -275,11 +363,17 @@ function Scanner({ operationId }: { operationId: string }) {
             `${resolution.serial} is already on ${doc.number}${line ? ` against ${line.product_name}` : ''}. No second unit was created — the database treats a re-scan of the same serial as the same unit.`);
           return;
         }
-        // Belongs to another document. Let the database refuse it and show its
-        // own words: it explains the rule better than a paraphrase would.
+        // Not on this document. On a receipt that means a foreign serial and
+        // the database is left to refuse it in its own words. On a transfer it
+        // is the NORMAL case: the unit exists in stock and is about to be moved
+        // onto this document for the first time.
+        existing = {
+          stockItemId: resolution.stock_item_id,
+          currentLocationId: resolution.location_id,
+        };
       }
 
-      /* a serial to receive */
+      /* a serial to commit */
       if (needsDestAck) {
         push('failed', code,
           `This operation type sets mandatory_scan_dest_location. Confirm the destination (${doc.dest_location_name ?? '—'}) before scanning units.`);
@@ -306,20 +400,50 @@ function Scanner({ operationId }: { operationId: string }) {
       if (nextCount > line.demand_qty) {
         // Never silently accepted, never hard-blocked. The operator decides,
         // with the numbers stated plainly.
-        setOverReceipt({ code, line, nextCount });
+        setOverScan({ code, line, nextCount, existing });
         return;
       }
 
-      await commitUnit(line, code);
+      await commitUnit(line, code, existing);
     });
-  }, [doc, activeLine, needsDestAck, push, commitUnit]);
+  }, [doc, adapter, activeLine, needsDestAck, push, commitUnit]);
 
+  /**
+   * Retry a failed scan, RE-RESOLVING the serial rather than reusing what the
+   * first attempt resolved.
+   *
+   * The retry row lets the operator CORRECT the serial, and that is exactly why
+   * the old resolution cannot be carried forward. An adapter that moves an
+   * existing unit is driven by `existing.stockItemId`, not by the serial
+   * string — reusing a stale ref would move the ORIGINAL unit while the feed
+   * displayed the corrected serial, and both the ledger and the screen would be
+   * internally consistent and wrong.
+   *
+   * On a receipt the extra round trip changes nothing, because the receipt
+   * adapter ignores `existing` and the serial IS the payload. Paying it on both
+   * paths keeps one code path instead of a kind test.
+   */
   const onRetry = useCallback((event: ScanEvent, serial: string) => {
-    if (!doc || !event.retry || !serial) return;
+    if (!event.retry || !serial) return;
     const line = doc.lines.find((l) => l.move_id === event.retry!.moveId);
     if (!line) return;
-    chain.current = chain.current.then(() => commitUnit(line, serial, event.id));
-  }, [doc, commitUnit]);
+    chain.current = chain.current.then(async () => {
+      let existing: ExistingUnit | null = null;
+      try {
+        const resolution = await resolveScan(serial);
+        if (resolution.kind === 'unit') {
+          existing = {
+            stockItemId: resolution.stock_item_id,
+            currentLocationId: resolution.location_id,
+          };
+        }
+      } catch (e) {
+        settle(event.id, 'failed', errorText(e), event.retry);
+        return;
+      }
+      await commitUnit(line, serial, existing, event.id);
+    });
+  }, [doc, commitUnit, settle]);
 
   const onDismiss = useCallback((id: string) => {
     setEvents((prev) => prev.filter((e) => e.id !== id));
@@ -333,7 +457,7 @@ function Scanner({ operationId }: { operationId: string }) {
       await complete.mutateAsync();
       setConfirmValidate(false);
       await refetch();
-      push('info', doc?.number ?? '', `${doc?.number} validated.`);
+      push('info', doc.number, `${doc.number} validated.`);
     } catch (e) {
       setValidateError(errorText(e));
     }
@@ -341,36 +465,14 @@ function Scanner({ operationId }: { operationId: string }) {
 
   /* -- render ------------------------------------------------------------ */
 
-  if (isLoading) {
-    return (
-      <div className="grid min-h-screen place-items-center bg-[hsl(var(--ds-navy))] text-white">
-        <Loader2 className="h-6 w-6 animate-spin" />
-      </div>
-    );
-  }
-
-  if (error || !doc) {
-    return (
-      <div className="ds-root min-h-screen bg-[hsl(var(--ds-surface))] p-4">
-        <ErrorBanner
-          title="Could not open this document"
-          message={error ? errorText(error) : `Operation ${operationId} was not found.`}
-        />
-        <Button className="mt-3" variant="outline" onClick={() => navigate('/inventory2/barcode')}>
-          Back to the list
-        </Button>
-      </div>
-    );
-  }
-
   const totalDemand = doc.lines.reduce((s, l) => s + l.demand_qty, 0);
   const totalReceived = doc.lines.reduce((s, l) => s + l.received_qty, 0);
   const linesDone = doc.lines.filter((l) => l.received_qty >= l.demand_qty).length;
-  const blocked = !!refuseReason || !!overReceipt || confirmValidate;
+  const blocked = !!refuseReason || !!overScan || confirmValidate;
 
   const hint = refuseReason
     ? 'Scanning is closed on this document'
-    : overReceipt
+    : overScan
       ? 'Confirm the extra unit to continue'
       : needsDestAck
         ? 'Confirm the destination to begin'
@@ -397,6 +499,12 @@ function Scanner({ operationId }: { operationId: string }) {
           <div className="truncate text-[16px] font-semibold leading-tight">{doc.number}</div>
           <div className="truncate text-[var(--ds-fs-xs)] leading-tight text-white/55">
             {doc.vendor_name ?? doc.type_name}
+            {/*
+              Both ends, not just the destination. On a transfer the source is
+              half the document's meaning — "Godown → Showroom" is the whole
+              instruction — and hiding it is what the old module did.
+            */}
+            {doc.source_location_name && ` · ${doc.source_location_name}`}
             {doc.dest_location_name && ` → ${doc.dest_location_name}`}
           </div>
         </div>
@@ -520,66 +628,96 @@ function Scanner({ operationId }: { operationId: string }) {
           </ul>
 
           <div className="px-3 py-3 text-[var(--ds-fs-xs)] leading-relaxed text-[hsl(var(--ds-ink-subtle))]">
-            Units land <strong>quarantined</strong> and are not sellable until they pass QC.
-            Scan rules on this screen come from the operation type
+            {/*
+              Kind-specific and NOT interchangeable. A receipt creates units in
+              quarantine; a transfer carries whatever condition the unit already
+              had and does not re-inspect it — inv_test_result has no
+              operation_id, so running QC from a transfer would overwrite the
+              receipt's verdict for that unit. See CLAUDE.md.
+            */}
+            {doc.kind === 'receipt' ? (
+              <>Units land <strong>quarantined</strong> and are not sellable until they pass QC.</>
+            ) : (
+              <>
+                Units keep the condition they already have — a {adapter.documentNoun} relocates
+                stock, it does not re-inspect it. Moving a quarantined or rejected unit is
+                allowed and is often the point.
+              </>
+            )}
+            {' '}Scan rules on this screen come from the operation type
             ({doc.type_name}); the database does not enforce them.
           </div>
         </div>
 
         <div className="flex min-h-0 w-full flex-col border-t border-[hsl(var(--ds-border))] lg:w-[380px] lg:border-t-0 xl:w-[420px]">
           <div className="flex items-center gap-2 border-b border-[hsl(var(--ds-border))] px-3 py-2">
-            <label htmlFor="scan-cost" className="text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">
-              Unit cost
-            </label>
-            <div className="w-[120px]">
-              <TextInput
-                id="scan-cost"
-                type="number"
-                min="0"
-                step="0.01"
-                value={cost}
-                onChange={(e) => setCost(e.target.value)}
-              />
-            </div>
+            {/*
+              Only where the adapter actually uses it. inv_transfer_stock_item
+              has no cost parameter, so on a transfer this box would collect a
+              number that is silently discarded.
+            */}
+            {adapter.capturesUnitCost && (
+              <>
+                <label htmlFor="scan-cost" className="text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">
+                  Unit cost
+                </label>
+                <div className="w-[120px]">
+                  <TextInput
+                    id="scan-cost"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={cost}
+                    onChange={(e) => setCost(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
             <span className="ml-auto text-[var(--ds-fs-sm)] tabular-nums text-[hsl(var(--ds-ink-muted))]">
               {totalReceived} / {totalDemand} units
             </span>
           </div>
 
-          <ScanFeed events={events} onRetry={onRetry} onDismiss={onDismiss} />
+          <ScanFeed
+            events={events}
+            onRetry={onRetry}
+            onDismiss={onDismiss}
+            /* "Received" is a lie on a transfer. Comes off the adapter. */
+            confirmedLabel={adapter.unitCommittedVerb}
+          />
         </div>
       </div>
 
-      {/* ---- over-receipt confirmation ---- */}
-      {overReceipt && (
+      {/* ---- over-scan confirmation ---- */}
+      {overScan && (
         <div className="shrink-0 border-t-2 border-[hsl(var(--ds-amber))] bg-[hsl(var(--ds-amber-bg))] p-3">
           <p className="text-[16px] font-bold text-[hsl(var(--ds-ink))]">
-            This is unit {overReceipt.nextCount} of {overReceipt.line.demand_qty} ordered
+            This is unit {overScan.nextCount} of {overScan.line.demand_qty} on this line
             {' '}— confirm?
           </p>
           <p className="mt-1 text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink))]">
-            <span className="font-mono font-semibold">{overReceipt.code}</span> would take
-            {' '}{overReceipt.line.product_name} past its ordered quantity. The extra unit is
-            recorded either way — the database does not block over-receipt.
+            <span className="font-mono font-semibold">{overScan.code}</span> would take
+            {' '}{overScan.line.product_name} past the demand on its line. The extra unit is
+            recorded either way — the database does not block it.
           </p>
           <div className="mt-3 flex gap-2">
             <button
               type="button"
               onClick={() => {
-                const { line, code } = overReceipt;
-                setOverReceipt(null);
-                chain.current = chain.current.then(() => commitUnit(line, code));
+                const { line, code, existing } = overScan;
+                setOverScan(null);
+                chain.current = chain.current.then(() => commitUnit(line, code, existing));
               }}
               className="h-12 flex-1 rounded-[var(--ds-radius)] bg-[hsl(var(--ds-amber))] text-[15px] font-bold text-white"
             >
-              Receive it anyway
+              Accept it anyway
             </button>
             <button
               type="button"
               onClick={() => {
-                push('info', overReceipt.code,
-                  `Not received. ${overReceipt.line.product_name} stays at ${overReceipt.line.received_qty} of ${overReceipt.line.demand_qty}.`);
-                setOverReceipt(null);
+                push('info', overScan.code,
+                  `Skipped. ${overScan.line.product_name} stays at ${overScan.line.received_qty} of ${overScan.line.demand_qty}.`);
+                setOverScan(null);
               }}
               className="h-12 flex-1 rounded-[var(--ds-radius)] border border-[hsl(var(--ds-border-strong))] bg-[hsl(var(--ds-surface))] text-[15px] font-semibold text-[hsl(var(--ds-ink))]"
             >
@@ -604,7 +742,8 @@ function Scanner({ operationId }: { operationId: string }) {
         {confirmValidate ? (
           <div className="rounded-[var(--ds-radius)] bg-[hsl(var(--ds-surface))] p-3">
             <p className="text-[var(--ds-fs-sm)] font-semibold text-[hsl(var(--ds-ink))]">
-              Validate {doc.number} with {totalReceived} of {totalDemand} units received?
+              Validate {doc.number} with {totalReceived} of {totalDemand} units{' '}
+              {adapter.unitCommittedVerb}?
             </p>
             <div className="mt-3 flex gap-2">
               <button
@@ -646,10 +785,83 @@ function Scanner({ operationId }: { operationId: string }) {
   );
 }
 
+/**
+ * Loads the document, then hands it to a session with the right adapter.
+ *
+ * The adapter cannot be chosen before this point, because the kind lives on the
+ * document.
+ */
+function Scanner({ operationId }: { operationId: string }) {
+  const navigate = useNavigate();
+  const { data: doc, isLoading, error, refetch } = useScanDocument(operationId);
+
+  if (isLoading) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-[hsl(var(--ds-navy))] text-white">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error || !doc) {
+    return (
+      <div className="ds-root min-h-screen bg-[hsl(var(--ds-surface))] p-4">
+        <ErrorBanner
+          title="Could not open this document"
+          message={error ? errorText(error) : `Operation ${operationId} was not found.`}
+        />
+        <Button className="mt-3" variant="outline" onClick={() => navigate('/inventory2/barcode')}>
+          Back to the list
+        </Button>
+      </div>
+    );
+  }
+
+  const adapter = adapterFor(doc.kind);
+
+  // A kind with no adapter is REFUSED IN WORDS, never fallen back to another
+  // kind's adapter. Falling back to the receipt adapter here would call
+  // inv_receive_serial on, say, a delivery note — inventing units on a document
+  // whose whole purpose is to send them away.
+  if (!adapter) {
+    return (
+      <div className="ds-root min-h-screen bg-[hsl(var(--ds-surface))] p-4">
+        <ErrorBanner
+          title={`Scanning is not built for ${doc.kind} documents yet`}
+          message={unsupportedKindReason(doc.kind, doc.number)}
+        />
+        <Button className="mt-3" variant="outline" onClick={() => navigate('/inventory2/barcode')}>
+          Back to the list
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <ScanSession
+      key={doc.id}
+      doc={doc}
+      adapter={adapter}
+      operationId={operationId}
+      refetch={refetch}
+    />
+  );
+}
+
 /* -------------------------------------------------------------- the route */
 
 export default function BarcodeScan() {
   const [params] = useSearchParams();
-  const operationId = params.get('receipt');
+  /*
+   * `operation` is the parameter now — the screen takes documents of any kind
+   * and `receipt=` was a lie on three quarters of them.
+   *
+   * `receipt=` is still READ, and deliberately not redirected away from: links
+   * to it exist in the wild (the Barcode segment on every receipt printed into
+   * someone's notes, browser history, bookmarks). Rule 4 in spirit — the old
+   * entry point keeps working rather than being deleted out from under whoever
+   * saved it.
+   */
+  const operationId = params.get('operation') ?? params.get('receipt');
   return operationId ? <Scanner operationId={operationId} /> : <DocumentPicker />;
 }

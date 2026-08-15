@@ -45,6 +45,13 @@ import type { CommitUnitInput, ScanAdapter, ScanDocument } from './scan';
 export const TRANSFER_SCAN_ADAPTER: ScanAdapter = {
   kind: 'internal',
   documentNoun: 'transfer',
+  unitCommittedVerb: 'moved',
+  /**
+   * inv_transfer_stock_item has no cost parameter. The unit was costed when it
+   * was received and relocating it does not re-cost it, so `CommitUnitInput.cost`
+   * is ignored here and the screen must not ask for it.
+   */
+  capturesUnitCost: false,
 
   /**
    * Unlike the receipt adapter, `input.existing` is REQUIRED here — a transfer

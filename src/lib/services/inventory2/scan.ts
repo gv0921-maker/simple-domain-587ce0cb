@@ -357,6 +357,25 @@ export interface ScanAdapter {
   kind: ScanDocKind;
   /** How the document is named in operator-facing sentences: "receipt". */
   documentNoun: string;
+  /**
+   * What committing one unit DID, past tense: "received", "moved".
+   *
+   * A presentation field, not payload — the payload gap is the one recorded
+   * above `CommitUnitInput`. It lives here for the same reason `documentNoun`
+   * does: the words that differ per kind belong on the seam, not in a
+   * `kind === 'receipt'` test inside the screen.
+   */
+  unitCommittedVerb: string;
+  /**
+   * Whether the screen should offer a unit-cost box.
+   *
+   * False on every kind that MOVES an existing unit. A transfer's adapter
+   * ignores `CommitUnitInput.cost` entirely — inv_transfer_stock_item has no
+   * cost parameter, because the unit was already costed when it was received.
+   * Showing the box anyway would invite an operator to type a figure that is
+   * silently discarded, which is the same class of lie as a hidden destination.
+   */
+  capturesUnitCost: boolean;
   /** Commits ONE unit. Returns the stock item id. */
   commitUnit(input: CommitUnitInput): Promise<string>;
   completeDocument(operationId: string): Promise<unknown>;
