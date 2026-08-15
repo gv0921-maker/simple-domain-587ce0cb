@@ -231,37 +231,124 @@ were removed.
 
 ---
 
-## DATABASE FINGERPRINT BASELINE — taken 2026-08-14, after Pass C
+## DATABASE FINGERPRINT BASELINE — re-taken 2026-08-15, after the transfer line RPCs
 
 Around any applied migration the expected proof is a **before/after fingerprint**: md5
 snapshots taken *before* applying and re-run *after*, showing the blast radius was exactly
 what was approved. The baseline must be taken **BEFORE** the migration runs — it cannot be
 reconstructed afterwards.
 
-**The pre-Pass-C baseline was LOST.** The session that applied Pass C ended on a spend
-limit and the editor closed; the baseline lived only in that session's context. Commit
-`6f9df26` quotes a constraint fingerprint `b5901cff` and a trigger fingerprint `876e3880`,
-but not the SQL that produced them, so those two digests **cannot be reproduced or checked**
-and should not be trusted as comparable to anything computed later.
+### The Pass C digests were DELETED, not superseded
 
-**No attempt was made to reconstruct it.** A fabricated proof is worse than a missing one.
-What Pass C can honestly claim instead is inspection, not hashes: the migration body is
-3 × `CREATE VIEW` + 3 × `COMMENT ON VIEW` and nothing else — no `ALTER`, `DROP`, `GRANT`
-or DML — and the post-state counts match what the commit predicted (views 8 → 11,
-functions 211 unchanged, policies 568 unchanged).
+They are gone from this file on purpose. They were unreproducible, and **two competing sets
+of numbers is worse than one missing set** — someone eventually diffs against the wrong one
+and reports a false match or a false alarm.
 
-**These are the values to diff the NEXT migration against.** Captured 2026-08-14 on a
-database with Pass A, B and C applied:
+What was established before deleting them, on 2026-08-15:
+
+| | |
+|---|---|
+| The **counts** were recovered exactly | 160 base tables, 568 policies across all schemas, 547 in `public`. So the Pass C set was computed over **everything**, and its "non-`inv_`" label was simply wrong — 147 non-`inv_` + 13 `inv_` = 160, and 497 + 50 = 547 |
+| The **digests** were NOT recovered | Re-running the recovered scope produces `1c5220c4…` for schema and `90148e0e…` for policies, against the recorded `81825307…` and `4ed0b818…`. The separator or column set differs and cannot be guessed |
+| Therefore | the scope is known, the formula is not, and the digests stay uncheckable |
+
+Nothing was fabricated to close the gap. This is exactly the failure the rule below exists
+to prevent, and it cost two passes' worth of proof.
+
+### The rule, restated because it was learned the expensive way
+
+**Record the exact SQL alongside any digest, in the same place as the digest.** A hash
+without its formula is not evidence — it is a number that cannot be argued with or checked.
+
+**Do not filter by name in a fingerprint.** The `inv_`/non-`inv_` split is precisely what
+made the old set ambiguous: the label said one thing and the query did another, and nobody
+could tell which from the recorded value. Every part below covers **all of `public`,
+unfiltered**. Scope questions get answered by reading the migration, not by pre-filtering
+the proof.
+
+### The SQL — run this whole block before and after, and diff the output
+
+Also saved runnable at `supabase/smoke/fingerprint.sql`. Do not edit it without re-taking
+the baseline, because editing the formula invalidates every value below.
+
+```sql
+select 'schema' as part,
+ (select md5(string_agg(x, E'\n' order by x)) from (
+    select c.table_name||'.'||c.column_name||':'||c.data_type||':'||c.is_nullable||':'||coalesce(c.column_default,'') as x
+    from information_schema.columns c
+    join information_schema.tables t on t.table_schema=c.table_schema and t.table_name=c.table_name
+    where c.table_schema='public' and t.table_type='BASE TABLE') s) as md5,
+ (select count(*) from information_schema.tables
+   where table_schema='public' and table_type='BASE TABLE')::text as cnt
+union all
+select 'policies',
+ (select md5(string_agg(x, E'\n' order by x)) from (
+    select tablename||'|'||policyname||'|'||cmd||'|'||coalesce(qual,'')||'|'||coalesce(with_check,'')||'|'||array_to_string(roles,',') as x
+    from pg_policies where schemaname='public') s),
+ (select count(*)::text from pg_policies where schemaname='public')
+union all
+select 'functions',
+ (select md5(string_agg(x, E'\n' order by x)) from (
+    select p.proname||'('||pg_get_function_identity_arguments(p.oid)||')='||md5(p.prosrc) as x
+    from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public') s),
+ (select count(*)::text from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+   where n.nspname='public')
+union all
+select 'constraints',
+ (select md5(string_agg(x, E'\n' order by x)) from (
+    select rel.relname||':'||con.conname||':'||con.contype::text||':'||pg_get_constraintdef(con.oid) as x
+    from pg_constraint con join pg_class rel on rel.oid=con.conrelid
+    join pg_namespace n on n.oid=rel.relnamespace where n.nspname='public') s),
+ (select count(*)::text from pg_constraint con join pg_class rel on rel.oid=con.conrelid
+    join pg_namespace n on n.oid=rel.relnamespace where n.nspname='public')
+union all
+select 'triggers',
+ (select md5(string_agg(x, E'\n' order by x)) from (
+    select c.relname||':'||t.tgname||':'||pg_get_triggerdef(t.oid) as x
+    from pg_trigger t join pg_class c on c.oid=t.tgrelid
+    join pg_namespace n on n.oid=c.relnamespace
+    where not t.tgisinternal and n.nspname='public') s),
+ (select count(*)::text from pg_trigger t join pg_class c on c.oid=t.tgrelid
+    join pg_namespace n on n.oid=c.relnamespace
+    where not t.tgisinternal and n.nspname='public')
+union all
+select 'views',
+ (select md5(string_agg(x, E'\n' order by x)) from (
+    select c.relname||'='||md5(pg_get_viewdef(c.oid)) as x
+    from pg_class c join pg_namespace n on n.oid=c.relnamespace
+    where n.nspname='public' and c.relkind in ('v','m')) s),
+ (select count(*)::text from pg_class c join pg_namespace n on n.oid=c.relnamespace
+   where n.nspname='public' and c.relkind in ('v','m'))
+order by 1;
+```
+
+**A fingerprint part must not depend on WHO RAN IT**, and one of these nearly did. The
+`views` part first used `information_schema.views.view_definition`, which returns **NULL**
+when the querying role lacks privileges on the view. Read as `supabase_read_only_user` — the
+role the MCP tool connects as — all 11 definitions came back NULL and the digest was the
+md5 of eleven empty strings: a stable, confident, entirely meaningless number that would
+have matched itself forever while the views changed underneath it. It was caught only
+because the same block was run through two different connections and disagreed.
+`pg_get_viewdef` reads `pg_rewrite` and returns identical text from both roles.
+
+**Run the block through both connections when changing it.** Agreement between two roles is
+what proves a part is measuring the database rather than the observer.
+
+### The values — captured 2026-08-15, `inv_` passes A/B/C + transfers 2/4 and 5/8 applied
 
 | Part | md5 | Count |
 |---|---|---|
-| schema, non-`inv_` base tables (`table.column:type:nullable:default`) | `81825307e130975fc64b72e7047a9ab2` | 160 base tables |
-| policies, non-`inv_` (`tablename\|policyname\|cmd\|qual\|with_check\|roles`) | `4ed0b8182618a244fd061c91788ed0de` | 568 all schemas / 547 `public` |
-| functions (`proname(identity_args)=md5(prosrc)`, all of `public`) | `863b01cfcb6f538ec8ded6ac1fdaf333` | 211 |
-| constraints (`relation:conname:contype:def`) | `4a32dc578a4a12d66343f8e8bb5ce083` | 734 |
-| triggers, non-internal (`relname:tgname:def`) | `498b81ea024c1441eff67a7e601e4335` | 188 |
+| `constraints` | `43cb8bba80af67a333f3ab39423b1019` | 734 |
+| `functions` | `45cd80ad7e904e9a5c089d477d302d33` | 215 |
+| `policies` | `8c3880435cc42863a322d5a311b3a660` | 547 |
+| `schema` | `1c5220c4fdccc51b2b2831016e41c1f8` | 160 base tables |
+| `triggers` | `aed332b408c333ddc08ac93d3b9dc7f9` | 188 |
+| `views` | `9c9ed35a60fb0f2c363dec46c7917c38` | 11 |
 
-The three legacy namesakes, which must stay byte-identical:
+The three legacy namesakes, which must stay byte-identical. Formula is plain
+`md5(prosrc)` / `length(prosrc)` for the named function in `public` — these three DID
+survive the Pass C loss, because that formula is unambiguous enough to have been guessed
+correctly:
 
 | Function | md5 | length |
 |---|---|---|
@@ -269,12 +356,12 @@ The three legacy namesakes, which must stay byte-identical:
 | `inv_validate_stock_move` | `4160c526a51e51534aa39e52cd9e91b6` | 1143 |
 | `inv_delete_stock_move` | `6c37e9aedd167dd2f7c79628342c2cd8` | 135 |
 
-**Record the exact SQL alongside any future digest.** The whole reason `b5901cff` is
-useless is that its formula was not written down.
+**When a migration is applied, update the table above in the same commit.** A baseline that
+lags reality is the next version of this problem.
 
 Note also that `supabase_migrations.schema_migrations` stops at `20260725091618`. Passes A,
-B and C are absent from the ledger because they were applied with
-`supabase db query --linked --file`, which does not record there. That is expected, not
+B and C and the transfer migrations are absent from the ledger because they were applied
+with `supabase db query --linked --file`, which does not record there. That is expected, not
 drift — the migration files in `supabase/migrations/` are the record.
 
 ---
