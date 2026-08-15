@@ -72,6 +72,7 @@ export const MODULE_TABS: ModuleTabsConfig[] = [
       // matching prefix, not a link, so declaring it early is correct and means
       // the moved pages are covered the instant they land.
       { id: 'inv2-receipts', label: 'Inventory 2 · Receipts', href: '/inventory2/receipts' },
+      { id: 'inv2-transfers', label: 'Inventory 2 · Internal Transfers', href: '/inventory2/transfers' },
       { id: 'inv2-products', label: 'Inventory 2 · Products', href: '/inventory2/products' },
       { id: 'inv2-qc', label: 'Inventory 2 · Quality', href: '/inventory2/qc' },
       { id: 'inv2-barcode', label: 'Inventory 2 · Barcode', href: '/inventory2/barcode' },

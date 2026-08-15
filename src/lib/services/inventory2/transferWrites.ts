@@ -66,3 +66,131 @@ export async function completeOperation(operationId: string): Promise<unknown> {
   if (error) throw error;
   return data;
 }
+
+/* ------------------------------------------------------- create and lines */
+
+/** Shape of the jsonb `inv_create_operation` returns. */
+export interface CreateOperationResult {
+  id: string;
+  number: string;
+  kind: string;
+  state: string;
+  source_location_id: string | null;
+  dest_location_id: string | null;
+  /**
+   * The two `locks_*` flags as the DATABASE resolved them, plus whether it
+   * ignored what we sent. `locks_source` is honoured for the first time on this
+   * path — it had sat on inv_operation_type since Step 2 read by nothing — and
+   * it behaves exactly as locks_destination already did: a locked end ignores
+   * the caller's value rather than rejecting it, and says that it did.
+   */
+  source_locked: boolean;
+  destination_locked: boolean;
+  client_source_ignored: boolean;
+  client_destination_ignored: boolean;
+}
+
+export interface CreateTransferInput {
+  operationTypeId: string;
+  sourceLocationId?: string | null;
+  destLocationId?: string | null;
+  sourceDocument?: string | null;
+  scheduledAt?: string | null;
+  notes?: string | null;
+}
+
+/**
+ * Raise a transfer.
+ *
+ * Both ends are SENT even when the type locks them. The RPC decides and reports
+ * back which values it ignored, so the form can say "we overrode you" instead of
+ * silently displaying something the user did not choose. Same contract the
+ * receipt create form already honours for the destination.
+ *
+ * No vendor, no customer, no purchase order: `inv_create_operation` refuses a
+ * purchase order on any non-receipt kind, and a transfer has no partner — both
+ * of its ends are locations.
+ */
+export async function createTransfer(input: CreateTransferInput): Promise<CreateOperationResult> {
+  const { data, error } = await supabase.rpc('inv_create_operation', {
+    p_operation_type_id:  input.operationTypeId,
+    p_source_location_id: input.sourceLocationId ?? undefined,
+    p_dest_location_id:   input.destLocationId ?? undefined,
+    p_source_document:    input.sourceDocument ?? undefined,
+    p_scheduled_at:       input.scheduledAt ?? undefined,
+    p_notes:              input.notes ?? undefined,
+  });
+  if (error) throw error;
+  return data as unknown as CreateOperationResult;
+}
+
+/**
+ * Add or update a product line on an operation of any kind.
+ *
+ * Upserts by product, like its receipt namesake: calling again for the same
+ * product changes that line's demand rather than creating a duplicate.
+ */
+export async function addOperationLine(
+  operationId: string,
+  productId: string,
+  demandQty: number,
+): Promise<string> {
+  const { data, error } = await supabase.rpc('inv_add_operation_line', {
+    p_operation_id: operationId,
+    p_product_id: productId,
+    p_demand_qty: demandQty,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+export interface RemoveOperationLineResult {
+  operation: string;
+  kind: string;
+  removed_move_id: string;
+  operation_state: string;
+}
+
+/**
+ * Remove an unprocessed line.
+ *
+ * Refused once units have been moved onto it — 'This line has N unit(s) already
+ * moved and cannot be removed.' That refusal is the answer, not an error to
+ * swallow: units leave a document only by reversal, which does not exist.
+ */
+export async function removeOperationLine(moveId: string): Promise<RemoveOperationLineResult> {
+  const { data, error } = await supabase.rpc('inv_remove_operation_line', {
+    p_move_id: moveId,
+  });
+  if (error) throw error;
+  return data as unknown as RemoveOperationLineResult;
+}
+
+/* -------------------------------------------------------- form option reads */
+
+export interface TransferTypeOption {
+  id: string;
+  name: string;
+  locks_source: boolean;
+  locks_destination: boolean;
+  default_source_location_id: string | null;
+  default_dest_location_id: string | null;
+}
+
+/**
+ * Active operation types of kind `internal`.
+ *
+ * Each one IS a route: "Godown → Showroom" and "Showroom → Packing" are
+ * separate types, not one type with variable ends. That is why the create form
+ * leads with this choice and derives both locations from it.
+ */
+export async function listTransferTypes(): Promise<TransferTypeOption[]> {
+  const { data, error } = await supabase
+    .from('inv_operation_type')
+    .select('id, name, locks_source, locks_destination, default_source_location_id, default_dest_location_id')
+    .eq('kind', 'internal')
+    .eq('is_active', true)
+    .order('name');
+  if (error) throw error;
+  return data ?? [];
+}

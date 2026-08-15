@@ -79,6 +79,11 @@ const Inv2ReceiptNew = lazy(() => import("@/pages/inventory2/ReceiptNew"));
 const Inv2ReceiptDetail = lazy(() => import("@/pages/inventory2/ReceiptDetail"));
 const Inv2QcQueue = lazy(() => import("@/pages/inventory2/QcQueue"));
 const Inv2BarcodeScan = lazy(() => import("@/pages/inventory2/BarcodeScan"));
+// Internal transfers — inv_operation kind='internal'. The legacy screens at
+// /inventory/internal-movements are untouched and still mounted.
+const Inv2TransfersList = lazy(() => import("@/pages/inventory2/TransfersList"));
+const Inv2TransferNew = lazy(() => import("@/pages/inventory2/TransferNew"));
+const Inv2TransferDetail = lazy(() => import("@/pages/inventory2/TransferDetail"));
 // Pass 9 — the first Inventory 2 screens that WRITE `products` (a table shared
 // with Sales). Write surface is narrow and enforced in
 // lib/services/inventory2/products.ts. The legacy product pages at
@@ -445,6 +450,12 @@ const App = () => (
             {/* /new is declared before /:id so it is not swallowed as an id. */}
             <Route path="/inventory2/receipts/new" element={<ProtectedRoute><Inv2ReceiptNew /></ProtectedRoute>} />
             <Route path="/inventory2/receipts/:id" element={<ProtectedRoute><Inv2ReceiptDetail /></ProtectedRoute>} />
+            {/* Internal transfers. The legacy /inventory/internal-movements
+                screens are untouched and both run side by side until sign-off. */}
+            <Route path="/inventory2/transfers" element={<ProtectedRoute><Inv2TransfersList /></ProtectedRoute>} />
+            {/* /new is declared before /:id so it is not swallowed as an id. */}
+            <Route path="/inventory2/transfers/new" element={<ProtectedRoute><Inv2TransferNew /></ProtectedRoute>} />
+            <Route path="/inventory2/transfers/:id" element={<ProtectedRoute><Inv2TransferDetail /></ProtectedRoute>} />
             <Route path="/inventory2/qc" element={<ProtectedRoute><Inv2QcQueue /></ProtectedRoute>} />
             {/* Inventory 2's own scan screen. The legacy /barcode queue is
                 untouched and still serves the old module. */}

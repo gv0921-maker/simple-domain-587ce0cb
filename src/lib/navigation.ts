@@ -65,6 +65,7 @@ export const INVENTORY2_NAV = [
     href: '/inventory2/receipts',
     children: [
       { label: 'Receipts', href: '/inventory2/receipts' },
+      { label: 'Internal Transfers', href: '/inventory2/transfers' },
       { label: 'Barcode', href: '/inventory2/barcode' },
     ],
   },
