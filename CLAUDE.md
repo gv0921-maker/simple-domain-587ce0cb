@@ -375,7 +375,7 @@ drift — the migration files in `supabase/migrations/` are the record.
 | `transfers` + `transfer_lines` | Odoo-shaped picking | 0 / 0 | **Dead.** Never used |
 | `internal_movements` + `internal_movement_items` | location→location, has an unused `operation_type_id` | 0 / 0 | **Dead schema, LIVE SCREENS** at `/inventory/internal-movements{,/new,/:id}` |
 | `internal_transfer_orders` + `internal_transfer_order_lines` | keyed to `sales_order_id` | **4 / 4** | **LIVE** |
-| `inv_operation` kind=`internal` | the new model | 0 | Type `ITEM ESTIMATE` exists, active, never used |
+| `inv_operation` kind=`internal` | the new model | **1** | Type `ITEM ESTIMATE`, active, `STOCK` → `DELIVERY ORDER`. One document created by the transfers pass |
 
 The live ITO rows are `ITO-2627-0002..0005`, all `confirmed`/`completed`, all carrying a
 `sales_order_id`. Their `operation_type_id`, `source_location_id` and `dest_location_id` are
@@ -391,7 +391,7 @@ transit/packing, godown → showroom.
 | | |
 |---|---|
 | The operation TYPE carries fixed source and destination | "Showroom → Packing" and "Godown → Showroom" are **separate operation types**, not one type with variable locations |
-| Consequence | Transfers are the **first real consumer of `locks_source`**, which has existed on `inv_operation_type` since Step 2 and is read by nothing |
+| Consequence | Transfers were *expected* to be the **first real consumer of `locks_source`**, which has existed on `inv_operation_type` since Step 2 and is read by nothing. **They were not.** `ITEM ESTIMATE` carries `locks_source = false`, so the transfer pass never exercised the flag and it remains unconsumed — corrected 2026-08-17, having been recorded here as though it had happened. Every one of the four operation types has `locks_source = false`; only `GOODS RECEIVED` sets `locks_destination`. Whoever first sets the flag true is still writing the first consumer of it, with no working example to copy |
 | The sales-order link | A **reference on the document**, not the document's identity. Do **not** model an ITO as a child of a sales order the way legacy `internal_transfer_orders` does |
 
 ---
@@ -517,6 +517,56 @@ A stock level is location-scoped. A "does anything reference this" guard is not.
 
 Not known issues. These are shapes the model is expected to grow, recorded so the design is
 not re-derived from scratch.
+
+### The delivery payment gate — BUILT INERT, must be switched on when Sales lands
+
+**This is a PLANNED COMPLETION, not a known issue.** The hook is deliberately built and
+deliberately not wired. It is recorded here so that "switch it on" is a step someone
+performs, not a thing they have to rediscover.
+
+**Why it cannot be enforced yet.** Payment status lives in the Sales module, which is not
+rebuilt. V's decision, 2026-08-17: the gate cannot be enforced now, and that is accepted —
+but it must not be skipped, and it must not be a gate that silently passes.
+
+| | |
+|---|---|
+| The document | `inv_operation` kind `outgoing`, type **DELIVERY NOTE**, `DELIVERY ORDER` → `CUSTOMERS` |
+| The completion path | **`inv_complete_operation(p_operation_id uuid)`** — the single completion RPC for every kind. **This is the exact function to change.** |
+| The reference | `inv_operation.sales_order_id`, nullable, added while `outgoing` held **zero** documents so there is no backfill question |
+| The gate | **`inv_assert_delivery_paid(p_operation_id uuid)`** — exists, named, and **hard-fails**. It is NOT called from `inv_complete_operation` yet |
+
+**What the gate will read when it is switched on**, mirroring the legacy
+`complete_delivery_with_qc` exactly so the two cannot drift into different answers:
+
+```sql
+SELECT COALESCE(paid_amount, 0), COALESCE(grand_total, total, 0)
+  INTO v_paid, v_total
+  FROM public.sales_orders WHERE id = v_so_id FOR UPDATE;
+IF v_total <= 0 OR v_paid + 0.005 < v_total THEN
+  RAISE EXCEPTION 'Delivery available after full payment. Current: ₹% paid of ₹%', v_paid, v_total;
+END IF;
+```
+
+`FOR UPDATE` is not decoration — it locks the order row so a payment cannot land between the
+read and the delivery. The `0.005` tolerance absorbs numeric rounding on a 2dp currency.
+Note the legacy predicate also refuses `v_total <= 0`, so a zero-total order does **not**
+pass; only a genuinely-paid one does.
+
+**Why it hard-fails instead of returning "paid".** Same discipline as
+`product_variant_auto_archive`, which raises `feature_not_supported` rather than sweeping
+with columns it does not have. A gate that returns success because it *cannot check* is
+indistinguishable from a gate that checked and approved — and it is the second one that
+everybody assumes. An inert gate must be loud.
+
+**Switching it on** means: delete the refusal branch in `inv_assert_delivery_paid`, restore
+the body above, and add the call to `inv_complete_operation` under a kind test for
+`outgoing`. Three edits, one migration, one approval.
+
+**The NULL case is UNDECIDED and must be decided at switch-on.** Legacy passes trivially
+when `sales_order_id IS NULL` — its own comment calls this an interface stub. Whether that
+stays a deliberate escape hatch (samples, warranty replacements, internal write-offs to a
+customer location) or becomes a hole to close is a business decision V will take then, not
+now. **Do not let it default silently by copying the legacy branch without asking.**
 
 ### Return-to-vendor — how rejected stock leaves
 
