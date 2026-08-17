@@ -4478,6 +4478,7 @@ export type Database = {
           operation_type_id: string
           partner_customer_id: string | null
           partner_vendor_id: string | null
+          sales_order_id: string | null
           scheduled_at: string | null
           source_document: string | null
           source_location_id: string | null
@@ -4496,6 +4497,7 @@ export type Database = {
           operation_type_id: string
           partner_customer_id?: string | null
           partner_vendor_id?: string | null
+          sales_order_id?: string | null
           scheduled_at?: string | null
           source_document?: string | null
           source_location_id?: string | null
@@ -4514,6 +4516,7 @@ export type Database = {
           operation_type_id?: string
           partner_customer_id?: string | null
           partner_vendor_id?: string | null
+          sales_order_id?: string | null
           scheduled_at?: string | null
           source_document?: string | null
           source_location_id?: string | null
@@ -4548,6 +4551,13 @@ export type Database = {
             columns: ["partner_vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_operation_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
             referencedColumns: ["id"]
           },
           {
@@ -11180,6 +11190,10 @@ export type Database = {
       }
       inv_approve_adjustment: {
         Args: { _adjustment_id: string; _approved_by: string }
+        Returns: undefined
+      }
+      inv_assert_delivery_paid: {
+        Args: { p_operation_id: string }
         Returns: undefined
       }
       inv_available_qty: {
