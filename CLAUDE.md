@@ -443,6 +443,76 @@ history. Do not treat the exhaustive-deps rule as noise anywhere in this module.
 
 ---
 
+## ON-HAND IS LOCATION-BLIND UNLESS YOU FILTER IT — swept 2026-08-17
+
+**`inv_on_hand` and `inv_stock_item` count units at EVERY location type, including the ones
+that mean the unit has left the building.** Neither carries a notion of "our stock". Any
+reader that does not join `inv_location` and filter is reporting a warehouse total that
+includes goods already delivered to a customer, in transit, or scrapped.
+
+`inv_on_hand` is a bare `GROUP BY product_id, location_id, status` over `inv_stock_item` —
+no predicate at all. That is correct for a view whose job is to expose the buckets; the
+scope decision belongs to the caller. It just has to actually be made.
+
+`inv_location.type` is the enum `inv_location_type`:
+`supplier, view, internal, customer, inventory_loss, production, transit, scrap`.
+**Only `internal` is stock we hold.** The other seven are counterpart or structural
+locations — `supplier` and `customer` are where units come from and go to, `production`,
+`inventory_loss` and `scrap` absorb write-offs, `transit` is mid-move, and `view` is a
+grouping node that holds nothing.
+
+### What this actually cost, on today's data
+
+25 units exist. 23 sit in `GODOWN` (`internal`); 2 sit in `DELIVERY ORDER` (`transit`).
+Every on-hand figure in Inventory 2 read **25** until the location join was added.
+
+### `inv_available_qty` HAS NO READER, AND IT HAS THE SAME BUG
+
+```sql
+SELECT count(*)::integer FROM public.inv_stock_item si
+ WHERE si.product_id = p_product_id
+   AND si.status = 'ok'
+   AND si.reserved_for_customer_id IS NULL
+   AND (p_location_id IS NULL OR si.location_id = p_location_id);
+```
+
+Verified 2026-08-17: the only occurrence of the name anywhere in `src/` is the generated
+signature in `src/integrations/supabase/types.ts`. **There is no call site** — not in the
+frontend, and no other function in `public` calls it either.
+
+It filters on `status` and on `reserved_for_customer_id`, which makes it *look* like the
+authoritative answer to "how many can I sell". It is not. Passing `p_location_id => NULL`
+— the obvious way to ask "across the whole company" — drops the location predicate
+entirely and counts `ok`, unreserved units sitting at **customer, transit and scrap**
+locations as available to sell.
+
+**Whoever reads it first inherits the bug.** It will look like the careful option next to
+a hand-rolled count, which is exactly why it is dangerous.
+
+> **Fix it before using it, do not trust it because it looks authoritative.** The shape
+> is the same join the frontend now does: restrict to `inv_location.type = 'internal'`
+> when `p_location_id IS NULL`. That is a database change and needs its own approval —
+> it is not a licence to edit the function on the way past.
+
+### Not every count SHOULD be filtered — check what the number is for
+
+`tg_product_variant_guard` deliberately counts units at **every** location when it refuses
+to archive a variant:
+
+```sql
+SELECT count(*) INTO v_units FROM public.inv_stock_item WHERE variant_id = OLD.id;
+```
+
+That is right for a guard: a unit in transit is still a unit of that version, and archiving
+the version would hide it. So a UI figure that *predicts this refusal* must be unfiltered,
+while a UI figure that *reports stock we hold* must be filtered. They are two different
+numbers and cannot be served by one field.
+
+**The rule: before adding the location filter to a count, ask what the count is used for.**
+A stock level is location-scoped. A "does anything reference this" guard is not.
+
+---
+
 ## PLANNED DOCUMENT TYPES — designed, not built
 
 Not known issues. These are shapes the model is expected to grow, recorded so the design is
