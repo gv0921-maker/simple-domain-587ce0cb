@@ -93,6 +93,18 @@ export const DELIVERY_SCAN_ADAPTER: ScanAdapter = {
   capturesUnitCost: false,
 
   /**
+   * Deliberately NOT the transfer's words. A transfer says relocating a
+   * quarantined unit "is often the point"; on a delivery that would tell the
+   * operator the opposite of what happens two lines later, when the unit is
+   * warned about by name and condition.
+   */
+  conditionBlurb:
+    'Units keep the condition they already have — a delivery ships stock, it does not '
+    + 're-inspect it. Only an OK unit ships without a question: anything quarantined, '
+    + 'rejected, damaged, destroyed, lost or flagged for attention will be named with its '
+    + 'condition and has to be confirmed, because a delivery cannot be taken back.',
+
+  /**
    * The question the seam was missing. Null for an `ok` unit; otherwise a
    * sentence naming the condition and what it means.
    *

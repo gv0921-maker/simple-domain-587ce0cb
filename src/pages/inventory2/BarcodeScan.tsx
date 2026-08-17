@@ -699,21 +699,15 @@ function ScanSession({
 
           <div className="px-3 py-3 text-[var(--ds-fs-xs)] leading-relaxed text-[hsl(var(--ds-ink-subtle))]">
             {/*
-              Kind-specific and NOT interchangeable. A receipt creates units in
-              quarantine; a transfer carries whatever condition the unit already
-              had and does not re-inspect it — inv_test_result has no
-              operation_id, so running QC from a transfer would overwrite the
-              receipt's verdict for that unit. See CLAUDE.md.
+              FROM THE ADAPTER, not from a kind test here. This was
+              `doc.kind === 'receipt' ? … : …`, and the delivery pass caught it
+              in preview: a delivery inherited the transfer's words and told the
+              operator that shipping a quarantined unit "is often the point",
+              directly contradicting the warning the adapter raises moments
+              later. A binary test on a four-member enum is a bug waiting for
+              its third case.
             */}
-            {doc.kind === 'receipt' ? (
-              <>Units land <strong>quarantined</strong> and are not sellable until they pass QC.</>
-            ) : (
-              <>
-                Units keep the condition they already have — a {adapter.documentNoun} relocates
-                stock, it does not re-inspect it. Moving a quarantined or rejected unit is
-                allowed and is often the point.
-              </>
-            )}
+            {adapter.conditionBlurb}
             {' '}Scan rules on this screen come from the operation type
             ({doc.type_name}); the database does not enforce them.
           </div>

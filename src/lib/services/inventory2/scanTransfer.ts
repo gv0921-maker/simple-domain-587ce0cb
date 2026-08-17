@@ -53,12 +53,11 @@ export const TRANSFER_SCAN_ADAPTER: ScanAdapter = {
    */
   capturesUnitCost: false,
 
-  /**
-   * Unlike the receipt adapter, `input.existing` is REQUIRED here — a transfer
-   * cannot invent a unit. If it is missing, the scan resolved to something that
-   * is not a unit in stock, and saying so plainly beats letting the RPC fail on
-   * a null it cannot explain.
-   */
+  conditionBlurb:
+    'Units keep the condition they already have — a transfer relocates stock, it does '
+    + 'not re-inspect it. Moving a quarantined or rejected unit is allowed and is often '
+    + 'the point.',
+
   /**
    * NO CONDITION WARNING ON A TRANSFER, and this is a stated policy rather than
    * an omission — `warnBeforeCommit` is required on the seam precisely so this
@@ -73,6 +72,12 @@ export const TRANSFER_SCAN_ADAPTER: ScanAdapter = {
     return null;
   },
 
+  /**
+   * Unlike the receipt adapter, `input.existing` is REQUIRED here — a transfer
+   * cannot invent a unit. If it is missing, the scan resolved to something that
+   * is not a unit in stock, and saying so plainly beats letting the RPC fail on
+   * a null it cannot explain.
+   */
   commitUnit(input: CommitUnitInput): Promise<string> {
     if (!input.existing) {
       throw new Error(

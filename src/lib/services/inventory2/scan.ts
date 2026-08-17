@@ -417,6 +417,25 @@ export interface ScanAdapter {
    */
   capturesUnitCost: boolean;
   /**
+   * The standing sentence about what this document does to a unit's CONDITION,
+   * shown under the line list.
+   *
+   * MOVED ONTO THE SEAM IN THE DELIVERY PASS, and the reason is a caught bug
+   * rather than tidiness. The screen used to carry
+   *
+   *     doc.kind === 'receipt' ? <receipt words> : <transfer words>
+   *
+   * which silently became WRONG the moment a third kind arrived: a delivery got
+   * the transfer's blurb, telling the operator that shipping a quarantined unit
+   * "is allowed and is often the point" — the exact opposite of what the
+   * delivery adapter does two lines later when it warns and asks.
+   *
+   * A binary test on a four-member enum is a bug waiting for its third case.
+   * Kept here beside `documentNoun` and `unitCommittedVerb` so a new adapter
+   * must supply its own words instead of inheriting someone else's.
+   */
+  conditionBlurb: string;
+  /**
    * The sentence to put in front of the operator BEFORE this unit is committed,
    * or null when it may proceed without asking.
    *

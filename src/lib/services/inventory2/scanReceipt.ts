@@ -34,11 +34,9 @@ export const RECEIPT_SCAN_ADAPTER: ScanAdapter = {
   /** inv_receive_serial takes p_cost: a receipt is where a unit is costed. */
   capturesUnitCost: true,
 
-  /**
-   * `input.existing` is ignored here, and that is correct: on a receipt the
-   * unit does not exist yet, so there is no current location to assert. The
-   * field is part of the shared shape because the other three kinds need it.
-   */
+  conditionBlurb:
+    'Units land quarantined and are not sellable until they pass QC.',
+
   /**
    * NOTHING TO WARN ABOUT ON A RECEIPT, structurally: the unit does not exist
    * until inv_receive_serial creates it, so there is no prior condition to
@@ -53,6 +51,11 @@ export const RECEIPT_SCAN_ADAPTER: ScanAdapter = {
     return null;
   },
 
+  /**
+   * `input.existing` is ignored here, and that is correct: on a receipt the
+   * unit does not exist yet, so there is no current location to assert. The
+   * field is part of the shared shape because the other three kinds need it.
+   */
   commitUnit(input: CommitUnitInput): Promise<string> {
     return receiveSerial(input.moveId, input.serial, input.cost);
   },
