@@ -20,6 +20,8 @@ const INV2_PAGES = [
   '/inventory2/receipts/abc-123',
   '/inventory2/transfers',
   '/inventory2/transfers/abc-123',
+  '/inventory2/deliveries',
+  '/inventory2/deliveries/abc-123',
   '/inventory2/qc',
   '/inventory2/barcode',
   '/inventory2/products',
@@ -60,6 +62,7 @@ describe('inventory2 required permission levels', () => {
   it.each([
     '/inventory2/receipts/new',
     '/inventory2/transfers/new',
+    '/inventory2/deliveries/new',
     '/inventory2/products/new',
     '/inventory2/config/warehouses/new',
   ])('requires create for %s', (path) => {
@@ -76,6 +79,7 @@ describe('inventory2 tab coverage', () => {
   it.each([
     ['/inventory2/receipts', 'inv2-receipts'],
     ['/inventory2/transfers', 'inv2-transfers'],
+    ['/inventory2/deliveries', 'inv2-deliveries'],
     ['/inventory2/products', 'inv2-products'],
     ['/inventory2/qc', 'inv2-qc'],
     ['/inventory2/barcode', 'inv2-barcode'],

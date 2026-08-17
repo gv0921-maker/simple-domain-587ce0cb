@@ -84,6 +84,9 @@ const Inv2BarcodeScan = lazy(() => import("@/pages/inventory2/BarcodeScan"));
 const Inv2TransfersList = lazy(() => import("@/pages/inventory2/TransfersList"));
 const Inv2TransferNew = lazy(() => import("@/pages/inventory2/TransferNew"));
 const Inv2TransferDetail = lazy(() => import("@/pages/inventory2/TransferDetail"));
+const Inv2DeliveriesList = lazy(() => import("@/pages/inventory2/DeliveriesList"));
+const Inv2DeliveryNew = lazy(() => import("@/pages/inventory2/DeliveryNew"));
+const Inv2DeliveryDetail = lazy(() => import("@/pages/inventory2/DeliveryDetail"));
 // Pass 9 — the first Inventory 2 screens that WRITE `products` (a table shared
 // with Sales). Write surface is narrow and enforced in
 // lib/services/inventory2/products.ts. The legacy product pages at
@@ -456,6 +459,11 @@ const App = () => (
             {/* /new is declared before /:id so it is not swallowed as an id. */}
             <Route path="/inventory2/transfers/new" element={<ProtectedRoute><Inv2TransferNew /></ProtectedRoute>} />
             <Route path="/inventory2/transfers/:id" element={<ProtectedRoute><Inv2TransferDetail /></ProtectedRoute>} />
+            {/* Deliveries — the third document type on inv_operation. `new` is
+                declared BEFORE `:id` so it is not swallowed by the param route. */}
+            <Route path="/inventory2/deliveries" element={<ProtectedRoute><Inv2DeliveriesList /></ProtectedRoute>} />
+            <Route path="/inventory2/deliveries/new" element={<ProtectedRoute><Inv2DeliveryNew /></ProtectedRoute>} />
+            <Route path="/inventory2/deliveries/:id" element={<ProtectedRoute><Inv2DeliveryDetail /></ProtectedRoute>} />
             <Route path="/inventory2/qc" element={<ProtectedRoute><Inv2QcQueue /></ProtectedRoute>} />
             {/* Inventory 2's own scan screen. The legacy /barcode queue is
                 untouched and still serves the old module. */}
