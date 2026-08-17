@@ -23,7 +23,15 @@
  *                     stored field anyone can type into. Showing the derived
  *                     number with its status split is what makes the legacy
  *                     column visibly obsolete: the one product reads 10 in
- *                     stock_on_hand and 24 here.
+ *                     stock_on_hand and 23 here.
+ *
+ *                     SCOPED TO INTERNAL LOCATIONS, so the breakdown below no
+ *                     longer lists the 2 units at DELIVERY ORDER (`transit`).
+ *                     They are mid-move and not on hand anywhere — but note
+ *                     that this table is now the one screen that CAN'T show
+ *                     them. If a "where else are the units" view is ever
+ *                     wanted, it is a separate panel, not a widening of this
+ *                     one back to every location type.
  *
  *   Track Serials     Under investigation. The flag is false on the one
  *                     product in the database, which carries 24
@@ -493,7 +501,7 @@ export default function Inv2ProductForm() {
             <div>
               <LockedValue
                 value={`${total} unit${total === 1 ? '' : 's'}`}
-                reason="Derived from received units (inv_stock_item), counted across every location and status."
+                reason="Derived from received units (inv_stock_item), counted across every status but only at internal locations — stock we hold. Units in transit or already delivered are excluded."
               />
               <div className="mt-2">
                 <StatusChips buckets={onHand} />

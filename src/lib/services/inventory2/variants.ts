@@ -64,8 +64,37 @@ export interface VariantRecord {
   archived_at: string | null;
   /** The combination, resolved for display. */
   values: VariantValue[];
-  /** Derived from inv_stock_item — a variant with units cannot be archived. */
+  /**
+   * STOCK WE HOLD — inv_stock_item restricted to `internal` locations. This is
+   * the figure the "On Hand" columns show. Do NOT use it to predict the archive
+   * refusal; see units_anywhere.
+   */
   on_hand: number;
+  /**
+   * UNITS ANYWHERE — inv_stock_item unfiltered, every location type. This is
+   * the figure that predicts the archive refusal, and it is deliberately a
+   * different number from on_hand.
+   *
+   * WHY TWO FIELDS. A display figure and a constraint prediction are different
+   * questions, and one field cannot answer both:
+   *
+   *   "how much of this version do we hold?"   is location-scoped. A unit at a
+   *   `customer` location has been delivered and a unit at `transit` is
+   *   mid-move; counting either overstates stock.
+   *
+   *   "will the database let me archive this?" is NOT location-scoped, because
+   *   tg_product_variant_guard is not:
+   *       SELECT count(*) FROM inv_stock_item WHERE variant_id = OLD.id
+   *   and that is correct for a guard — a unit in transit is still a unit of
+   *   this version, and archiving the version would hide it.
+   *
+   * Collapse them into one and the screen breaks in one direction or the other:
+   * filter it and a variant whose only units are in transit shows On Hand 0 and
+   * offers Archive with no warning, then gets refused by a constraint it could
+   * have seen coming; leave it unfiltered and the On Hand column counts stock
+   * that has left the building.
+   */
+  units_anywhere: number;
 }
 
 export interface VariantInput {
@@ -95,11 +124,16 @@ export interface VariantPatch {
 /**
  * Resolve variants with their combinations and derived stock.
  *
- * Four queries rather than one nested select: PostgREST cannot express
+ * Five queries rather than one nested select: PostgREST cannot express
  * "variant → values → attribute AND value" plus a separate aggregate over
  * inv_stock_item in a single round trip without an ambiguous embed. Joining
  * client-side keeps the shape obvious and the row counts here are catalogue
  * scale, not transaction scale.
+ *
+ * TWO OF THE FIVE COUNT STOCK, on purpose — see VariantRecord.units_anywhere.
+ * One is scoped to `internal` locations and answers "how much do we hold"; the
+ * other is unfiltered and answers "will the archive guard refuse". They are not
+ * a duplicated query, they are two different questions.
  */
 export async function listVariants(productId?: string): Promise<VariantRecord[]> {
   let variantQuery = supabase
@@ -108,13 +142,22 @@ export async function listVariants(productId?: string): Promise<VariantRecord[]>
     .order('created_at', { ascending: false });
   if (productId) variantQuery = variantQuery.eq('product_id', productId);
 
-  const [variantsRes, valuesRes, attrsRes, attrValsRes, productsRes, stockRes] =
+  const [variantsRes, valuesRes, attrsRes, attrValsRes, productsRes, stockRes, anywhereRes] =
     await Promise.all([
       variantQuery,
       supabase.from('product_variant_values').select('variant_id, attribute_id, value_id'),
       supabase.from('product_attributes').select('id, name, sort_order'),
       supabase.from('product_attribute_values').select('id, value, color_hex'),
       supabase.from('products').select('id, name'),
+      // STOCK WE HOLD. inv_stock_item.location_id is NOT NULL, so the !inner
+      // join can only ever drop a row on the location-type test.
+      supabase
+        .from('inv_stock_item')
+        .select('variant_id, inv_location!inner(type)')
+        .not('variant_id', 'is', null)
+        .eq('inv_location.type', 'internal'),
+      // UNITS ANYWHERE. Unfiltered by design — this one mirrors
+      // tg_product_variant_guard, which counts every location.
       supabase.from('inv_stock_item').select('variant_id').not('variant_id', 'is', null),
     ]);
 
@@ -124,6 +167,7 @@ export async function listVariants(productId?: string): Promise<VariantRecord[]>
   if (attrValsRes.error) throw attrValsRes.error;
   if (productsRes.error) throw productsRes.error;
   if (stockRes.error) throw stockRes.error;
+  if (anywhereRes.error) throw anywhereRes.error;
 
   const attrById = new Map((attrsRes.data ?? []).map((a) => [a.id, a]));
   const valById = new Map((attrValsRes.data ?? []).map((v) => [v.id, v]));
@@ -133,6 +177,12 @@ export async function listVariants(productId?: string): Promise<VariantRecord[]>
   for (const s of stockRes.data ?? []) {
     if (!s.variant_id) continue;
     onHand.set(s.variant_id, (onHand.get(s.variant_id) ?? 0) + 1);
+  }
+
+  const anywhere = new Map<string, number>();
+  for (const s of anywhereRes.data ?? []) {
+    if (!s.variant_id) continue;
+    anywhere.set(s.variant_id, (anywhere.get(s.variant_id) ?? 0) + 1);
   }
 
   const valuesByVariant = new Map<string, VariantValue[]>();
@@ -158,7 +208,9 @@ export async function listVariants(productId?: string): Promise<VariantRecord[]>
     });
   }
 
-  return (variantsRes.data ?? []).map((v) => toRecord(v, valuesByVariant, productById, onHand));
+  return (variantsRes.data ?? []).map((v) =>
+    toRecord(v, valuesByVariant, productById, onHand, anywhere),
+  );
 }
 
 function toRecord(
@@ -166,6 +218,7 @@ function toRecord(
   valuesByVariant: Map<string, VariantValue[]>,
   productById: Map<string, string>,
   onHand: Map<string, number>,
+  anywhere: Map<string, number>,
 ): VariantRecord {
   return {
     id: v.id,
@@ -183,6 +236,7 @@ function toRecord(
     archived_at: v.archived_at,
     values: valuesByVariant.get(v.id) ?? [],
     on_hand: onHand.get(v.id) ?? 0,
+    units_anywhere: anywhere.get(v.id) ?? 0,
   };
 }
 

@@ -17,11 +17,13 @@
  *
  *   stock_on_hand   Legacy running total, maintained by the two old RPCs
  *                   (inv_approve_adjustment, inv_validate_stock_move). It is
- *                   already wrong — it reads 10 for the one product that has
- *                   24 units in inv_stock_item — and Inventory 2 derives stock
- *                   from inv_stock_item instead. Writing it would make a stale
- *                   column look authoritative again. Read the derived figure
- *                   via `getProductOnHand()`.
+ *                   already wrong — it reads 10 for the one product that holds
+ *                   23 units at internal locations — and Inventory 2 derives
+ *                   stock from inv_stock_item instead. Writing it would make a
+ *                   stale column look authoritative again. Read the derived
+ *                   figure via `getProductOnHand()`, which is scoped to
+ *                   internal locations; see the note there for why that scoping
+ *                   is the caller's job and not the view's.
  *
  *   category,       The legacy free-text pair. Both are NOT NULL with defaults
  *   unit_of_measure ('' and 'unit'), so an INSERT that omits them succeeds and
@@ -203,6 +205,9 @@ export interface UomOption {
  * The list. On-hand is derived per product from inv_on_hand (which groups
  * inv_stock_item by product/location/status), never read from
  * products.stock_on_hand.
+ *
+ * SCOPED TO INTERNAL LOCATIONS — see the note above getProductOnHand(). Without
+ * the join this column counted units that have already left the building.
  */
 export async function listProducts(): Promise<ProductListRow[]> {
   const [productsRes, onHandRes, catsRes, uomsRes] = await Promise.all([
@@ -212,7 +217,10 @@ export async function listProducts(): Promise<ProductListRow[]> {
         'id, sku, name, type, is_active, barcode, cost_price, sale_price, reorder_level, category_id, uom_id',
       )
       .order('name'),
-    supabase.from('inv_on_hand').select('product_id, qty'),
+    supabase
+      .from('inv_on_hand')
+      .select('product_id, qty, inv_location!inner(type)')
+      .eq('inv_location.type', 'internal'),
     supabase.from('product_categories').select('id, name'),
     supabase.from('units_of_measure').select('id, name'),
   ]);
@@ -294,13 +302,32 @@ function toDetail(r: ProductRow): ProductDetail {
  * The derived stock figure, split by location and status — the replacement for
  * products.stock_on_hand. A flat total hides that "24 units" can be 8 sellable
  * and 16 held back, which is exactly the ambiguity the legacy column had.
+ *
+ * SCOPED TO INTERNAL LOCATIONS, and this is not a detail.
+ *
+ * inv_on_hand is a bare GROUP BY over inv_stock_item with no predicate — it
+ * exposes the buckets and leaves the scope decision to the caller. Making that
+ * decision is the caller's job, and this caller had not made it: inv_location
+ * has eight types (supplier, view, internal, customer, inventory_loss,
+ * production, transit, scrap) and only `internal` is stock we hold. The rest
+ * are counterpart or structural locations — a unit at a `customer` location has
+ * been delivered, one at `scrap` has been written off.
+ *
+ * Unfiltered, this returned 25 for the one stocked product: 23 in GODOWN plus 2
+ * parked at DELIVERY ORDER, a `transit` location. Those 2 are mid-move and are
+ * not on hand anywhere.
+ *
+ * The !inner join does the filtering in Postgres rather than here, so a future
+ * caller mapping these rows cannot forget it. location_id is NOT NULL on
+ * inv_stock_item, so the inner join can only ever drop rows on the type test.
  */
 export async function getProductOnHand(productId: string): Promise<OnHandBucket[]> {
   const [onHandRes, locRes] = await Promise.all([
     supabase
       .from('inv_on_hand')
-      .select('location_id, status, qty, qty_reserved, qty_unreserved')
-      .eq('product_id', productId),
+      .select('location_id, status, qty, qty_reserved, qty_unreserved, inv_location!inner(type)')
+      .eq('product_id', productId)
+      .eq('inv_location.type', 'internal'),
     supabase.from('inv_location').select('id, name'),
   ]);
   if (onHandRes.error) throw onHandRes.error;

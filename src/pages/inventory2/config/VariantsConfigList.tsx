@@ -153,8 +153,14 @@ export default function VariantsConfigList() {
               size="sm"
               variant="subtle"
               onClick={() => void changeStatus(v, 'archived')}
-              title={v.on_hand > 0
-                ? `${v.on_hand} unit(s) in stock — the database will refuse this`
+              // units_anywhere, NOT on_hand. This tooltip predicts
+              // tg_product_variant_guard, which counts units at every location
+              // type. on_hand is scoped to `internal` locations, so a variant
+              // whose only units sit in transit reads on_hand 0 — this button
+              // would have offered Archive with no warning and then been
+              // refused by a constraint it could have seen coming.
+              title={v.units_anywhere > 0
+                ? `${v.units_anywhere} unit(s) in stock — the database will refuse this`
                 : undefined}
             >
               Archive

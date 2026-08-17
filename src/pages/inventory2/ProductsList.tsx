@@ -6,8 +6,13 @@
  *
  * The "On Hand" column is DERIVED from inv_stock_item via the inv_on_hand
  * view. It is not products.stock_on_hand — that legacy column reads 10 for the
- * one product that actually has 24 units, and this list would inherit the lie
+ * one product that actually holds 23 units, and this list would inherit the lie
  * if it read it.
+ *
+ * The derived figure is SCOPED TO INTERNAL LOCATIONS. inv_on_hand carries no
+ * predicate of its own, so without the location join this column read 25: the
+ * 23 in GODOWN plus 2 sitting at DELIVERY ORDER, a `transit` location. Deriving
+ * the number is only half the job; scoping it is the other half.
  *
  * The legacy module at /inventory/products is untouched and still live; this
  * mounts alongside it.
@@ -117,7 +122,10 @@ export default function Inv2ProductsList() {
 
         <p className="mt-3 text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-subtle))]">
           On Hand is derived from received units (<code>inv_stock_item</code>), counted
-          across every location and status. The legacy module remains at{' '}
+          across every status but only at <strong>internal</strong> locations — stock we
+          hold. Units at supplier, customer, transit, production, scrap and
+          inventory-loss locations are excluded; they have left the building or not yet
+          arrived. The legacy module remains at{' '}
           <code>/inventory/products</code> and is unaffected by anything done here.
         </p>
       </div>
