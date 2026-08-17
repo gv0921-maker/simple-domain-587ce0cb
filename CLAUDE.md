@@ -521,6 +521,147 @@ A stock level is location-scoped. A "does anything reference this" guard is not.
 
 ---
 
+## DELIVERIES — the third document type, built 2026-08-17
+
+`inv_operation` kind `outgoing`, type **DELIVERY NOTE**, `DELIVERY ORDER` → `CUSTOMERS`.
+Pages at `/inventory2/deliveries{,/new,/:id}`. The legacy `delivery_notes` screens at
+`/inventory/delivery-notes`, driven by `complete_delivery_with_qc`, are untouched and still
+live; nothing in the new module reads or writes them.
+
+### ONE CUSTOMERS NODE — place and party are different questions
+
+There is a **single** `CUSTOMERS` location (type `customer`, code `CTMR107`) and every
+delivery ends there. Deliberately **not** one node per customer.
+
+| | |
+|---|---|
+| the ledger records **PLACE** | `inv_stock_tracking.to_location_id` says the unit left our stock. A fact about geography |
+| the document records **PARTY** | `inv_operation.partner_customer_id` says WHO received it. A fact about the sale |
+
+So "which customer has this unit" is answered by joining the unit's move line to its
+operation and reading the partner — **never** by reading the location.
+
+**Why it matters beyond tidiness.** A location-per-customer encodes the party into the
+place, and then every on-hand query has to know which locations are "really" customers.
+The on-hand readers filter to `inv_location.type = 'internal'`, so the single CUSTOMERS
+node is excluded by that alone, with no list of special-case ids anywhere.
+
+**Customers are read DIRECTLY off `public.customers`** — not `CustomerSelector`, which
+wraps CRM's `ContactSearchCombobox`, and not `useContacts`. Both are on the SHARED
+BOUNDARY, and importing either would have made this a CRM change. `customers` is
+auto-populated by `trg_sync_customer_from_contact` and is read-mostly; nothing here writes
+it or touches `crm_contact_id`.
+
+### No reservations on this pass
+
+`inv_stock_item.reserved_for_customer_id` stays **unwritten**. A delivery here ships units
+that are already picked; it does not claim them in advance. Half-writing the column would
+hand Sales a reservation surface that only sometimes exists.
+
+### Condition is WARNED, not blocked — and the database checks nothing
+
+Only `ok` ships cleanly. The other six members of `inv_stock_status` each warn **naming the
+unit's condition**, and the operator decides — the same shape as the over-receipt gate.
+
+`attention` is in the warned set **deliberately**. It is the softest of the bad statuses,
+which makes it exactly the one that would be waved through if it were treated as clean.
+CLAUDE.md already says an advisory failure means "review before promising it", and a
+delivery IS the promise.
+
+**Never hard-blocked**, because a blocked screen gets worked around and there are real
+cases (a customer accepting a floor model at a discount). And because the database will not
+block it either: `inv_transfer_stock_item` asserts the unit's product and its location and
+says **nothing** about its status — it ships a `destroyed` unit as happily as an `ok` one.
+The screen's question is the only one being asked.
+
+### No Quality segment — same reason as internal
+
+`requires_qc` stays false on every outgoing type. `inv_test_result` has no `operation_id`,
+so an inspection is unit-scoped and running QC from a delivery would overwrite the
+**receipt's** verdict for that unit. Not an oversight, not "later".
+
+---
+
+## THE SCAN SEAM — the verdict after three adapters, 2026-08-17
+
+Pass 7 claimed that adding an operation kind costs one sibling adapter file and **no edit to
+`scan.ts`**. Two adapters have now tested it. Recorded together because "it held this time"
+is worth nothing unless the failure is written down beside it.
+
+| Adapter | What held | What it cost |
+|---|---|---|
+| `scanTransfer.ts` (2nd) | every read, every type, `resolveScan`, `getScanDocument`, `listOpenScanDocuments`, the seam itself | **two fields on `CommitUnitInput`** — `operationId` and `toLocationId` |
+| `scanDelivery.ts` (3rd) | all of the above, **and `CommitUnitInput` needed NOTHING NEW** | one field on `ScannedUnitRef` (`status`), one method on `ScanAdapter` (`warnBeforeCommit`) |
+
+### A missing VALUE and a missing QUESTION are different failures
+
+This is the part worth carrying forward.
+
+The transfer's gap was a **missing value**: the payload could not express where a unit was
+going. Adding fields fixed it, and adding fields is what you look for.
+
+The delivery's gap was a **missing question**: the payload could already express everything
+needed to move the unit — from, to, document, line — and there was simply nowhere to ask
+whether it *should* move. No amount of extra fields would have revealed that, because
+nothing was absent from the data.
+
+**A seam that carries enough data can still be missing a decision point.**
+
+`adjustment` is the last kind. On this evidence the thing to watch for is **not another
+field** — the payload is now demonstrably sufficient for a second consecutive kind. It is
+whether an adjustment needs to ask something no existing adapter asks.
+
+### `warnBeforeCommit` is REQUIRED, not optional
+
+Every adapter must state its condition policy out loud, **including when the policy is
+"none"** — receipt and transfer both return null with a written reason.
+
+Made optional, a future adapter would inherit "never warn" by simply not mentioning it. On
+a delivery that means shipping a rejected unit to a customer in silence. The cost of
+required is two extra stanzas in the existing adapters; the cost of optional is paid once,
+invisibly, by whoever forgets.
+
+It returns a **sentence**, not a boolean, because the warning has to name the condition.
+"Confirm?" tells an operator nothing.
+
+### Condition is asked BEFORE the count gate
+
+A unit can trip both gates on one scan. Asking about the count first would let an operator
+confirm "yes, an extra unit" and commit it **with its REJECTED status never mentioned**,
+because the count gate commits directly. So the condition is asked first and hands control
+back to `countGateThenCommit`, which means the count question is still reached afterwards.
+
+The retry path gets the same gate: the retry row lets the operator **correct** the serial,
+so what is re-resolved may be a different unit in a different condition.
+
+---
+
+## `createDelivery` IS TWO STATEMENTS, NOT ONE TRANSACTION — 2026-08-17
+
+**A known, deliberate seam. Recorded so it is not rediscovered as a mystery.**
+
+`inv_create_operation` takes `p_partner_customer_id` but has **no sales-order parameter** —
+`inv_operation.sales_order_id` was added by the payment-gate migration *after* that RPC was
+written. So `createDelivery()` in `src/lib/services/inventory2/deliveryWrites.ts` calls the
+RPC and then sets the reference with a **follow-up UPDATE**.
+
+| | |
+|---|---|
+| Why not widen the RPC | Widening a 10-parameter RPC used by **three** document types is a database change, and this pass had no approval for one. CLAUDE.md rule 2 |
+| The failure mode | The two statements are not one transaction. If the UPDATE fails, a delivery exists with **no sales order recorded** |
+| Why that is acceptable | It is visible and correctable — the detail page shows "no sales order recorded" and the reference can be set later. It is strictly better than silently dropping the reference, or editing an RPC without approval |
+| It is not swallowed | The error names the document that **was** created, so the operator knows both that the delivery exists and that its order link is missing |
+
+**The fix, when it is allowed:** fold `p_sales_order_id` into `inv_create_operation` and set
+it in the same statement. That closes the seam entirely and this section comes out.
+
+**Do NOT open that RPC for this alone.** It should happen the **next time
+`inv_create_operation` is opened for an approved reason** — a widening carries the three
+document types with it, and doing it opportunistically is exactly the "while I'm here" this
+file forbids.
+
+---
+
 ## PLANNED DOCUMENT TYPES — designed, not built
 
 Not known issues. These are shapes the model is expected to grow, recorded so the design is
@@ -545,7 +686,12 @@ but it must not be skipped, and it must not be a gate that silently passes.
 | The completion path | **`inv_complete_operation(p_operation_id uuid)`** — the single completion RPC for every kind. **This is the exact function to change.** |
 | The reference | `inv_operation.sales_order_id`, nullable, `ON DELETE SET NULL`, added while `outgoing` held **zero** documents so there is no backfill question |
 | The gate | **`inv_assert_delivery_paid(p_operation_id uuid)`** — exists, named, and **hard-fails**. It is NOT called from `inv_complete_operation` yet |
-| **The screen** | **Does not exist yet.** `src/pages/inventory2/` has receipts and transfers only. The words *"payment verification is not active until the Sales module is complete"* belong on the delivery page and land **when the delivery pages are built — the next pass**. Deliberately not bolted onto the legacy `/inventory/delivery-notes` screen, which is a different module |
+| **The screen** | **BUILT 2026-08-17.** The notice landed on `pages/inventory2/DeliveryNew.tsx` (`PaymentNotice`) and `pages/inventory2/DeliveryDetail.tsx` (`PaymentGateBanner`). The banner on the detail page is **standing and NOT dismissible** — it is a fact about the system, not an event to acknowledge, and it comes out when the gate is switched on |
+
+The screen also shows the order's paid/total figures using the **same
+`COALESCE(grand_total, total)` expression the gate will use**, so the screen and the gate
+cannot quote different numbers — labelled shown-not-verified, because Sales does not
+maintain them yet and they are not evidence either way.
 
 **What the gate will read when it is switched on**, mirroring the legacy
 `complete_delivery_with_qc` exactly so the two cannot drift into different answers:
