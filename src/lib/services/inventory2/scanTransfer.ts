@@ -59,6 +59,20 @@ export const TRANSFER_SCAN_ADAPTER: ScanAdapter = {
    * is not a unit in stock, and saying so plainly beats letting the RPC fail on
    * a null it cannot explain.
    */
+  /**
+   * NO CONDITION WARNING ON A TRANSFER, and this is a stated policy rather than
+   * an omission — `warnBeforeCommit` is required on the seam precisely so this
+   * has to be said out loud.
+   *
+   * Relocating a quarantined or rejected unit is not a mistake, it is the job.
+   * Quarantined stock sitting in the wrong place is exactly what a transfer
+   * exists to move, and warning about it every time would train operators to
+   * dismiss the warning that DOES matter on a delivery.
+   */
+  warnBeforeCommit(): string | null {
+    return null;
+  },
+
   commitUnit(input: CommitUnitInput): Promise<string> {
     if (!input.existing) {
       throw new Error(

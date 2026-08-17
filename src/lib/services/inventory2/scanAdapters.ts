@@ -18,12 +18,16 @@
  * against a real document.
  *
  * ── A MISSING ADAPTER IS AN ANSWER, NOT A CRASH ───────────────────────────
- * `outgoing` and `adjustment` are real, active operation kinds with real
- * operation types configured (DELIVERY NOTE, STOCK ADJUSTMENT), and neither has
- * an adapter yet. Handing this screen one of those documents must produce a
- * sentence saying so — not an undefined dereference, and emphatically not a
- * silent fallback to the receipt adapter, which would call inv_receive_serial
- * and INVENT units on a document meant to ship them out.
+ * `adjustment` is a real, active operation kind with a real operation type
+ * configured (STOCK ADJUSTMENT) and no adapter yet. Handing this screen one of
+ * those documents must produce a sentence saying so — not an undefined
+ * dereference, and emphatically not a silent fallback to the receipt adapter,
+ * which would call inv_receive_serial and INVENT units on a document meant to
+ * correct a count.
+ *
+ * `outgoing` was in that sentence until the delivery pass; the warning it
+ * carried was the right one, and it is left here almost unchanged because one
+ * kind still needs it.
  *
  * That is why `adapterFor` returns `null` rather than defaulting, and why
  * `SCAN_ADAPTERS` is a Partial record: the type system makes the gap visible at
@@ -32,6 +36,7 @@
 import type { ScanAdapter, ScanDocKind } from './scan';
 import { RECEIPT_SCAN_ADAPTER } from './scanReceipt';
 import { TRANSFER_SCAN_ADAPTER } from './scanTransfer';
+import { DELIVERY_SCAN_ADAPTER } from './scanDelivery';
 
 /**
  * Every kind the scan screen can currently work.
@@ -44,6 +49,7 @@ import { TRANSFER_SCAN_ADAPTER } from './scanTransfer';
 export const SCAN_ADAPTERS: Partial<Record<ScanDocKind, ScanAdapter>> = {
   receipt: RECEIPT_SCAN_ADAPTER,
   internal: TRANSFER_SCAN_ADAPTER,
+  outgoing: DELIVERY_SCAN_ADAPTER,
 };
 
 /** The kinds with an adapter, in the order the picker should show them. */

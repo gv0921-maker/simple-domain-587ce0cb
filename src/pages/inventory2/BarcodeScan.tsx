@@ -50,7 +50,9 @@ import {
   useCommitUnit, useCompleteScanDocument, useOpenScanDocuments, useScanDocument,
 } from '@/hooks/inventory2/scan';
 import {
-  resolveScan, type ScanAdapter, type ScanDocKind, type ScanDocLine, type ScanDocument,
+  resolveScan, unitRef,
+  type ScanAdapter, type ScanDocKind, type ScanDocLine, type ScanDocument,
+  type ScannedUnitRef,
 } from '@/lib/services/inventory2/scan';
 import {
   SCAN_ADAPTERS, SCANNABLE_KINDS, adapterFor, unsupportedKindReason,
@@ -66,6 +68,7 @@ import {
 const NEW_DOCUMENT_PATH: Partial<Record<ScanDocKind, string>> = {
   receipt: '/inventory2/receipts/new',
   internal: '/inventory2/transfers/new',
+  outgoing: '/inventory2/deliveries/new',
 };
 
 /** The scan screen's own URL for a document. */
@@ -194,7 +197,7 @@ function DocumentPicker() {
 /* ------------------------------------------------------------ the scanner */
 
 /** A unit already in stock, as an adapter needs it. */
-type ExistingUnit = { stockItemId: string; currentLocationId: string };
+type ExistingUnit = ScannedUnitRef;
 
 interface OverScan {
   code: string;
@@ -206,6 +209,32 @@ interface OverScan {
    * confirm could return a different answer if the unit moved in between.
    */
   existing: ExistingUnit | null;
+}
+
+/**
+ * A unit whose CONDITION the adapter wants confirmed before it is committed.
+ *
+ * Deliberately a separate gate from `OverScan` rather than a shared "pending
+ * confirmation" object. They ask different questions — over-receipt is about
+ * the LINE's count, this is about the UNIT's fitness — and a unit can trip both
+ * on the same scan. Merging them would silently drop one of the two questions,
+ * and it would be the condition one, because the count is checked last.
+ */
+interface ConditionWarn {
+  code: string;
+  line: ScanDocLine;
+  message: string;
+  existing: ExistingUnit;
+  /**
+   * Set when the warning came from a RETRY, so the confirm resumes that event
+   * row instead of opening a new one.
+   *
+   * The retry path needs this gate as much as the first scan does, and the
+   * reason is easy to miss: the retry row lets the operator CORRECT the serial,
+   * so what gets re-resolved may be a different unit in a different condition
+   * from the one that originally failed.
+   */
+  eventId?: string;
 }
 
 /**
@@ -233,6 +262,7 @@ function ScanSession({
   const [activeMoveId, setActiveMoveId] = useState<string | null>(null);
   const [cost, setCost] = useState('0');
   const [overScan, setOverScan] = useState<OverScan | null>(null);
+  const [conditionWarn, setConditionWarn] = useState<ConditionWarn | null>(null);
   const [confirmValidate, setConfirmValidate] = useState(false);
   const [validateError, setValidateError] = useState<string | null>(null);
   /** Honours mandatory_scan_dest_location without inventing a fourth scan
@@ -312,6 +342,29 @@ function ScanSession({
     // NEITHER is checked server-side. See CLAUDE.md.
   }, [commit, push, settle, refetch, operationId, doc.dest_location_id, adapter]);
 
+  /**
+   * The over-receipt gate, then the commit.
+   *
+   * Split out of the scan handler so the condition warning can hand control
+   * back to it after the operator confirms. Both entry points therefore ask the
+   * count question — before this existed, confirming a condition would have
+   * skipped it.
+   */
+  const countGateThenCommit = useCallback(async (
+    line: ScanDocLine,
+    code: string,
+    existing: ExistingUnit | null,
+  ) => {
+    const nextCount = line.received_qty + 1;
+    if (nextCount > line.demand_qty) {
+      // Never silently accepted, never hard-blocked. The operator decides,
+      // with the numbers stated plainly.
+      setOverScan({ code, line, nextCount, existing });
+      return;
+    }
+    await commitUnit(line, code, existing);
+  }, [commitUnit]);
+
   /* -- the scan handler -------------------------------------------------- */
 
   const chain = useRef<Promise<void>>(Promise.resolve());
@@ -367,10 +420,10 @@ function ScanSession({
         // the database is left to refuse it in its own words. On a transfer it
         // is the NORMAL case: the unit exists in stock and is about to be moved
         // onto this document for the first time.
-        existing = {
-          stockItemId: resolution.stock_item_id,
-          currentLocationId: resolution.location_id,
-        };
+        // Built through unitRef() rather than by hand: it is the one place
+        // that knows every field the seam expects, so a field added there
+        // (status, in the delivery pass) cannot be silently missed here.
+        existing = unitRef(resolution);
       }
 
       /* a serial to commit */
@@ -396,17 +449,27 @@ function ScanSession({
         }
       }
 
-      const nextCount = line.received_qty + 1;
-      if (nextCount > line.demand_qty) {
-        // Never silently accepted, never hard-blocked. The operator decides,
-        // with the numbers stated plainly.
-        setOverScan({ code, line, nextCount, existing });
+      /*
+       * CONDITION FIRST, COUNT SECOND, and the order is deliberate.
+       *
+       * Both gates can fire on one scan. Asking about the count first would
+       * mean an operator confirms "yes, an extra unit" and the unit is
+       * committed — with its REJECTED status never mentioned, because the
+       * count gate commits directly. Asking about the condition first means
+       * the count question is still reached afterwards, via countGateThenCommit.
+       *
+       * The adapter decides whether there is anything to ask: a transfer
+       * returns null here, a delivery returns a sentence naming the condition.
+       */
+      const warning = existing ? adapter.warnBeforeCommit(existing, code) : null;
+      if (warning) {
+        setConditionWarn({ code, line, message: warning, existing: existing! });
         return;
       }
 
-      await commitUnit(line, code, existing);
+      await countGateThenCommit(line, code, existing);
     });
-  }, [doc, adapter, activeLine, needsDestAck, push, commitUnit]);
+  }, [doc, adapter, activeLine, needsDestAck, push, countGateThenCommit]);
 
   /**
    * Retry a failed scan, RE-RESOLVING the serial rather than reusing what the
@@ -432,18 +495,23 @@ function ScanSession({
       try {
         const resolution = await resolveScan(serial);
         if (resolution.kind === 'unit') {
-          existing = {
-            stockItemId: resolution.stock_item_id,
-            currentLocationId: resolution.location_id,
-          };
+          existing = unitRef(resolution);
         }
       } catch (e) {
         settle(event.id, 'failed', errorText(e), event.retry);
         return;
       }
+      // Same gate as a first scan. The serial may have been corrected to a
+      // different unit, so the condition that applied a moment ago may not be
+      // the condition that applies now.
+      const warning = existing ? adapter.warnBeforeCommit(existing, serial) : null;
+      if (warning) {
+        setConditionWarn({ code: serial, line, message: warning, existing: existing!, eventId: event.id });
+        return;
+      }
       await commitUnit(line, serial, existing, event.id);
     });
-  }, [doc, commitUnit, settle]);
+  }, [doc, adapter, commitUnit, settle]);
 
   const onDismiss = useCallback((id: string) => {
     setEvents((prev) => prev.filter((e) => e.id !== id));
@@ -468,17 +536,19 @@ function ScanSession({
   const totalDemand = doc.lines.reduce((s, l) => s + l.demand_qty, 0);
   const totalReceived = doc.lines.reduce((s, l) => s + l.received_qty, 0);
   const linesDone = doc.lines.filter((l) => l.received_qty >= l.demand_qty).length;
-  const blocked = !!refuseReason || !!overScan || confirmValidate;
+  const blocked = !!refuseReason || !!overScan || !!conditionWarn || confirmValidate;
 
   const hint = refuseReason
     ? 'Scanning is closed on this document'
-    : overScan
-      ? 'Confirm the extra unit to continue'
-      : needsDestAck
-        ? 'Confirm the destination to begin'
-        : activeLine
-          ? `Scan a serial for ${activeLine.product_name}`
-          : 'Scan a product barcode';
+    : conditionWarn
+      ? "Confirm the unit's condition to continue"
+      : overScan
+        ? 'Confirm the extra unit to continue'
+        : needsDestAck
+          ? 'Confirm the destination to begin'
+          : activeLine
+            ? `Scan a serial for ${activeLine.product_name}`
+            : 'Scan a product barcode';
 
   return (
     <div className="ds-root flex min-h-screen flex-col" style={{ background: 'hsl(var(--ds-navy))' }}>
@@ -687,6 +757,57 @@ function ScanSession({
           />
         </div>
       </div>
+
+      {/*
+        ---- unit-condition confirmation ----
+        Red rather than the over-scan amber, and the wording names the condition
+        rather than asking a generic "are you sure". An extra unit on a line is
+        untidy; an unfit unit in a customer's house is not recoverable.
+      */}
+      {conditionWarn && (
+        <div className="shrink-0 border-t-2 border-[hsl(var(--ds-red))] bg-[hsl(var(--ds-red-bg))] p-3">
+          <p className="text-[16px] font-bold text-[hsl(var(--ds-red))]">
+            Check this unit's condition
+          </p>
+          <p className="mt-1 text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink))]">
+            {conditionWarn.message}
+          </p>
+          <p className="mt-1 text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-muted))]">
+            Nothing has been recorded yet. The database does not block this — it checks the
+            unit's product and location and says nothing about its condition, so this
+            question is the only one being asked.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const { line, code, existing, eventId } = conditionWarn;
+                setConditionWarn(null);
+                chain.current = chain.current.then(() =>
+                  // A retry resumes its own event row and has already passed the
+                  // count gate; a first scan still has to face it.
+                  eventId
+                    ? commitUnit(line, code, existing, eventId)
+                    : countGateThenCommit(line, code, existing));
+              }}
+              className="h-12 flex-1 rounded-[var(--ds-radius)] bg-[hsl(var(--ds-red))] text-[15px] font-bold text-white"
+            >
+              Deliver it anyway
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                push('info', conditionWarn.code,
+                  `Held back. ${conditionWarn.code} was not added to ${doc.number} — its condition is ${conditionWarn.existing.status}.`);
+                setConditionWarn(null);
+              }}
+              className="h-12 flex-1 rounded-[var(--ds-radius)] border border-[hsl(var(--ds-border-strong))] bg-[hsl(var(--ds-surface))] text-[15px] font-semibold text-[hsl(var(--ds-ink))]"
+            >
+              Hold it back
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ---- over-scan confirmation ---- */}
       {overScan && (

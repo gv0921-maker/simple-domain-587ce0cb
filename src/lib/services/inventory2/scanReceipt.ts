@@ -39,6 +39,20 @@ export const RECEIPT_SCAN_ADAPTER: ScanAdapter = {
    * unit does not exist yet, so there is no current location to assert. The
    * field is part of the shared shape because the other three kinds need it.
    */
+  /**
+   * NOTHING TO WARN ABOUT ON A RECEIPT, structurally: the unit does not exist
+   * until inv_receive_serial creates it, so there is no prior condition to
+   * report. `CommitUnitInput.existing` is null on every receipt scan.
+   *
+   * A unit's condition on a receipt is decided AFTER it arrives, by QC —
+   * inv_record_qc_results is what moves it off `quarantined`. Stated here
+   * rather than omitted because the seam requires every adapter to declare its
+   * policy.
+   */
+  warnBeforeCommit(): string | null {
+    return null;
+  },
+
   commitUnit(input: CommitUnitInput): Promise<string> {
     return receiveSerial(input.moveId, input.serial, input.cost);
   },

@@ -30,6 +30,28 @@
  * So: the seam was right, the payload was incomplete. Adding a kind still
  * costs one adapter file plus, this once, two fields on the shared input.
  *
+ * ── THE THIRD ADAPTER, AND WHAT IT COST ───────────────────────────────────
+ * `scanDelivery.ts` was the second test of the same claim. Recorded with the
+ * same honesty, because "it held this time" is only worth anything if the
+ * previous failure was written down:
+ *
+ *   HELD    every read, every type, resolveScan, getScanDocument,
+ *           listOpenScanDocuments, and — the part that failed last time —
+ *           `CommitUnitInput` needed NOTHING NEW. operationId and toLocationId,
+ *           added for the transfer, were exactly what a delivery needed too.
+ *   COST    one field on `ScannedUnitRef` (`status`) and one method on
+ *           `ScanAdapter` (`warnBeforeCommit`).
+ *
+ * The distinction between those two is the interesting part. The transfer's
+ * gap was a MISSING VALUE — the payload could not express where a unit was
+ * going. The delivery's gap was a MISSING QUESTION — the payload could express
+ * everything needed to move the unit, and there was nowhere to ask whether it
+ * SHOULD be moved. A seam that carries enough data can still be missing a
+ * decision point, and no amount of extra fields would have revealed it.
+ *
+ * Two kinds remain. `adjustment` is the last one, and on this evidence the
+ * thing to watch for is not another field.
+ *
  * ── THE ONE RULE THAT IS EASY TO GET WRONG ────────────────────────────────
  * A unit's "from" location is `inv_stock_item.location_id` — where the unit
  * ACTUALLY IS. It is never `inv_operation.source_location_id`.
@@ -308,6 +330,24 @@ export interface ScannedUnitRef {
   stockItemId: string;
   /** From inv_stock_item.location_id. Never from the operation. */
   currentLocationId: string;
+  /**
+   * The unit's CONDITION, from inv_stock_item.status.
+   *
+   * ADDED IN THE DELIVERY PASS — the third field this seam has needed, and the
+   * first that is about the unit rather than about where it is going.
+   *
+   * A transfer does not care: relocating quarantined stock is exactly what a
+   * transfer is for. A delivery cares a great deal, because shipping a rejected
+   * unit to a customer is a mistake nobody can take back. The database will not
+   * stop it — inv_transfer_stock_item checks the unit's product and its
+   * location and says nothing about its status — so the condition has to reach
+   * the screen for the screen to be able to ask.
+   *
+   * Carried on the ref rather than looked up in the adapter on purpose: the
+   * adapter has no query layer, and re-reading the status at commit time would
+   * mean warning about one value and committing against another.
+   */
+  status: InvStockStatus;
 }
 
 export interface CommitUnitInput {
@@ -376,6 +416,26 @@ export interface ScanAdapter {
    * silently discarded, which is the same class of lie as a hidden destination.
    */
   capturesUnitCost: boolean;
+  /**
+   * The sentence to put in front of the operator BEFORE this unit is committed,
+   * or null when it may proceed without asking.
+   *
+   * ADDED IN THE DELIVERY PASS. REQUIRED, not optional, and that is the whole
+   * point: an adapter must state its condition policy out loud, including when
+   * the policy is "none". Made optional, a future adapter would inherit "never
+   * warn" by simply not mentioning it, which is the failure this exists to
+   * prevent — a delivery that ships a rejected unit in silence.
+   *
+   * It returns a SENTENCE rather than a boolean because the warning has to name
+   * the condition. "Confirm?" tells an operator nothing; "SN-4 is REJECTED — a
+   * required check failed" tells them what they are about to do.
+   *
+   * Returning a sentence is not a veto. The screen warns and lets the operator
+   * decide, exactly as it already does for over-receipt. Hard-blocking here
+   * would push people to work around the screen, and the database does not
+   * block it either.
+   */
+  warnBeforeCommit(unit: ScannedUnitRef, serial: string): string | null;
   /** Commits ONE unit. Returns the stock item id. */
   commitUnit(input: CommitUnitInput): Promise<string>;
   completeDocument(operationId: string): Promise<unknown>;
@@ -388,7 +448,11 @@ export interface ScanAdapter {
 
 /** Turn a resolved unit into the ref an adapter accepts. */
 export function unitRef(u: ResolvedUnit): ScannedUnitRef {
-  return { stockItemId: u.stock_item_id, currentLocationId: u.location_id };
+  return {
+    stockItemId: u.stock_item_id,
+    currentLocationId: u.location_id,
+    status: u.status,
+  };
 }
 
 /* ------------------------------------------------------------------ reads */
