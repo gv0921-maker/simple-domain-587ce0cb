@@ -334,16 +334,24 @@ because the same block was run through two different connections and disagreed.
 **Run the block through both connections when changing it.** Agreement between two roles is
 what proves a part is measuring the database rather than the observer.
 
-### The values — captured 2026-08-15, `inv_` passes A/B/C + transfers 2/4 and 5/8 applied
+### The values — re-taken 2026-08-17, after the delivery payment gate
 
-| Part | md5 | Count |
-|---|---|---|
-| `constraints` | `43cb8bba80af67a333f3ab39423b1019` | 734 |
-| `functions` | `45cd80ad7e904e9a5c089d477d302d33` | 215 |
-| `policies` | `8c3880435cc42863a322d5a311b3a660` | 547 |
-| `schema` | `1c5220c4fdccc51b2b2831016e41c1f8` | 160 base tables |
-| `triggers` | `aed332b408c333ddc08ac93d3b9dc7f9` | 188 |
-| `views` | `9c9ed35a60fb0f2c363dec46c7917c38` | 11 |
+**The 2026-08-15 baseline reproduced EXACTLY before this migration was applied** — all six
+parts and all three legacy namesakes. That is the first time this file's digests have been
+confirmed reproducible since the Pass C loss, and it means the formula recorded above is
+the formula that produced them.
+
+| Part | md5 | Count | vs 2026-08-15 |
+|---|---|---|---|
+| `constraints` | `b0edc7f0b8e42f19de5e939a4d73f983` | 735 | **+1** — `inv_operation_sales_order_id_fkey` |
+| `functions` | `87080bcc68ca829d3c880df1a7a60a94` | 216 | **+1** — `inv_assert_delivery_paid` |
+| `policies` | `8c3880435cc42863a322d5a311b3a660` | 547 | unchanged |
+| `schema` | `f037013ef7d5ae8303282bf43182ae41` | 160 base tables | digest changed, **count unchanged** — a column was added to an existing table, no table was created |
+| `triggers` | `aed332b408c333ddc08ac93d3b9dc7f9` | 188 | unchanged |
+| `views` | `9c9ed35a60fb0f2c363dec46c7917c38` | 11 | unchanged |
+
+Previous values, superseded — kept only so the diff above can be checked, not for comparison:
+`constraints` `43cb8bba…`/734, `functions` `45cd80ad…`/215, `schema` `1c5220c4…`/160.
 
 The three legacy namesakes, which must stay byte-identical. Formula is plain
 `md5(prosrc)` / `length(prosrc)` for the named function in `public` — these three DID
@@ -520,6 +528,9 @@ not re-derived from scratch.
 
 ### The delivery payment gate — BUILT INERT, must be switched on when Sales lands
 
+**APPLIED 2026-08-17**, migration `20260817120000_delivery_payment_gate.sql`, smoke suite
+`supabase/smoke/delivery_payment_gate_smoke.sql` (12 assertions).
+
 **This is a PLANNED COMPLETION, not a known issue.** The hook is deliberately built and
 deliberately not wired. It is recorded here so that "switch it on" is a step someone
 performs, not a thing they have to rediscover.
@@ -532,8 +543,9 @@ but it must not be skipped, and it must not be a gate that silently passes.
 |---|---|
 | The document | `inv_operation` kind `outgoing`, type **DELIVERY NOTE**, `DELIVERY ORDER` → `CUSTOMERS` |
 | The completion path | **`inv_complete_operation(p_operation_id uuid)`** — the single completion RPC for every kind. **This is the exact function to change.** |
-| The reference | `inv_operation.sales_order_id`, nullable, added while `outgoing` held **zero** documents so there is no backfill question |
+| The reference | `inv_operation.sales_order_id`, nullable, `ON DELETE SET NULL`, added while `outgoing` held **zero** documents so there is no backfill question |
 | The gate | **`inv_assert_delivery_paid(p_operation_id uuid)`** — exists, named, and **hard-fails**. It is NOT called from `inv_complete_operation` yet |
+| **The screen** | **Does not exist yet.** `src/pages/inventory2/` has receipts and transfers only. The words *"payment verification is not active until the Sales module is complete"* belong on the delivery page and land **when the delivery pages are built — the next pass**. Deliberately not bolted onto the legacy `/inventory/delivery-notes` screen, which is a different module |
 
 **What the gate will read when it is switched on**, mirroring the legacy
 `complete_delivery_with_qc` exactly so the two cannot drift into different answers:
@@ -558,15 +570,32 @@ with columns it does not have. A gate that returns success because it *cannot ch
 indistinguishable from a gate that checked and approved — and it is the second one that
 everybody assumes. An inert gate must be loud.
 
-**Switching it on** means: delete the refusal branch in `inv_assert_delivery_paid`, restore
-the body above, and add the call to `inv_complete_operation` under a kind test for
-`outgoing`. Three edits, one migration, one approval.
+**Switching it on** means: delete the `RAISE` marked `THE SWITCH` in
+`inv_assert_delivery_paid`, then add the call to `inv_complete_operation` under a kind test
+for `outgoing`. Two edits, one migration, one approval. The predicate below the switch is
+already written and already decided — nothing about it is left to invent at that point.
 
-**The NULL case is UNDECIDED and must be decided at switch-on.** Legacy passes trivially
-when `sales_order_id IS NULL` — its own comment calls this an interface stub. Whether that
-stays a deliberate escape hatch (samples, warranty replacements, internal write-offs to a
-customer location) or becomes a hole to close is a business decision V will take then, not
-now. **Do not let it default silently by copying the legacy branch without asking.**
+#### The NULL case — DECIDED 2026-08-17 (V): an outgoing delivery with no sales order REFUSES
+
+Legacy `complete_delivery_with_qc` passes trivially when `sales_order_id IS NULL` and its
+own comment calls this an interface stub. **That is not carried forward.**
+
+**The deciding argument is the foreign key.** `inv_operation.sales_order_id` is
+`ON DELETE SET NULL` — chosen to match `source_purchase_order_id` and so that Inventory
+cannot veto a Sales delete. If a null then passed trivially, **deleting a sales order would
+silently convert an already-gated delivery into an ungated one**: a Sales-side delete would
+become a way to bypass a payment gate, with nothing on either screen saying so and every
+value involved still structurally valid. That is the same class of failure as a stale
+destination on a move — correct-looking data, wrong meaning — and this module refuses it
+everywhere else.
+
+**The exemption is real, and it goes where return-to-vendor put it.** Samples and warranty
+replacements are genuine non-order deliveries. They get their **own outgoing operation
+type**, exactly as rejected stock got its own type rather than a supervisor override. An
+exemption that is configured and visible on the document is auditable; an exemption that is
+a missing value is not.
+
+This is settled, not open. **Do not reopen it by copying the legacy trivial-pass branch.**
 
 ### Return-to-vendor — how rejected stock leaves
 
