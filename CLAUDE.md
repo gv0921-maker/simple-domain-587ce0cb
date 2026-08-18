@@ -334,7 +334,24 @@ because the same block was run through two different connections and disagreed.
 **Run the block through both connections when changing it.** Agreement between two roles is
 what proves a part is measuring the database rather than the observer.
 
-### The values — re-taken 2026-08-17, after the delivery payment gate
+### The values — re-taken 2026-08-18, after route enforcement
+
+The 2026-08-17 baseline reproduced exactly before this migration was applied — second
+consecutive confirmation that the recorded formula produces the recorded numbers.
+
+| Part | md5 | Count | vs 2026-08-17 |
+|---|---|---|---|
+| `constraints` | `b0edc7f0b8e42f19de5e939a4d73f983` | 735 | unchanged |
+| `functions` | `63fbe4a703514b9049e896d42da7c366` | 219 | **+3** — `inv_location_reaches`, `inv_route_is_legal`, `inv_document_allowed_from`; digest also carries the replaced `inv_transfer_stock_item` |
+| `policies` | `8c3880435cc42863a322d5a311b3a660` | 547 | unchanged |
+| `schema` | `f037013ef7d5ae8303282bf43182ae41` | 160 base tables | unchanged |
+| `triggers` | `aed332b408c333ddc08ac93d3b9dc7f9` | 188 | unchanged |
+| `views` | `e7c1ab1f36c2a7d274874375c75899e7` | 12 | **+1** — `inv_location_ancestors` |
+
+Superseded 2026-08-17 values, kept only so the diff above can be checked:
+`functions` `87080bcc…`/216, `views` `9c9ed35a…`/11.
+
+### The values — superseded 2026-08-17, after the delivery payment gate
 
 **The 2026-08-15 baseline reproduced EXACTLY before this migration was applied** — all six
 parts and all three legacy namesakes. That is the first time this file's digests have been
@@ -662,6 +679,131 @@ file forbids.
 
 ---
 
+## THE DOCUMENT ROUTE IS A RULE — enforced 2026-08-18
+
+Migration `20260818090000_route_enforcement.sql`, smoke suite
+`supabase/smoke/route_enforcement_smoke.sql` (20 assertions).
+
+**What was wrong.** `inv_transfer_stock_item` was passed the UNIT'S OWN location as
+`p_expected_from_location_id`, so the assertion compared the unit's location against itself
+and **could never fail for a routing reason**. Nothing anywhere — no RPC, trigger,
+constraint, adapter or screen — compared a scanned unit's location to
+`inv_operation.source_location_id`. `DEL/2627/0001` declares `DELIVERY ORDER → CUSTOMERS`
+and shipped two units straight out of `GODOWN`, while the two units a transfer had staged
+into `DELIVERY ORDER` sat there untouched. **2 of 29 ledger rows.**
+
+### Where the check lives, and why there is exactly one
+
+`inv_transfer_stock_item` is the **only** function in the module that updates
+`inv_stock_item.location_id` or writes `inv_stock_tracking`. Receipt create, receipt resume,
+transfer, delivery and any future adjustment all funnel through it. One check covers every
+path and none can be forgotten — which is why this went in the RPC rather than the adapters.
+
+**The operation is derived from `p_move_id`, never from `p_document_id`.** The move id is
+already trusted (its product is asserted a few lines earlier, so a bogus one has already
+failed); `p_document_id` is the caller's unverified word. Deriving it also made the
+**citation check** free: a ledger row can no longer name a document the move does not
+belong to. That closes the "the ledger's citation of the document is the caller's word"
+hole this file used to record as permanent.
+
+### The predicate, per kind — a fifth kind follows this table
+
+| Kind | Legal iff | Why |
+|---|---|---|
+| `receipt` | `reaches(from, src) AND reaches(to, dest)` | One-directional. Reversing it is a return-to-vendor — its own type |
+| `internal` | `reaches(from, src) AND reaches(to, dest)` | One-directional. The route IS the document's meaning |
+| `outgoing` | `reaches(from, src) AND reaches(to, dest)` | One-directional. Reversing it is a customer return — its own type |
+| `adjustment` | `(reaches(from,src) AND reaches(to,dest))` **OR** `(reaches(from,dest) AND reaches(to,src))` | **Bidirectional along its declared axis** |
+
+`reaches(candidate, anchor)` = *candidate IS anchor, or sits underneath it* —
+`inv_location_reaches`, over the `inv_location_ancestors` view.
+
+**Why adjustments differ, and why it is a rule rather than an exemption.**
+`inv_tg_adjustment_counterparty` already forces exactly one virtual side
+(`inventory_loss`/`scrap`/`production`) and one internal side, so an adjustment document
+declares an **axis** and only the direction varies: a write-off runs internal→virtual, a
+found-stock correction runs virtual→internal. `STOCK ADJUSTMENT` is configured
+`INVENTORY LOSS → STOCK` and a write-off runs the other way, so a one-directional rule
+would have broken adjustments **the day they were built**.
+
+**It is a PAIR check, not two independent membership tests.** Testing "from is in the
+allowed set AND to is in the allowed set" separately would also admit internal→internal and
+virtual→virtual, neither of which is an adjustment. The two ends must be *opposite* ends of
+the same axis. Smoke test 13 is exactly this case and is the one that separates the two
+designs.
+
+### The hierarchy is live, so equality would have been wrong
+
+`GODOWN`'s parent is `STOCK`, today, with 23 units in the child. A plain
+`unit.location_id = op.source_location_id` check would have refused every one of them on a
+document sourced at `STOCK`. `inv_location_ancestors` is modelled line-for-line on
+`product_category_ancestors`, **including its `seen[]` cycle guard** — `inv_location.parent_id`
+has no cycle constraint, so an unguarded recursion would hang the server rather than return
+a wrong answer.
+
+Containment is **directional**: a unit in a child is reachable from the parent, never the
+reverse. Smoke tests 1–3 and 8–9 pin both directions.
+
+### ACCURACY RUNS FIRST, AND THE ORDER IS LOAD-BEARING
+
+```
+1. expected_from = actual location   ← accuracy  (unchanged, pre-existing)
+2. route is legal                    ← legality  (new)
+```
+
+The old assertion was never worthless — it is what makes the ledger's `from_location_id`
+**true**: the recorded origin is proven to be where the unit actually was at commit time,
+and it catches time-of-check/time-of-use races and stale closures.
+
+If a unit moved between resolve and commit, the operator must be told *"it is in X, but the
+caller expected Y"* — precise and actionable — **not** a route error that misdescribes the
+cause. Legality is only a meaningful question once the recorded origin is known to be true.
+Smoke test 7 constructs a claim that is *both* inaccurate and illegal, so only the ORDER
+decides which message comes back.
+
+**The fix added legality. It did not weaken accuracy. Do not reorder these.**
+
+### `locks_source` was NOT the answer — and confusing the two is easy
+
+`locks_source` is read in exactly one place, `inv_create_operation`, where it pins
+`inv_operation.source_location_id` to the type's default at CREATE time.
+
+| | |
+|---|---|
+| `locks_source` | "this document's source *field* must say DELIVERY ORDER" — **configuration integrity** |
+| what was missing | "units scanned onto it must actually *be* at DELIVERY ORDER" — **movement legality** |
+
+Turning it on would have made `DEL/2627/0001` declare the source it already declared. The
+two units would still have shipped from GODOWN. **A flag that constrains what a document
+says is not a check on what is done to it.**
+
+### `inv_document_allowed_from` is a SUPERSET, on purpose
+
+The screen needs a **set** to refuse a unit against before any round trip;
+`inv_route_is_legal` is a **pair** check and cannot answer that. For an adjustment the set
+spans both ends of the axis, which is strictly more than the pair check permits.
+
+The asymmetry is safe in exactly one direction:
+
+- **too generous is safe** — the server still refuses, and the operator gets a late message
+  instead of an early one;
+- **too narrow would refuse a lawful unit** at the bay with no way past it.
+
+So it **may be widened, and must never be narrowed**, and it is never the thing that decides
+whether a movement happens. The authority is `inv_route_is_legal`.
+
+### What this changes operationally
+
+**Every delivery now requires a prior transfer.** The 23 GODOWN units cannot be shipped on
+a `DELIVERY NOTE` (sourced `DELIVERY ORDER`) until they are staged. Accepted by V on
+2026-08-18 as the intended workflow.
+
+The 2 divergent ledger rows on `DEL/2627/0001` remain. They are accurate history of an
+unlawful move, `inv_stock_tracking` blocks UPDATE/DELETE/TRUNCATE by trigger, and rule 4
+forbids deletion. Nothing revalidates history.
+
+---
+
 ## PLANNED DOCUMENT TYPES — designed, not built
 
 Not known issues. These are shapes the model is expected to grow, recorded so the design is
@@ -742,6 +884,29 @@ exemption that is configured and visible on the document is auditable; an exempt
 a missing value is not.
 
 This is settled, not open. **Do not reopen it by copying the legacy trivial-pass branch.**
+
+### UNSTAGE (DELIVERY ORDER → GODOWN) — now necessary, not theoretical
+
+**This became visible the moment route enforcement landed, and it has a live example.**
+
+Staging a unit for delivery moves it `GODOWN → DELIVERY ORDER`. Once the route is a rule,
+**there is no lawful document that moves it back.** The only `internal` type is
+`ITEM ESTIMATE` (`STOCK → DELIVERY ORDER`), which runs the wrong way, and no other type
+accepts a unit sitting in `DELIVERY ORDER` except a delivery — which sends it to a customer.
+
+**A staging mistake is currently irreversible.** The live example is `101205-2627-0008` and
+`101205-2627-0009`: staged by `INT/2627/0001` for a delivery that shipped different units,
+and now parked in transit with nowhere to go but out of the door.
+
+| | |
+|---|---|
+| The shape | A dedicated `internal` operation type, `DELIVERY ORDER → GODOWN` |
+| Why a type and not an override | The same reasoning as return-to-vendor: movement is controlled by WHICH DOCUMENT is used, not by who is clicking. An unstage that is a configured type is auditable; one that is a permission is not |
+| Status of the two units | **Left where they are, deliberately.** They are correctly placed for a delivery and become deliverable under the new rule. See the route-enforcement section |
+
+Note the sequencing lesson: enforcement did not *create* this gap, it **revealed** one that
+had been there since staging existed. Before the rule, the gap was invisible because any
+unit could be shipped from anywhere.
 
 ### Return-to-vendor — how rejected stock leaves
 
