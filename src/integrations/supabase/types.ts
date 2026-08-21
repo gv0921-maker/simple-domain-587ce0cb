@@ -10540,6 +10540,15 @@ export type Database = {
       }
     }
     Views: {
+      inv_location_ancestors: {
+        Row: {
+          ancestor_id: string | null
+          ancestor_name: string | null
+          distance: number | null
+          location_id: string | null
+        }
+        Relationships: []
+      }
       inv_on_hand: {
         Row: {
           location_id: string | null
@@ -11253,6 +11262,16 @@ export type Database = {
         Args: { p_operation_id: string }
         Returns: Database["public"]["Enums"]["inv_operation_state"]
       }
+      inv_document_allowed_from: {
+        Args: { p_operation_id: string }
+        Returns: {
+          location_id: string
+        }[]
+      }
+      inv_location_reaches: {
+        Args: { p_anchor: string; p_candidate: string }
+        Returns: boolean
+      }
       inv_move_state_allowed: {
         Args: {
           p_new: Database["public"]["Enums"]["inv_move_state"]
@@ -11295,6 +11314,10 @@ export type Database = {
       inv_reset_sequence_counter: {
         Args: { p_document_type: string; p_fy_label: string }
         Returns: undefined
+      }
+      inv_route_is_legal: {
+        Args: { p_from: string; p_operation_id: string; p_to: string }
+        Returns: boolean
       }
       inv_save_stock_move: {
         Args: { _header: Json; _lines: Json; _move_id: string }
