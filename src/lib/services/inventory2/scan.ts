@@ -148,6 +148,39 @@ export interface ScanDocument {
   dest_location_id: string | null;
   dest_location_name: string | null;
   vendor_name: string | null;
+  /**
+   * The locations a unit may lawfully be scanned FROM onto this document,
+   * straight from `inv_document_allowed_from`.
+   *
+   * ── THIS IS A MESSAGE, NOT THE ENFORCEMENT ────────────────────────────
+   * THE SERVER IS THE AUTHORITY. `inv_transfer_stock_item` calls
+   * `inv_route_is_legal` at the only choke point that writes
+   * inv_stock_item.location_id or inv_stock_tracking, and it refuses there
+   * whatever this screen does. This set exists so the operator finds out at
+   * the bay instead of after a round trip. It changes WHEN they are told,
+   * never WHETHER the movement happens.
+   *
+   * So: do NOT "optimise" by treating a pass here as permission and skipping
+   * the server's answer, and do not remove the server check because the screen
+   * now filters. A client that has been open for an hour is reading an hour-old
+   * set; the unit may have moved since.
+   *
+   * ── DELIBERATELY A SUPERSET, AND IT MAY NEVER BE NARROWED ─────────────
+   * `inv_document_allowed_from` returns MORE than `inv_route_is_legal` permits:
+   * the authority is a PAIR check over both ends of the move, and a set cannot
+   * express a pair. On an adjustment this spans both ends of the axis, which is
+   * strictly more than any single movement is allowed.
+   *
+   * The asymmetry is safe in exactly one direction:
+   *   too generous — safe, the server still refuses and the message is late;
+   *   too narrow   — refuses a LAWFUL unit at the bay with no way past it.
+   *
+   * Widen it freely. Never narrow it. And never reimplement the hierarchy walk
+   * client-side to "improve" it: `inv_location_ancestors` is the single
+   * definition of containment, and a second implementation is how the two
+   * start disagreeing.
+   */
+  allowed_from_location_ids: string[];
   lines: ScanDocLine[];
   units: ScanDocUnit[];
 }
@@ -189,6 +222,16 @@ export interface ResolvedUnit {
    * value an adapter must use as "from". See the header rule.
    */
   location_id: string;
+  /**
+   * The name of that location, for operator-facing sentences.
+   *
+   * Carried here rather than looked up by the caller because the caller that
+   * needs it — the screen's route refusal — must name where the unit ACTUALLY
+   * IS, and the screen has no location map. Resolving it anywhere else would
+   * invite naming the document's source instead, which is the one mistake the
+   * header rule above exists to prevent.
+   */
+  location_name: string | null;
   /** Which document this unit arrived on — how a foreign serial is spotted. */
   origin_operation_id: string | null;
 }
@@ -298,7 +341,11 @@ export async function resolveScan(rawCode: string): Promise<ScanResolution> {
 
   const bySerial = await supabase
     .from('inv_stock_item')
-    .select('id, serial, product_id, status, location_id, origin_operation_id')
+    // The location is embedded through its FK by NAME
+    // (`inv_stock_item_location_id_fkey`) rather than by bare table name:
+    // inv_stock_item references inv_location from more than one column, and an
+    // unhinted embed is ambiguous the moment a second one is added.
+    .select('id, serial, product_id, status, location_id, origin_operation_id, inv_location!inv_stock_item_location_id_fkey(name)')
     .eq('serial', code)
     .maybeSingle();
   if (bySerial.error) throw bySerial.error;
@@ -311,6 +358,7 @@ export async function resolveScan(rawCode: string): Promise<ScanResolution> {
       product_id: bySerial.data.product_id,
       status: bySerial.data.status,
       location_id: bySerial.data.location_id,
+      location_name: bySerial.data.inv_location?.name ?? null,
       origin_operation_id: bySerial.data.origin_operation_id,
     };
   }
@@ -564,7 +612,7 @@ export async function getScanDocument(operationId: string): Promise<ScanDocument
   if (opErr) throw opErr;
   if (!op) return null;
 
-  const [typeRes, locsRes, vendorRes, movesRes] = await Promise.all([
+  const [typeRes, locsRes, vendorRes, movesRes, allowedRes] = await Promise.all([
     supabase
       .from('inv_operation_type')
       .select('id, name, kind, mandatory_scan_product, mandatory_scan_serial, mandatory_scan_dest_location, allow_extra_products')
@@ -575,11 +623,16 @@ export async function getScanDocument(operationId: string): Promise<ScanDocument
       ? supabase.from('vendors').select('id, name').eq('id', op.partner_vendor_id).maybeSingle()
       : null,
     supabase.from('inv_move').select('id, product_id, demand_qty, state').eq('operation_id', operationId),
+    // The allowed-from set, asked of the database rather than derived here.
+    // See the field's comment on ScanDocument: the hierarchy walk has exactly
+    // one definition (inv_location_ancestors) and this is not a second one.
+    supabase.rpc('inv_document_allowed_from', { p_operation_id: operationId }),
   ]);
   if (typeRes.error) throw typeRes.error;
   if (locsRes.error) throw locsRes.error;
   if (vendorRes?.error) throw vendorRes.error;
   if (movesRes.error) throw movesRes.error;
+  if (allowedRes.error) throw allowedRes.error;
 
   const type = typeRes.data;
   if (!type) throw new Error(`Operation type ${op.operation_type_id} not found.`);
@@ -664,6 +717,7 @@ export async function getScanDocument(operationId: string): Promise<ScanDocument
     dest_location_id: op.dest_location_id,
     dest_location_name: op.dest_location_id ? locName.get(op.dest_location_id) ?? null : null,
     vendor_name: vendorRes?.data?.name ?? null,
+    allowed_from_location_ids: (allowedRes.data ?? []).map((r) => r.location_id),
     lines,
     units,
   };

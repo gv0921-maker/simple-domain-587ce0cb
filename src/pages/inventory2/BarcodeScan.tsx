@@ -51,6 +51,7 @@ import {
 } from '@/hooks/inventory2/scan';
 import {
   resolveScan, unitRef,
+  type ResolvedUnit,
   type ScanAdapter, type ScanDocKind, type ScanDocLine, type ScanDocument,
   type ScannedUnitRef,
 } from '@/lib/services/inventory2/scan';
@@ -191,6 +192,64 @@ function DocumentPicker() {
         })}
       </div>
     </AppLayout>
+  );
+}
+
+/* ------------------------------------------------------- the route refusal */
+
+/**
+ * Why this unit cannot be scanned onto this document, or null to proceed.
+ *
+ * ── THIS IS A MESSAGE, NOT THE ENFORCEMENT ────────────────────────────────
+ * THE SERVER IS THE AUTHORITY, and it is not this function.
+ * `inv_transfer_stock_item` calls `inv_route_is_legal` at the single choke
+ * point that writes `inv_stock_item.location_id` and `inv_stock_tracking`, and
+ * it refuses there whatever this screen decides. Route enforcement does not
+ * depend on this code running, or on it being right.
+ *
+ * What this buys is WHEN the operator finds out: at the bay, holding the unit,
+ * with the remedy in the sentence — instead of after a round trip. That is the
+ * entire value, and it is a real one, but it is presentation.
+ *
+ * DO NOT "optimise" by trusting a pass here. Specifically: do not skip the
+ * server call because this returned null, and do not weaken the server check
+ * because the screen now filters. `doc` is a cached snapshot — a session left
+ * open for an hour holds an hour-old allowed-set, and the unit may have moved
+ * since it was fetched. Only the server reads the unit at the moment it moves.
+ *
+ * ── IT MUST NEVER BE NARROWER THAN THE SERVER ─────────────────────────────
+ * `allowed_from_location_ids` is a deliberate SUPERSET of what
+ * `inv_route_is_legal` permits (the authority is a pair check over both ends of
+ * the move; a flat set cannot express a pair). The asymmetry is safe in exactly
+ * one direction — too generous means a late refusal, too narrow means a LAWFUL
+ * unit refused at the bay with no way past it. Hence the empty-set rule below,
+ * and hence the membership test being nothing but a membership test.
+ *
+ * NO HIERARCHY WALK HAPPENS HERE. `inv_location_ancestors` is the single
+ * definition of containment and the set already has it applied — GODOWN is a
+ * child of STOCK, so a STOCK-sourced document's set contains GODOWN outright.
+ * Re-deriving that client-side would be a second definition, and two
+ * definitions of containment is how they start disagreeing.
+ */
+function routeRefusal(doc: ScanDocument, unit: ResolvedUnit): string | null {
+  /*
+   * AN EMPTY SET IS "NO OPINION", NOT "NOTHING IS ALLOWED".
+   *
+   * The set comes back empty when the document has no source location, and
+   * refusing every unit on that basis would make the screen NARROWER than the
+   * server — the one direction this design forbids. Falling through costs a
+   * late message on a misconfigured document; refusing would strand an
+   * operator at the bay with no way past it.
+   */
+  if (doc.allowed_from_location_ids.length === 0) return null;
+  if (doc.allowed_from_location_ids.includes(unit.location_id)) return null;
+
+  const from = unit.location_name ?? 'an unknown location';
+  const source = doc.source_location_name ?? 'its source location';
+  return (
+    `${unit.serial} is in ${from}. ${doc.number} moves stock from ${source}. ` +
+    `Nothing has been recorded. ` +
+    `Transfer the unit to ${source} first, then scan it here.`
   );
 }
 
@@ -420,6 +479,32 @@ function ScanSession({
         // the database is left to refuse it in its own words. On a transfer it
         // is the NORMAL case: the unit exists in stock and is about to be moved
         // onto this document for the first time.
+        /*
+         * ROUTE FIRST — AHEAD OF BOTH GATES, AND AHEAD OF EVERYTHING ELSE.
+         *
+         * A route refusal is not a decision the operator gets to make, which is
+         * what separates it from the two gates below. There is no point asking
+         * "ship this REJECTED unit?" or "accept an extra one?" about a unit
+         * that cannot lawfully leave where it is standing: the operator would
+         * answer a question, and then be refused anyway — by the server, in a
+         * different sentence, about a different subject.
+         *
+         * It also sits ahead of the line-selection and destination-ack checks
+         * on purpose. Those are the SCREEN's prerequisites; this is a fact
+         * about the unit and the document that no amount of selecting lines
+         * changes. Telling an operator "no line selected" first would send them
+         * to pick a line, rescan, and only then learn the unit was never
+         * eligible.
+         *
+         * Only reachable for a unit that already exists. A receipt scanning an
+         * unknown serial CREATES the unit at the operation's own destination,
+         * so there is no origin to be wrong about.
+         */
+        const refusal = routeRefusal(doc, resolution);
+        if (refusal) {
+          push('failed', code, refusal);
+          return;
+        }
         // Built through unitRef() rather than by hand: it is the one place
         // that knows every field the seam expects, so a field added there
         // (status, in the delivery pass) cannot be silently missed here.
@@ -495,6 +580,23 @@ function ScanSession({
       try {
         const resolution = await resolveScan(serial);
         if (resolution.kind === 'unit') {
+          /*
+           * The retry path needs this gate for the same reason it needs the
+           * condition one, and it is easy to miss: the retry row lets the
+           * operator CORRECT the serial, so what just resolved may be a
+           * DIFFERENT UNIT IN A DIFFERENT PLACE from the one that failed.
+           * Checking only on the first scan would let a corrected serial walk
+           * straight past the refusal that the original scan was shown.
+           *
+           * The retry row is kept (`event.retry`) rather than settled away: a
+           * route refusal is often a typo, and the operator needs the same row
+           * to correct again.
+           */
+          const refusal = routeRefusal(doc, resolution);
+          if (refusal) {
+            settle(event.id, 'failed', refusal, event.retry);
+            return;
+          }
           existing = unitRef(resolution);
         }
       } catch (e) {
