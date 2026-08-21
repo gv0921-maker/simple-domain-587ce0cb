@@ -229,6 +229,30 @@ In practice that means:
 A green suite is not evidence. Evidence is a test that would fail if the thing under test
 were removed.
 
+### The same rule applies to MEASUREMENTS, not just tests — learned 2026-08-21
+
+Proving the screen refusal made no round trip needed a measurement of network activity, and
+**the first two instruments both confidently reported ZERO while the scan was demonstrably
+running.**
+
+| Instrument | Why its zero was meaningless |
+|---|---|
+| the browser extension's `read_network_requests` | Captured the page-load requests, then recorded nothing further. A filtered read returned "no requests matching supabase.co" for a scan that had visibly just resolved a serial off the database |
+| `performance.getEntriesByType('resource')` | `resourceTimingBufferSize` defaults to 250 entries and **Vite dev serves every module as its own request**, so the buffer was full long before the scan. A full buffer silently drops new entries — it does not error, and the array it returns still looks like an answer |
+
+Both would have "confirmed" the claim being tested. The claim was even true, which is worse:
+a correct conclusion reached from an instrument that was not measuring is indistinguishable
+from a lucky guess, and the next person inherits the method rather than the answer.
+
+What actually measured it was wrapping `window.fetch` and recording the calls — which showed
+the refused scan costs **4 GETs and zero writes**: three product lookups and one serial
+lookup, all `resolveScan` identifying the barcode, and **no `rpc/inv_transfer_stock_item`**.
+That is also the honest form of the claim. A scan cannot skip identifying what was scanned;
+what it skips is the commit round trip.
+
+**Before believing a zero, prove the instrument can see a one.** The fetch wrapper was
+trusted only because the accepted scan through the same wrapper showed the POST appear.
+
 ---
 
 ## DATABASE FINGERPRINT BASELINE — re-taken 2026-08-15, after the transfer line RPCs
@@ -791,6 +815,33 @@ The asymmetry is safe in exactly one direction:
 
 So it **may be widened, and must never be narrowed**, and it is never the thing that decides
 whether a movement happens. The authority is `inv_route_is_legal`.
+
+#### It has a reader — the screen refusal, built 2026-08-21
+
+`getScanDocument()` puts the set on `ScanDocument.allowed_from_location_ids`;
+`routeRefusal()` in `src/lib/inventory2/routeRefusal.ts` tests membership and
+`BarcodeScan.tsx` calls it on both the first-scan and the retry path. Unit tests in
+`src/test/inventory2/route-refusal.test.ts` (7, mutation-tested with three mutations).
+
+**The screen tests membership and nothing else.** The descendants are already expanded by
+`inv_location_ancestors` inside the function, so a `STOCK`-sourced document's set contains
+`GODOWN` outright. Two paired tests pin this: same document and same unit, differing only in
+whether the set arrived expanded — expanded permits, unexpanded refuses. Grow a parent walk
+client-side and the second flips, which is the moment two definitions of containment start
+disagreeing.
+
+**AN EMPTY SET IS "NO OPINION", NOT "NOTHING IS ALLOWED"** — decided 2026-08-21, and it is
+the narrow-side guard in practice. The set comes back empty when a document has no
+`source_location_id`, and refusing every unit on that basis would make the screen narrower
+than the server: precisely the direction this section forbids. The screen falls through and
+lets the server answer, which costs a late message on a misconfigured document and strands
+nobody.
+
+**It is a message, not the enforcement**, and the comments say so in three places because
+there are two tempting "optimisations" and both are wrong: trusting a client pass and
+skipping the server, or weakening the server check because the screen now filters. `doc` is
+a cached snapshot — an hour-old session holds an hour-old set, and only the server reads the
+unit at the moment it moves.
 
 ### What this changes operationally
 
