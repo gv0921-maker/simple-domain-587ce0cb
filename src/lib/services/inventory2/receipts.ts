@@ -136,6 +136,17 @@ export interface ReceiptDetail {
     source_location_name: string | null;
     dest_location_name: string | null;
     vendor_name: string | null;
+    /*
+     * The rest of the vendor, for the printed GRN's addressee block. Null
+     * whenever the receipt has no vendor, which a stock-adjustment-shaped
+     * receipt legitimately does not — the template renders what is present and
+     * omits what is not, rather than printing empty labelled rows.
+     */
+    vendor_address: string | null;
+    vendor_gstin: string | null;
+    vendor_contact_person: string | null;
+    vendor_phone: string | null;
+    vendor_email: string | null;
     source_document: string | null;
     scheduled_at: string | null;
     done_at: string | null;
@@ -262,8 +273,19 @@ export async function getReceiptDetail(id: string): Promise<ReceiptDetail | null
   const [typeRes, locIdx, vendorRes, poRes, movesRes] = await Promise.all([
     supabase.from('inv_operation_type').select('*').eq('id', op.operation_type_id).maybeSingle(),
     locationIndex(),
+    /*
+     * WIDENED FOR THE GOODS RECEIPT NOTE, which prints the vendor as an
+     * addressee and not just a name. Everything here is already on `vendors`;
+     * only the projection was narrow.
+     *
+     * `vendors` is READ, never written — the GRN is a document about goods that
+     * arrived, and nothing in Inventory 2 has any business editing a supplier
+     * record on the way past.
+     */
     vendorId
-      ? supabase.from('vendors').select('id, name').eq('id', vendorId).maybeSingle()
+      ? supabase.from('vendors')
+          .select('id, name, address, gstin, contact_person, phone, email')
+          .eq('id', vendorId).maybeSingle()
       : null,
     poId
       ? supabase.from('inv_purchase_order').select('*').eq('id', poId).maybeSingle()
@@ -418,6 +440,11 @@ export async function getReceiptDetail(id: string): Promise<ReceiptDetail | null
       source_location_name: op.source_location_id ? locIdx.get(op.source_location_id) ?? null : null,
       dest_location_name: op.dest_location_id ? locIdx.get(op.dest_location_id) ?? null : null,
       vendor_name: vendorRes?.data?.name ?? null,
+      vendor_address: vendorRes?.data?.address ?? null,
+      vendor_gstin: vendorRes?.data?.gstin ?? null,
+      vendor_contact_person: vendorRes?.data?.contact_person ?? null,
+      vendor_phone: vendorRes?.data?.phone ?? null,
+      vendor_email: vendorRes?.data?.email ?? null,
       source_document: op.source_document,
       scheduled_at: op.scheduled_at,
       done_at: op.done_at,
