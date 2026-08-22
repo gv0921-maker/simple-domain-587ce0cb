@@ -520,12 +520,17 @@ BEGIN
   -- =================================================================
   -- TEST 25 : the inv_remove_operation_line consequence
   -- =================================================================
-  -- Flagged during design and asserted here at V's instruction. Removing a
-  -- line that carries generated labels MUST now be refused, because those
-  -- labels exist physically. inv_remove_operation_line does a bare
-  -- `DELETE FROM inv_move`, so the refusal comes from the FK, NOT from a
-  -- sentence the function composes. Both halves are recorded: that it fires,
-  -- and whether an operator could read it.
+  -- Removing a line that carries generated labels MUST be refused, because
+  -- those labels exist physically.
+  --
+  -- THE AUTHORITY MOVED IN 20260822140000, and these assertions moved with it.
+  -- Until then inv_remove_operation_line ended in a bare `DELETE FROM inv_move`
+  -- and the refusal came from inv_pending_serial_move_id_fkey as a raw
+  -- constraint violation. It now composes its own sentence BEFORE the delete,
+  -- so 25 asserts that sentence rather than the constraint name. That is not a
+  -- weakened assertion: the FK is still there and still restricts, it is simply
+  -- no longer what the operator meets first. Test 29 proves the guard is what
+  -- fires by constructing the case the FK alone would have caught differently.
   d_int := (public.inv_create_operation(p_operation_type_id => t_rcp))->>'id';
   m_int := public.inv_add_operation_line(d_int, p_sg, 5);
   PERFORM public.inv_generate_serials(m_int, 1);
@@ -536,17 +541,20 @@ BEGIN
   EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM;
   END;
   INSERT INTO rt VALUES (25,
-    'REMOVING a line that carries generated labels is refused by inv_pending_serial_move_id_fkey',
-    v_msg LIKE '%inv_pending_serial_move_id_fkey%',
+    'REMOVING a line that carries OUTSTANDING labels is refused, naming how many are still waiting and telling the operator to void them first',
+    v_msg LIKE '%1 generated serial number(s), 1 still waiting for goods%'
+      AND v_msg LIKE '%Void the 1 outstanding number(s) first%',
     v_msg);
 
-  -- LEGIBILITY, asserted separately from correctness. A refusal nobody can
-  -- read is half a fix. This test is EXPECTED TO FAIL until
-  -- inv_remove_operation_line composes its own sentence; its failure is the
-  -- marker for that follow-up, not a defect in this migration.
+  -- LEGIBILITY, asserted separately from correctness, because a refusal nobody
+  -- can read is half a fix. This was a standing FAILURE from 20260822090000
+  -- until 20260822140000 taught the function to say it; kept separate from 25
+  -- so a future change that refuses correctly but regresses to a raw
+  -- constraint violation is caught as a legibility fault specifically.
   INSERT INTO rt VALUES (26,
-    'LEGIBILITY (expected FAIL until inv_remove_operation_line is taught to say it): the refusal reads as a sentence, not a raw FK violation',
-    v_msg NOT LIKE '%violates foreign key constraint%',
+    'LEGIBILITY: the refusal reads as a sentence, not a raw FK violation',
+    v_msg NOT LIKE '%violates foreign key constraint%'
+      AND v_msg NOT LIKE '%inv_pending_serial_move_id_fkey%',
     v_msg);
 
   -- A control for 25: a line with NO labels still removes cleanly, so the
@@ -561,6 +569,36 @@ BEGIN
   INSERT INTO rt VALUES (27,
     'CONTROL for 25: the same call on a line with NO generated labels still succeeds, so the refusal is the pending rows and not the line',
     v_msg = '(removed)', v_msg);
+
+  ---------------------------------------------------------------- 29.
+  -- THE CASE THAT SEPARATES "COUNT EVERY ROW" FROM "COUNT THE LIVE ONES", and
+  -- the specific trap the guard was written to avoid.
+  --
+  -- inv_pending_serial_move_id_fkey restricts on move_id regardless of state,
+  -- so a line whose labels are ALL VOIDED still cannot be deleted. A guard that
+  -- counted only outstanding labels would see zero, fall through, and hand the
+  -- operator the raw constraint violation this whole migration exists to
+  -- remove -- in a narrower case that is much harder to notice.
+  --
+  -- The message must also offer the alternative, because unlike test 25 there
+  -- is nothing left to void: the line genuinely cannot be removed, and a
+  -- refusal with no way forward is its own kind of dead end.
+  d_int := (public.inv_create_operation(p_operation_type_id => t_rcp))->>'id';
+  m_int := public.inv_add_operation_line(d_int, p_sg, 5);
+  SELECT g.pending_id INTO v_pid FROM public.inv_generate_serials(m_int, 1) g;
+  PERFORM public.inv_void_pending_serials(ARRAY[v_pid], 'smoke: voided before removing the line');
+
+  BEGIN
+    PERFORM public.inv_remove_operation_line(m_int);
+    v_msg := '(no exception raised — the line was removed with voided labels against it)';
+  EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM;
+  END;
+  INSERT INTO rt VALUES (29,
+    'ALL-VOIDED line: still refused, with its own sentence offering demand 0 as the way forward, and NOT as a raw FK violation',
+    v_msg LIKE '%all of them already voided%'
+      AND v_msg LIKE '%Set its demand to 0 instead%'
+      AND v_msg NOT LIKE '%violates foreign key constraint%',
+    v_msg);
 
 END $$;
 

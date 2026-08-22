@@ -358,7 +358,23 @@ because the same block was run through two different connections and disagreed.
 **Run the block through both connections when changing it.** Agreement between two roles is
 what proves a part is measuring the database rather than the observer.
 
-### The values — re-taken 2026-08-22, after serial generation
+### The values — re-taken 2026-08-22, after the remove-line guard
+
+The post-serial-generation baseline reproduced exactly before this migration was applied.
+One function replaced, nothing else touched.
+
+| Part | md5 | Count | vs the entry below |
+|---|---|---|---|
+| `constraints` | `dd9e795940186f515fea4112ad132ccb` | 751 | unchanged |
+| `functions` | `3c6921beaf0d9e66621672a1e9310280` | 223 | digest changed, **count unchanged** — `inv_remove_operation_line` replaced, none added |
+| `policies` | `77b9dfe190eddee26b9c3841a664d5a2` | 555 | unchanged |
+| `schema` | `051c00f530529165a5ea6c46e55e7981` | 162 | unchanged |
+| `triggers` | `31a058b6cd08fe3d8df0f42f49181baf` | 191 | unchanged |
+| `views` | `e7c1ab1f36c2a7d274874375c75899e7` | 12 | unchanged |
+
+Superseded `functions` value from the entry below: `90a2ae6f…`/223.
+
+### The values — superseded 2026-08-22, after serial generation
 
 The 2026-08-18 baseline reproduced exactly before this migration was applied — **third
 consecutive confirmation** that the recorded formula produces the recorded numbers. Re-run
@@ -878,7 +894,7 @@ forbids deletion. Nothing revalidates history.
 ## SERIAL GENERATION — labels before the goods, built 2026-08-22
 
 Migration `20260822090000_serial_generation.sql`, smoke suite
-`supabase/smoke/serial_generation_smoke.sql` (28 assertions).
+`supabase/smoke/serial_generation_smoke.sql` (30 assertions, all passing).
 
 V's workflow: create the receipt with quantities -> **generate serials** -> print labels ->
 stick them on the goods -> scan them in. Generation is a **prerequisite for printing**, not a
@@ -1057,25 +1073,45 @@ records the earlier protection separately.
 | completion trigger also voids consumed rows | **refused by `inv_pending_serial_single_outcome`** — the mutation is structurally impossible, not merely detected |
 | B1's message changed | test 1 fails |
 | unique constraint made partial over live rows | test 28 fails |
+| remove-line guard counts only OUTSTANDING labels (M6, added with `20260822140000`) | test 29 fails, and the detail it prints is the raw FK violation itself |
 
-### KNOWN GAP — the line-removal refusal is correct but ILLEGIBLE
+### THE LINE-REMOVAL REFUSAL — closed 2026-08-22, migration `20260822140000`
 
-`inv_pending_serial.move_id` is `ON DELETE RESTRICT`, so `inv_remove_operation_line()` now
+`inv_pending_serial.move_id` is `ON DELETE RESTRICT`, so `inv_remove_operation_line()`
 **refuses** to remove a line carrying generated labels. That is intended — the labels exist
 physically and must be voided deliberately first.
 
-But the function does a bare `DELETE FROM inv_move`, so the refusal surfaces as:
+It used to surface as a raw constraint violation, because the function ended in a bare
+`DELETE FROM inv_move`. It now composes its own sentence before the delete, in the register
+the function already used for its sibling case ("This line has N unit(s) already received").
 
-```
-update or delete on table "inv_move" violates foreign key constraint
-"inv_pending_serial_move_id_fkey" on table "inv_pending_serial"
-```
+**COUNT EVERY ROW, NOT JUST THE LIVE ONES.** The FK restricts on `move_id` regardless of
+whether a number is outstanding, voided or consumed. A guard that looked only at outstanding
+labels would let a line whose labels were **all voided** fall straight through to the raw
+constraint violation the fix exists to remove — in a narrower case that is far harder to
+notice. That is not a hypothetical: it is mutation M6, and smoke test 29 is the assertion
+that catches it, reporting the exact FK text back.
 
-**A correct refusal nobody can read is half a fix.** Smoke test 26 asserts legibility and is
-**expected to fail** until `inv_remove_operation_line` composes its own sentence, the way it
-already does for "This line has N unit(s) already received". Test 25 proves the refusal fires
-and test 27 is the control. **That standing failure is the marker for the follow-up; it is not
-a defect in this migration**, and the fix is its own approved change to an existing RPC.
+The two branches differ because the remedies differ:
+
+| Case | What the operator is told |
+|---|---|
+| labels still outstanding | how many are waiting, and to void them first — an action available on that screen |
+| all labels already voided | the line is part of the record and cannot be removed; **set its demand to 0 instead** |
+
+The second branch matters more than it looks. There is nothing left to void, so a refusal
+that only said "no" would be a dead end. A refusal that cannot be acted on is the same class
+of failure as one that cannot be read.
+
+**Smoke test 26 was a standing, deliberate FAILURE from `20260822090000` until this landed.**
+It is now green, and it is kept separate from test 25 on purpose: 25 proves the refusal
+fires with the right sentence, 26 proves it is not a raw constraint violation. A future change
+that refuses correctly but regresses to the FK would keep 25 green and break 26 alone.
+
+Note also that test 25's assertion MOVED with the authority. It used to match
+`inv_pending_serial_move_id_fkey`; it now matches the guard's sentence. That is a re-pointing,
+not a weakening — the FK is still present and still restricts, it is simply no longer the
+thing the operator meets first.
 
 ### WHAT THE SUITE DOES NOT PROVE
 
