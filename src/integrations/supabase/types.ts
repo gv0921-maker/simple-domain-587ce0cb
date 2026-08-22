@@ -4658,6 +4658,75 @@ export type Database = {
           },
         ]
       }
+      inv_pending_serial: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          first_printed_at: string | null
+          generated_at: string
+          generated_by: string | null
+          id: string
+          last_printed_at: string | null
+          move_id: string
+          print_count: number
+          serial: string
+          stock_item_id: string | null
+          updated_at: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          first_printed_at?: string | null
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          last_printed_at?: string | null
+          move_id: string
+          print_count?: number
+          serial: string
+          stock_item_id?: string | null
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          first_printed_at?: string | null
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          last_printed_at?: string | null
+          move_id?: string
+          print_count?: number
+          serial?: string
+          stock_item_id?: string | null
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_pending_serial_move_id_fkey"
+            columns: ["move_id"]
+            isOneToOne: false
+            referencedRelation: "inv_move"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_pending_serial_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "inv_stock_item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inv_purchase_order: {
         Row: {
           created_at: string
@@ -4760,6 +4829,47 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "product_variants"
             referencedColumns: ["id", "product_id"]
+          },
+        ]
+      }
+      inv_serial_sequence: {
+        Row: {
+          created_at: string
+          current_number: number
+          fy_label: string
+          id: string
+          padding: number
+          product_id: string
+          separator: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_number?: number
+          fy_label: string
+          id?: string
+          padding?: number
+          product_id: string
+          separator?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_number?: number
+          fy_label?: string
+          id?: string
+          padding?: number
+          product_id?: string
+          separator?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_serial_sequence_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -11268,6 +11378,13 @@ export type Database = {
           location_id: string
         }[]
       }
+      inv_generate_serials: {
+        Args: { p_count: number; p_move_id: string }
+        Returns: {
+          pending_id: string
+          serial_number: string
+        }[]
+      }
       inv_location_reaches: {
         Args: { p_anchor: string; p_candidate: string }
         Returns: boolean
@@ -11309,6 +11426,10 @@ export type Database = {
         Args: { p_results: Json; p_stock_item_id: string }
         Returns: Database["public"]["Enums"]["inv_stock_status"]
       }
+      inv_record_serial_print: {
+        Args: { p_pending_ids: string[] }
+        Returns: number
+      }
       inv_remove_operation_line: { Args: { p_move_id: string }; Returns: Json }
       inv_remove_receipt_line: { Args: { p_move_id: string }; Returns: Json }
       inv_reset_sequence_counter: {
@@ -11343,6 +11464,10 @@ export type Database = {
       inv_validate_stock_move: {
         Args: { _move_id: string }
         Returns: undefined
+      }
+      inv_void_pending_serials: {
+        Args: { p_pending_ids: string[]; p_reason: string }
+        Returns: number
       }
       is_admin: { Args: never; Returns: boolean }
       is_admin_or_hr: { Args: never; Returns: boolean }
