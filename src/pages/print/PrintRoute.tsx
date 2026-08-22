@@ -58,7 +58,7 @@ import type { PrintableDocumentType } from '@/components/print/PrintableDocument
 import { GoodsReceiptPrint } from '@/components/print/templates/GoodsReceiptPrint';
 import { PickingOperationsPrint } from '@/components/print/templates/PickingOperationsPrint';
 import { useInv2Receipt } from '@/hooks/inventory2/receipts';
-import { usePendingSerials } from '@/hooks/inventory2/serials';
+import { usePendingSerials, useRecordSerialPrint } from '@/hooks/inventory2/serials';
 import { useAppUsers, displayNameFor } from '@/hooks/useAppUsers';
 
 const PRINT_ELEMENT_ID = 'printable-document';
@@ -154,6 +154,17 @@ export default function PrintRoute() {
   const inv2Receipt = useInv2Receipt(isInv2 ? documentId : undefined);
   const inv2Pending = usePendingSerials(type === 'picking_operations' ? documentId : undefined);
   const { data: appUsers = [] } = useAppUsers();
+  /*
+   * inv_record_serial_print EXISTS AND MUST BE CALLED. A column nobody writes
+   * is how products.track_serials happened — a flag that looked meaningful,
+   * was never set, and ended up worked around instead of fixed. print_count is
+   * the record that a misprint was REPRINTED under the same number rather than
+   * voided, so if nothing writes it the reprint policy is unenforceable and
+   * invisible.
+   */
+  const recordPrint = useRecordSerialPrint(
+    type === 'picking_operations' ? documentId : undefined,
+  );
 
   const payslip = useQuery({
     queryKey: ['print-payslip', documentId, type],
@@ -300,6 +311,22 @@ export default function PrintRoute() {
         documentNumber={docNumber}
         format={fmt}
         emailTo={toEmail}
+        onPrinted={
+          type === 'picking_operations'
+            ? () => {
+                /*
+                 * The ids on the SHEET, which is the set the template renders:
+                 * voided numbers are excluded there and must not be counted as
+                 * printed here, or the two would disagree about what is on the
+                 * paper in the operator's hand.
+                 */
+                const ids = (inv2Pending.data ?? [])
+                  .filter((ps) => ps.state !== 'voided')
+                  .map((ps) => ps.id);
+                if (ids.length) recordPrint.mutate({ pendingIds: ids });
+              }
+            : undefined
+        }
       />
       <div className="py-6">{body}</div>
     </div>

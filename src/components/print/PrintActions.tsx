@@ -11,6 +11,19 @@ interface PrintActionsProps {
   documentNumber: string;
   format?: PrintFormat;
   emailTo?: string;
+  /**
+   * Called once a print or a PDF download has been STARTED.
+   *
+   * "Printed" here means the operator asked for it, not that paper came out.
+   * There is no honest way to know the latter: window.print() resolves whether
+   * the dialog is confirmed or cancelled, and onafterprint fires for both. So
+   * this records the attempt, and the count it feeds should be read as "how
+   * many times a label was asked for" — which is the useful number anyway, and
+   * why a reprint is visible at all.
+   *
+   * Deliberately NOT fired by Email, which attaches nothing and prints nothing.
+   */
+  onPrinted?: () => void;
 }
 
 export function PrintActions({
@@ -19,6 +32,7 @@ export function PrintActions({
   documentNumber,
   format = 'a4',
   emailTo,
+  onPrinted,
 }: PrintActionsProps) {
   const [downloading, setDownloading] = useState(false);
   const { data: company } = useCompanySettings();
@@ -29,6 +43,8 @@ export function PrintActions({
     try {
       setDownloading(true);
       await generatePDF(elementId, filename, format, company?.thermal_width_mm ?? 80);
+      // After the PDF actually exists, not before: a failed render is not a print.
+      onPrinted?.();
     } catch (e) {
       toast.error((e as Error)?.message ?? 'Failed to generate PDF');
     } finally {
@@ -55,7 +71,7 @@ export function PrintActions({
         <Download className="h-4 w-4 mr-2" />
         {downloading ? 'Generating…' : 'Download PDF'}
       </Button>
-      <Button onClick={() => window.print()}>
+      <Button onClick={() => { onPrinted?.(); window.print(); }}>
         <Printer className="h-4 w-4 mr-2" /> Print
       </Button>
     </div>
