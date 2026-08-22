@@ -12,6 +12,12 @@ export type PrintableDocumentType =
   | 'vendor_order'
   | 'work_order'
   | 'goods_receipt'
+  /*
+   * The operational sheet printed BEFORE completion, one barcode per generated
+   * serial. Unlike every other member here it describes goods that have not
+   * arrived yet, which is why its rows come from inv_pending_serial.
+   */
+  | 'picking_operations'
   | 'payment_receipt'
   | 'return_request'
   | 'credit_note'
@@ -32,6 +38,7 @@ const TITLES: Record<PrintableDocumentType, string> = {
   vendor_order: 'Vendor Order',
   work_order: 'Work Order',
   goods_receipt: 'Goods Receipt',
+  picking_operations: 'Picking Operations',
   payment_receipt: 'Payment Receipt',
   return_request: 'Return Request',
   credit_note: 'Credit Note',
