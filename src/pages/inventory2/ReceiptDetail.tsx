@@ -47,6 +47,10 @@ import {
 import {
   TextInput, SelectInput, ErrorBanner,
 } from '@/components/inventory2/formControls';
+import {
+  usePendingSerials, useNextSerialPreview, useGenerateSerials, useVoidPendingSerials,
+} from '@/hooks/inventory2/serials';
+import { reconcileLine, type PendingSerial } from '@/lib/services/inventory2/serials';
 import { QcRunner } from '@/components/inventory2/QcRunner';
 import { QualitySegment } from '@/components/inventory2/QualitySegment';
 import { useDocumentQuality } from '@/hooks/inventory2/quality';
@@ -265,6 +269,337 @@ function QcPanel({
   );
 }
 
+/* ------------------------------------------------- generated serials */
+
+const PENDING_TONE: Record<PendingSerial['state'], StatusTone> = {
+  pending: 'blue',
+  consumed: 'green',
+  voided: 'grey',
+};
+
+const PENDING_LABEL: Record<PendingSerial['state'], string> = {
+  pending: 'Awaiting',
+  consumed: 'Received',
+  voided: 'Voided',
+};
+
+/**
+ * Generate serial numbers for a line, and show the labels already generated.
+ *
+ * V's workflow: quantities → GENERATE → print labels → stick them on the goods
+ * → scan them in. So this sits above "Receive a unit", in the order the work
+ * actually happens.
+ *
+ * ── THERE IS NO "FIRST SERIAL" FIELD, AND THAT IS DELIBERATE ──────────────
+ * Odoo offers one. Here the counter owns the number: it is per (product, FY),
+ * it continues across receipts, and the RPC skips anything already taken by a
+ * hand-typed or vendor serial. Letting an operator type the first serial would
+ * be a second way of choosing numbers, which is how a second convention starts
+ * — and it would invite exactly the collision the generator exists to avoid.
+ * The next number is shown READ-ONLY so they can see the shape before minting.
+ *
+ * It is labelled as an estimate because it is one: `previewNextSerial` cannot
+ * see the RPC's collision skip, and anyone generating first moves it on.
+ *
+ * ── GENERATION IS ADDITIVE. THERE IS NO REPLACE ───────────────────────────
+ * Numbers already generated may be printed and stuck to furniture, so
+ * discarding them would orphan physical labels. Generating again appends, and
+ * the only way a number leaves is Void — which is for cancellation, never for
+ * a misprint. A misprint is reprinted under the SAME number.
+ */
+function GeneratedSerials({
+  moveId, operationId, editable, ordered, received,
+}: {
+  moveId: string;
+  operationId: string;
+  editable: boolean;
+  ordered: number;
+  received: number;
+}) {
+  const { data: all = [], isLoading } = usePendingSerials(operationId);
+  const rows = useMemo(() => all.filter((r) => r.move_id === moveId), [all, moveId]);
+
+  const { data: preview } = useNextSerialPreview(editable ? moveId : undefined);
+  const generate = useGenerateSerials(operationId);
+  const voidSerials = useVoidPendingSerials(operationId);
+
+  const [count, setCount] = useState<string>('');
+  const [failure, setFailure] = useState<string | null>(null);
+  /** The row awaiting a void reason. Voiding without one is refused by the RPC. */
+  const [voiding, setVoiding] = useState<{ id: string; serial: string } | null>(null);
+  const [reason, setReason] = useState('');
+
+  const generated = rows.length;
+  const outstanding = rows.filter((r) => r.state === 'pending').length;
+
+  /*
+   * THE DEFAULT COUNT IS WHAT IS STILL UNACCOUNTED FOR: demand, less the
+   * labels already minted, less the units that arrived without one. Subtracting
+   * received as well as generated is what stops a vendor-serialled line
+   * offering to print labels for goods that are already on the shelf.
+   * Never below zero — an over-received line offers nothing rather than a
+   * negative.
+   */
+  const suggested = Math.max(0, ordered - generated - Math.max(0, received - rows.filter((r) => r.state === 'consumed').length));
+  const effective = count === '' ? suggested : Number(count);
+
+  async function run() {
+    setFailure(null);
+    try {
+      await generate.mutateAsync({ moveId, count: effective });
+      setCount('');
+    } catch (e) {
+      setFailure(errorText(e));
+    }
+  }
+
+  async function confirmVoid() {
+    if (!voiding) return;
+    setFailure(null);
+    try {
+      await voidSerials.mutateAsync({ pendingIds: [voiding.id], reason: reason.trim() });
+      setVoiding(null);
+      setReason('');
+    } catch (e) {
+      setFailure(errorText(e));
+    }
+  }
+
+  return (
+    <div className="mt-3 rounded-[var(--ds-radius)] border border-[hsl(var(--ds-border))] p-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-[var(--ds-fs-sm)] font-semibold text-[hsl(var(--ds-ink))]">
+          Serial numbers
+        </h3>
+        <ReconciliationLine ordered={ordered} received={received} pending={rows} />
+      </div>
+
+      <p className="mt-0.5 text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-subtle))]">
+        Generate numbers, print the labels, then scan them in. A unit may also arrive
+        under the vendor&rsquo;s own serial — scan it and it will be received normally,
+        without a label from here.
+      </p>
+
+      {failure && (
+        <div className="mt-2">
+          <ErrorBanner
+            title="Could not do that"
+            message={failure}
+            onDismiss={() => setFailure(null)}
+          />
+        </div>
+      )}
+
+      {editable && (
+        <div className="mt-2 flex flex-wrap items-end gap-2">
+          <div className="w-[110px]">
+            <label htmlFor="gen-count" className="text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-muted))]">
+              How many
+            </label>
+            <TextInput
+              id="gen-count"
+              type="number"
+              min="1"
+              value={count === '' ? String(suggested) : count}
+              onChange={(e) => setCount(e.target.value)}
+            />
+          </div>
+
+          {/*
+            READ-ONLY. See the header: the counter owns the number. Rendered as
+            text rather than a disabled input so nobody mistakes it for a field
+            that could be unlocked.
+          */}
+          <div className="min-w-[220px]">
+            <div className="text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-muted))]">
+              Next number
+            </div>
+            <div className="flex h-[30px] items-center font-mono text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink))]">
+              {preview?.preview ?? '—'}
+              <span className="ml-2 font-sans text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-subtle))]">
+                if free
+              </span>
+            </div>
+          </div>
+
+          <Button
+            variant="primary"
+            onClick={() => void run()}
+            disabled={generate.isPending || !(effective >= 1)}
+          >
+            {generate.isPending ? 'Generating…' : 'Generate'}
+          </Button>
+        </div>
+      )}
+
+      {editable && (
+        <p className="mt-1.5 text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-subtle))]">
+          Generating adds to the numbers below; it never replaces them. Numbers are
+          consumed when generated and never reissued, so a gap in the sequence is
+          expected rather than a fault.
+        </p>
+      )}
+
+      <div className="mt-3">
+        <TableShell
+          head={['Serial', 'State', 'Prints', 'Note', '']}
+          empty={isLoading ? 'Loading…' : 'No serial numbers generated for this line yet.'}
+          isEmpty={rows.length === 0}
+          filler={fillerFor(rows.length)}
+        >
+          {rows.map((r) => (
+            <tr key={r.id}>
+              <td className={cn(TD, 'font-mono text-[var(--ds-fs-xs)]')}>{r.serial}</td>
+              <td className={TD}>
+                <StatusPill tone={PENDING_TONE[r.state]}>{PENDING_LABEL[r.state]}</StatusPill>
+              </td>
+              <td className={cn(TD, 'tabular-nums')}>
+                {/*
+                  A reprint is the sanctioned response to a misprint, so a count
+                  above 1 is stated plainly and NOT flagged. Flagging it would
+                  suggest the operator did something wrong by reprinting.
+                */}
+                {r.print_count === 0 ? DASH : r.print_count}
+              </td>
+              <td className={cn(TD, 'text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-muted))]')}>
+                {r.state === 'voided' ? (r.void_reason ?? DASH) : DASH}
+              </td>
+              <td className={cn(TD, 'whitespace-nowrap text-right')}>
+                {editable && r.state === 'pending' && (
+                  <button
+                    type="button"
+                    onClick={() => { setVoiding({ id: r.id, serial: r.serial }); setReason(''); }}
+                    className="text-[hsl(var(--ds-red))] hover:underline"
+                  >
+                    Void
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </TableShell>
+      </div>
+
+      {/*
+        Voiding asks for a reason because the RPC requires one, and the RPC
+        requires one because a number retired without a reason is
+        indistinguishable from a number that was lost.
+      */}
+      {voiding && (
+        <div className="mt-2 rounded-[var(--ds-radius)] border border-[hsl(var(--ds-amber))] bg-[hsl(var(--ds-amber-bg))] p-3">
+          <p className="text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink))]">
+            Void <span className="font-mono">{voiding.serial}</span>?
+          </p>
+          <p className="mt-0.5 text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-muted))]">
+            Void is for goods that will never arrive. <strong>A misprinted label is not a
+            reason to void</strong> — print it again under the same number. The number is
+            never reissued to anything else.
+          </p>
+          <div className="mt-2 flex flex-wrap items-end gap-2">
+            <div className="min-w-[260px] flex-1">
+              <label htmlFor="void-reason" className="text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-muted))]">
+                Reason
+              </label>
+              <TextInput
+                id="void-reason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Why will this number never be used?"
+                autoFocus
+              />
+            </div>
+            <Button
+              variant="danger"
+              onClick={() => void confirmVoid()}
+              disabled={!reason.trim() || voidSerials.isPending}
+            >
+              {voidSerials.isPending ? 'Voiding…' : 'Void it'}
+            </Button>
+            <Button variant="subtle" onClick={() => setVoiding(null)}>Keep it</Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* --------------------------------------------------- the two accounts */
+
+/**
+ * One line's figures, as TWO ACCOUNTS that are never collapsed into one.
+ *
+ *   10 ordered · 9 received (6 our labels, 3 vendor) · 4 labels outstanding
+ *
+ * ── WHY NOT ONE FRACTION ──────────────────────────────────────────────────
+ * "12 generated, 7 received" never meant "5 are missing", and once vendor
+ * serials exist it visibly does not: a unit can arrive under the vendor's own
+ * number and consume no label at all. A single combined figure would either
+ * invent a shortfall or make a vendor-serialled line look permanently
+ * incomplete.
+ *
+ * COMPLETENESS IS `received` VS `ordered`. The label account is reported
+ * beside it and must never define it — if it did, a line whose goods all
+ * arrived under vendor serials could never complete, because its consumed
+ * count would sit at zero forever.
+ *
+ * ── SILENCE WHEN THERE IS NOTHING TO SAY ──────────────────────────────────
+ * A line with no generated labels renders only the goods account. Printing
+ * "0 labels outstanding" on every vendor-serialled line is the noise that
+ * teaches operators to stop reading the row.
+ */
+function ReconciliationLine({
+  ordered, received, pending, className,
+}: {
+  ordered: number;
+  received: number;
+  pending: PendingSerial[];
+  className?: string;
+}) {
+  const r = reconcileLine(ordered, received, pending);
+  const dot = <span className="mx-1.5 text-[hsl(var(--ds-ink-subtle))]">·</span>;
+
+  return (
+    <div className={cn('text-[var(--ds-fs-xs)] text-[hsl(var(--ds-ink-muted))] tabular-nums', className)}>
+      <span>{r.ordered} ordered</span>
+      {dot}
+      <span>{r.received} received</span>
+
+      {/*
+        The split is shown only when labels exist. On a pure vendor line there
+        is nothing to split and "(0 our labels, 9 vendor)" would imply a
+        distinction the operator never made.
+      */}
+      {r.generated > 0 && r.received > 0 && (
+        <span className="text-[hsl(var(--ds-ink-subtle))]">
+          {' '}({r.receivedOnOurLabels} our label{r.receivedOnOurLabels === 1 ? '' : 's'}
+          {r.receivedOnVendorSerials > 0 && `, ${r.receivedOnVendorSerials} vendor`})
+        </span>
+      )}
+
+      {r.outstanding > 0 && (
+        <>
+          {dot}
+          <span className="text-[hsl(var(--ds-amber))]">
+            {r.outstanding} label{r.outstanding === 1 ? '' : 's'} outstanding
+          </span>
+        </>
+      )}
+
+      {/*
+        Voided is shown but never coloured as a problem. A gap in the sequence
+        is the CORRECT outcome of a cancellation, and on a vendor-serialled
+        line every generated label is expected to end up here.
+      */}
+      {r.voided > 0 && (
+        <>
+          {dot}
+          <span>{r.voided} voided</span>
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ------------------------------------------------- detailed operations */
 
 function DetailedOperationsModal({
@@ -371,6 +706,14 @@ function DetailedOperationsModal({
 
           {openQc && <QcPanel detail={detail} stockItemId={openQc} />}
 
+          <GeneratedSerials
+            moveId={moveId}
+            operationId={operationId}
+            editable={editable}
+            ordered={line?.demand_qty ?? 0}
+            received={line?.received_qty ?? 0}
+          />
+
           {/* -------------------------------------------- receive a unit */}
           {editable ? (
             <div className="mt-3 rounded-[var(--ds-radius)] border border-[hsl(var(--ds-border))] p-3">
@@ -466,6 +809,13 @@ export default function ReceiptDetail() {
   const { data: detail, isLoading, error } = useInv2Receipt(id);
   const { data: activity } = useActivityLog('inv_operation', id, 50);
   const { data: appUsers = [] } = useAppUsers();
+  /*
+    Read once for the whole document and split per line below, rather than a
+    query per row: the reconciliation is shown on every line, and one request
+    that the modal also reuses beats N requests that fall out of step with each
+    other while the operator watches.
+  */
+  const { data: pendingSerials = [] } = usePendingSerials(id);
   const { data: products = [] } = useInv2Products();
 
   const [segment, setSegment] = useState<'details' | 'moves' | 'quality' | 'traceability'>('details');
@@ -676,6 +1026,18 @@ export default function ReceiptDetail() {
                         {l.product_sku}
                       </div>
                     )}
+                    {/*
+                      THE TWO ACCOUNTS, on the row where the operator is already
+                      reading the Demand and Received columns. Those columns are
+                      the goods account; this adds the label account beside them
+                      without letting either define the other.
+                    */}
+                    <ReconciliationLine
+                      className="mt-0.5"
+                      ordered={l.demand_qty}
+                      received={l.received_qty}
+                      pending={pendingSerials.filter((ps) => ps.move_id === l.move_id)}
+                    />
                   </td>
                   <td className={cn(TD, 'tabular-nums')}>
                     {editable ? (
