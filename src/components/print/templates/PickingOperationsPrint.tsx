@@ -1,5 +1,5 @@
 import { PrintableDocument } from '../PrintableDocument';
-import { BarcodeSvg } from '@/components/barcode/BarcodeSvg';
+import { BarcodePng } from '@/components/barcode/BarcodePng';
 import type { ReceiptDetail } from '@/lib/services/inventory2/receipts';
 import type { PendingSerial } from '@/lib/services/inventory2/serials';
 
@@ -18,24 +18,60 @@ import type { PendingSerial } from '@/lib/services/inventory2/serials';
  * exist until it is scanned in; that is exactly why pending serials live in
  * their own table.
  *
- * ── THE BARCODE PATH WAS PROVEN BEFORE THIS WAS WRITTEN ───────────────────
- * `BarcodeSvg` emits an inline <svg>, and `pdfGenerator` rasterises through
- * html2canvas, which is documented as unreliable with SVG. That was tested
- * first rather than assumed: a real JsBarcode SVG through the real
- * html2canvas produced a capture that ZXing decoded back to the exact serial.
- * html2canvas's SVG weaknesses are foreignObject and external references,
- * neither of which JsBarcode emits.
+ * ── BarcodePng, NOT BarcodeSvg, AND THE REASON IS MEASURED ───────────────
+ * pdfGenerator rasterises through html2canvas, and html2canvas rasterises
+ * inline SVG ITSELF rather than deferring to the browser. On this sheet that
+ * was lossy in a way no amount of looking would have caught: the bars were
+ * crisp at 6x magnification, a scanline read gave correct module proportions,
+ * and ZXing still decoded them 0 times out of 4 across three captures and
+ * every crop framing tried. The same barcodes rasterised by the BROWSER
+ * decoded 4 of 4, every time.
  *
- * DO NOT SWAP BarcodeSvg FOR A CANVAS OR data: URI "to be safe". It was
- * checked; a rewrite would be churn against evidence.
+ * So the SVG never reaches html2canvas: BarcodePng hands it a finished <img>,
+ * which it copies through verbatim. See that component for the full account.
  *
- * ── WHY 3-UP ─────────────────────────────────────────────────────────────
- * A CODE128 needs its narrowest bar (the X-dimension) to survive printing —
- * roughly 0.19mm minimum, comfortable at 0.33mm. The page renders to ~190mm
- * of usable width, so a three-column grid leaves each barcode ~60mm and an
- * X-dimension near 0.44mm. Going to four columns pushes it toward the floor.
- * If this grid is ever widened, re-check by DECODING a real PDF, not by
- * looking at it.
+ * DO NOT "SIMPLIFY" THIS BACK TO BarcodeSvg. It looks identical on screen and
+ * in the PDF, and it does not scan.
+ *
+ * ── WHY 2-UP, MEASURED RATHER THAN ESTIMATED ─────────────────────────────
+ * A CODE128 needs its narrowest bar — the X-dimension — to survive printing:
+ * ~0.19mm absolute floor, ~0.33mm to be comfortable.
+ *
+ * This started as a 3-up grid on an ESTIMATE of ~0.44mm, and the estimate was
+ * wrong. Measured on the real sheet: a 16-character serial gives JsBarcode a
+ * natural width of 293px, a 3-up cell is ~209px, and `max-w-full` was quietly
+ * scaling the SVG by 0.71 to fit. That put the X-dimension at 0.282mm — over
+ * the floor, under comfortable — and, worse, landed every bar on a fractional
+ * pixel so anti-aliasing smeared the edges. Decoding became crop-dependent:
+ * the same barcode read on one capture and failed on the next.
+ *
+ * A BARCODE THAT DECODES INCONSISTENTLY IN A TEST IS ONE THAT FAILS
+ * OCCASIONALLY AT THE BAY, which is worse than one that fails always, because
+ * nobody trusts the scanner instead of fixing the sheet.
+ *
+ * 2-up gives each cell ~370px against a 293px natural width, so the SVG
+ * renders at 1:1 with no downscale and the X-dimension is 1.6px × 0.2474mm/px
+ * = ~0.40mm.
+ *
+ * `max-w-full` is deliberately NOT used. Silently shrinking a barcode below
+ * scannability is the failure this comment exists to prevent; a serial long
+ * enough to overflow should overflow VISIBLY so it gets fixed.
+ *
+ * ── THE QUIET ZONE IS PART OF THE BARCODE ────────────────────────────────
+ * CODE128 needs a blank margin of at least 10x the X-dimension on each side or
+ * a scanner cannot find the start and stop patterns. At width 1.6 that is
+ * 16px, and JsBarcode's own `margin: 4` supplies only 4 — so the CELL PADDING
+ * is load-bearing, not decoration. `p-4` (16px) plus that margin gives 20px of
+ * white before the cell border, which clears the requirement.
+ *
+ * This was found by decoding, not by looking: the sheet rendered handsomely at
+ * `p-2` and the barcodes were well formed — they decode 4/4 straight from the
+ * SVG — but tight to the bars there was only 12px of white before the black
+ * border, and a scanner reads that border as a bar. Do not reduce this padding
+ * to fit more labels on a page.
+ *
+ * If this grid is ever changed, re-measure the X-dimension and re-decode. Do
+ * not look at it and judge.
  *
  * ── ONLY LIVE NUMBERS ARE PRINTED ─────────────────────────────────────────
  * Voided serials are excluded: a voided number is never reissued, so a label
@@ -96,7 +132,7 @@ export function PickingOperationsPrint({
             : 'Every generated serial number on this receipt has been voided, so there is nothing to label.'}
         </p>
       ) : (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {printable.map((p) => {
             const line = productOf.get(p.move_id);
             return (
@@ -107,17 +143,19 @@ export function PickingOperationsPrint({
                   barcode split down the middle is not a barcode, and this is
                   the one document where the page break lands mid-grid.
                 */
-                className="border border-black/70 p-2 text-center break-inside-avoid"
+                className="border border-black/70 p-4 text-center break-inside-avoid"
               >
                 <div className="truncate text-[10px] font-semibold" title={line?.product_name ?? ''}>
                   {line?.product_name ?? '—'}
                 </div>
                 <div className="text-[9px] text-gray-600">{line?.product_sku ?? ''}</div>
-                <BarcodeSvg
+                <BarcodePng
                   value={p.serial}
                   height={38}
                   fontSize={9}
-                  className="mx-auto mt-1 max-w-full"
+                  /* No max-w-full — see the header. Shrinking to fit is what
+                     took the X-dimension below scannable. */
+                  className="mx-auto mt-1"
                 />
                 {/*
                   A reprint is the sanctioned response to a misprint, so the
