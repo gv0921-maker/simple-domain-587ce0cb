@@ -77,6 +77,21 @@ export function useReceiveSerial(operationId: string | undefined) {
     onSuccess: () => {
       if (operationId) void qc.invalidateQueries({ queryKey: inv2Keys.receipt(operationId) });
       void qc.invalidateQueries({ queryKey: inv2Keys.receipts() });
+      /*
+       * RECEIVING CONSUMES A LABEL, so the label account moves too.
+       *
+       * inv_receive_serial marks the matching inv_pending_serial row consumed
+       * and links it to the new unit. Without this the goods account updates
+       * and the label account does not, and the reconciliation line reports
+       * "4 received (0 our labels, 4 vendor)" for units that were received on
+       * our own labels -- the two accounts disagreeing on screen, which is the
+       * exact confusion keeping them separate exists to prevent.
+       *
+       * Keyed by prefix rather than by operation id: a vendor serial consumes
+       * no label at all, so this must fire whether or not one was matched, and
+       * the operation id is not always the only list in play.
+       */
+      void qc.invalidateQueries({ queryKey: ['inv2', 'pendingSerials'] });
     },
   });
 }
