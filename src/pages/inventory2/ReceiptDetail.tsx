@@ -840,6 +840,16 @@ export default function ReceiptDetail() {
   const [newQty, setNewQty] = useState('1');
   const [editQty, setEditQty] = useState<Record<string, string>>({});
   const [confirmCancel, setConfirmCancel] = useState(false);
+  /**
+   * Set when Validate is pressed with labels still outstanding.
+   *
+   * ReceiptDetail's Validate has always completed DIRECTLY, with no confirm
+   * step — unlike the scan screen, which already gates on over-receipt and on
+   * unit condition. This ADDS a gate rather than extending one, and it is
+   * built to the same shape as those two: it warns, it never blocks, and the
+   * operator's answer is the thing that decides.
+   */
+  const [confirmOutstanding, setConfirmOutstanding] = useState(false);
   /** The database's own words, kept on screen until dismissed. */
   const [failure, setFailure] = useState<{ title: string; message: string } | null>(null);
   const [destIgnoredDismissed, setDestIgnoredDismissed] = useState(false);
@@ -917,6 +927,36 @@ export default function ReceiptDetail() {
   const editable = !isDone && !isCancelled;
 
   const totalReceived = detail.lines.reduce((s, l) => s + l.received_qty, 0);
+  /**
+   * Labels generated, printed perhaps, and never scanned in.
+   *
+   * NOT A SHORTFALL, and the wording downstream is careful about that: with
+   * vendor serials in play a line's goods can arrive complete while every one
+   * of its labels goes unused. Completing the receipt voids these through
+   * inv_operation_void_pending_serials, which is why the operator is told
+   * before it happens rather than after.
+   */
+  const outstandingLabels = pendingSerials.filter(
+    (ps) => !ps.consumed_at && !ps.voided_at,
+  ).length;
+
+  /**
+   * Why Print is unavailable, naming the blocker the operator can actually act
+   * on FIRST.
+   *
+   * TWO THINGS GATE PRINTING AND ONLY ONE OF THEM IS THEIRS TO CLEAR.
+   * Picking Operations prints one barcode per generated serial, so a line with
+   * no serials would print an empty sheet — that is the precondition asked for
+   * here, and it is the one an operator fixes by pressing Generate. The second
+   * blocker is that the template itself is not built yet; that is ours.
+   *
+   * Both are reported honestly rather than collapsed into "not available".
+   * When the print pass lands, the whole of this becomes
+   * `disabled: !hasPendingSerials` and the second sentence comes out.
+   */
+  const printBlockedReason = pendingSerials.length === 0
+    ? 'Generate serial numbers first — there is nothing to print until a line has labels.'
+    : 'Printing coming in a later pass.';
 
   /*
    * State-dependent actions, following the Odoo reference:
@@ -934,13 +974,17 @@ export default function ReceiptDetail() {
           key: 'validate',
           label: complete.isPending ? 'Validating…' : 'Validate',
           variant: 'primary',
-          onClick: () => void run('Could not validate the receipt', () => complete.mutateAsync()),
+          onClick: () => {
+            // Warn, never block. Straight through when there is nothing to say.
+            if (outstandingLabels > 0) { setConfirmOutstanding(true); return; }
+            void run('Could not validate the receipt', () => complete.mutateAsync());
+          },
           disabled: complete.isPending || totalReceived === 0,
           title: totalReceived === 0
             ? 'Receive at least one unit before validating'
             : undefined,
         },
-        { key: 'print', label: 'Print', disabled: true, title: 'Printing coming in a later pass' },
+        { key: 'print', label: 'Print', disabled: true, title: printBlockedReason },
         {
           key: 'cancel',
           label: cancel.isPending ? 'Cancelling…' : 'Cancel',
@@ -950,7 +994,7 @@ export default function ReceiptDetail() {
         },
       ]
     : [
-        { key: 'print', label: 'Print', disabled: true, title: 'Printing coming in a later pass' },
+        { key: 'print', label: 'Print', disabled: true, title: printBlockedReason },
       ];
 
   const segments: SegmentOption[] = [
@@ -1229,7 +1273,7 @@ export default function ReceiptDetail() {
               }}
               stages={RIBBON_STAGES}
               currentStage={stageFor(r.state)}
-              cog={{ items: [], printDisabled: true, printDisabledTitle: 'Printing coming in a later pass' }}
+              cog={{ items: [], printDisabled: true, printDisabledTitle: printBlockedReason }}
             />
 
             <div className="rounded-b-[var(--ds-radius)] border border-t-0 border-[hsl(var(--ds-border))] bg-[hsl(var(--ds-surface))]">
@@ -1411,6 +1455,67 @@ export default function ReceiptDetail() {
         is rendered in full by the failure banner above — it is the answer, not
         an error to be swallowed.
       */}
+      {/*
+        OUTSTANDING LABELS AT VALIDATION — warns, never blocks.
+
+        Same shape as the scan screen's over-receipt and condition gates: it
+        states the number, says plainly what will happen to those labels, and
+        offers to go ahead. It does NOT call them missing units. On a line whose
+        goods arrived under vendor serials every generated label ends up here,
+        and that is a normal close, not a shortfall.
+      */}
+      {confirmOutstanding && (
+        <div
+          role="dialog" aria-modal="true" aria-label="Outstanding labels"
+          className="ds-root fixed inset-0 z-[60] grid place-items-center bg-black/40 p-4"
+          onClick={() => setConfirmOutstanding(false)}
+        >
+          <div
+            className={cn('w-full max-w-md bg-[hsl(var(--ds-surface))]',
+              'border border-[hsl(var(--ds-border))]',
+              'rounded-[var(--ds-radius)] shadow-[var(--ds-shadow-pop)]')}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="border-b border-[hsl(var(--ds-border))] px-4 py-2.5">
+              <h2 className="text-[var(--ds-fs-md)] font-semibold text-[hsl(var(--ds-ink))]">
+                {outstandingLabels} label{outstandingLabels === 1 ? '' : 's'} not used — validate anyway?
+              </h2>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink))]">
+                Validating will void {outstandingLabels === 1 ? 'it' : 'them'} and record why.
+                The number{outstandingLabels === 1 ? '' : 's'} will not be reissued, so the
+                sequence will show a gap.
+              </p>
+              <p className="mt-2 text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">
+                This is not a count of missing goods. Units that arrived under a
+                vendor&rsquo;s own serial use no label from here, so a line can be fully
+                received and still leave labels unused.
+              </p>
+              <p className="mt-2 text-[var(--ds-fs-sm)] text-[hsl(var(--ds-ink-muted))]">
+                {totalReceived} unit(s) received against{' '}
+                {detail.lines.reduce((n, l) => n + l.demand_qty, 0)} ordered.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 border-t border-[hsl(var(--ds-border))] px-4 py-2.5">
+              <Button variant="subtle" onClick={() => setConfirmOutstanding(false)}>
+                Go back
+              </Button>
+              <Button
+                variant="primary"
+                disabled={complete.isPending}
+                onClick={() => {
+                  setConfirmOutstanding(false);
+                  void run('Could not validate the receipt', () => complete.mutateAsync());
+                }}
+              >
+                {complete.isPending ? 'Validating…' : 'Validate anyway'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {confirmCancel && (
         <div
           role="dialog" aria-modal="true" aria-label="Cancel receipt"
