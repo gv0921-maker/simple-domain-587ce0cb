@@ -36,7 +36,7 @@ import { INVENTORY2_NAV } from '@/lib/navigation';
 import {
   DocumentHeader, DocumentFields, DocumentTabs, Chatter, StatusPill, Button, cn,
   type DocumentField, type DocumentTab, type RibbonStage, type HeaderAction,
-  type SegmentOption, type ChatterEntry, type StatusTone,
+  type SegmentOption, type ChatterEntry, type StatusTone, type CogMenuItem,
 } from '@/design-system';
 import '@/design-system/tokens.css';
 import { useInv2Receipt } from '@/hooks/inventory2/receipts';
@@ -941,22 +941,59 @@ export default function ReceiptDetail() {
   ).length;
 
   /**
-   * Why Print is unavailable, naming the blocker the operator can actually act
-   * on FIRST.
+   * Printing is live, and the one remaining gate is the one the operator can
+   * clear themselves.
    *
-   * TWO THINGS GATE PRINTING AND ONLY ONE OF THEM IS THEIRS TO CLEAR.
-   * Picking Operations prints one barcode per generated serial, so a line with
-   * no serials would print an empty sheet — that is the precondition asked for
-   * here, and it is the one an operator fixes by pressing Generate. The second
-   * blocker is that the template itself is not built yet; that is ours.
+   * Picking Operations prints one barcode per generated serial, so a receipt
+   * with no live labels would print an empty sheet. `hasLabels` counts only
+   * numbers that could actually reach a label — a receipt whose serials were
+   * all voided has nothing to print either, and the sheet would say so rather
+   * than showing a grid.
    *
-   * Both are reported honestly rather than collapsed into "not available".
-   * When the print pass lands, the whole of this becomes
-   * `disabled: !hasPendingSerials` and the second sentence comes out.
+   * The second blocker recorded here previously — "the template is not built
+   * yet" — is gone: both documents exist as of this pass.
    */
-  const printBlockedReason = pendingSerials.length === 0
-    ? 'Generate serial numbers first — there is nothing to print until a line has labels.'
-    : 'Printing coming in a later pass.';
+  const printableLabels = pendingSerials.filter((ps) => !ps.voided_at).length;
+  const hasLabels = printableLabels > 0;
+  const printBlockedReason = hasLabels
+    ? undefined
+    : pendingSerials.length === 0
+      ? 'Generate serial numbers first — there is nothing to print until a line has labels.'
+      : 'Every generated serial on this receipt has been voided, so there is nothing to label.';
+
+  /**
+   * PER-KIND PRINT ITEMS, replacing CogMenu's demo defaults.
+   *
+   * The cog has been offering "Delivery Slip" and "Return slip" on a RECEIPT
+   * since the design system landed, because `DEFAULT_PRINT` is a single
+   * document-agnostic list and no page had overridden it. Those are outgoing
+   * documents; neither exists for a receipt and neither ever did anything.
+   *
+   * The two entries below are the two documents a receipt actually has, and
+   * they are ordered the way the work happens: Picking Operations is printed
+   * BEFORE the goods arrive, the GRN AFTER they are booked in.
+   */
+  const printItems: CogMenuItem[] = [
+    {
+      key: 'picking',
+      label: 'Picking Operations',
+      onSelect: () => window.open(`/print/picking_operations/${id}`, '_blank'),
+    },
+    {
+      key: 'grn',
+      label: 'Goods Receipt Note',
+      onSelect: () => window.open(`/print/goods_receipt/${id}`, '_blank'),
+    },
+  ];
+
+  /*
+   * The header's single Print button opens whichever document matches where
+   * the receipt IS, rather than making the operator choose: labels before
+   * completion, the note after. Both stay reachable from the cog.
+   */
+  const primaryPrintHref = isDone
+    ? `/print/goods_receipt/${id}`
+    : `/print/picking_operations/${id}`;
 
   /*
    * State-dependent actions, following the Odoo reference:
@@ -984,7 +1021,13 @@ export default function ReceiptDetail() {
             ? 'Receive at least one unit before validating'
             : undefined,
         },
-        { key: 'print', label: 'Print', disabled: true, title: printBlockedReason },
+        {
+          key: 'print',
+          label: 'Print',
+          disabled: !hasLabels,
+          title: printBlockedReason,
+          onClick: () => window.open(primaryPrintHref, '_blank'),
+        },
         {
           key: 'cancel',
           label: cancel.isPending ? 'Cancelling…' : 'Cancel',
@@ -994,7 +1037,13 @@ export default function ReceiptDetail() {
         },
       ]
     : [
-        { key: 'print', label: 'Print', disabled: true, title: printBlockedReason },
+        {
+          key: 'print',
+          label: 'Print',
+          // A completed receipt prints its GRN whether or not labels were ever
+          // generated — the note reports goods, not numbers.
+          onClick: () => window.open(primaryPrintHref, '_blank'),
+        },
       ];
 
   const segments: SegmentOption[] = [
@@ -1273,7 +1322,15 @@ export default function ReceiptDetail() {
               }}
               stages={RIBBON_STAGES}
               currentStage={stageFor(r.state)}
-              cog={{ items: [], printDisabled: true, printDisabledTitle: printBlockedReason }}
+              cog={{
+                items: [],
+                printItems,
+                // The GRN is always printable once done, so the submenu is only
+                // shut when there is neither a label to print nor a finished
+                // document to report.
+                printDisabled: !hasLabels && !isDone,
+                printDisabledTitle: printBlockedReason,
+              }}
             />
 
             <div className="rounded-b-[var(--ds-radius)] border border-t-0 border-[hsl(var(--ds-border))] bg-[hsl(var(--ds-surface))]">
