@@ -34,6 +34,32 @@ import { supabase } from '@/integrations/supabase/client';
 import { db } from '@/integrations/supabase/db';
 import { useQuery } from '@tanstack/react-query';
 import type { PrintableDocumentType } from '@/components/print/PrintableDocument';
+/*
+ * INVENTORY 2 ARRIVES HERE, and this is the only file in the print framework
+ * that has to know it exists.
+ *
+ * The frame is deliberately REUSED rather than rebuilt under inventory2/:
+ * PrintableDocument, PrintLetterhead, PrintActions, pdfGenerator and the
+ * /print/:type/:id route are module-agnostic — they know about company_settings
+ * and a DOM element, nothing else. Rebuilding them would create the two-surfaces
+ * problem the config consolidation exists to prevent: two letterheads that
+ * drift, two PDF paths, two print routes.
+ *
+ * The TEMPLATES are net-new, because they bind to inv_* rather than to the
+ * legacy tables the other sixteen read. They are siblings of those, not
+ * replacements for them.
+ *
+ * WHAT THIS COSTS, RECORDED HONESTLY: this dispatcher is a monolith — one
+ * if/else chain, ~17 top-level hooks, and every legacy branch typed `any`. The
+ * same trade-off as hooks/inventory/config.ts in CLAUDE.md: splitting it is a
+ * legacy refactor and its own pass, so two arms were added instead. The
+ * additions below are typed; the file around them is not.
+ */
+import { GoodsReceiptPrint } from '@/components/print/templates/GoodsReceiptPrint';
+import { PickingOperationsPrint } from '@/components/print/templates/PickingOperationsPrint';
+import { useInv2Receipt } from '@/hooks/inventory2/receipts';
+import { usePendingSerials } from '@/hooks/inventory2/serials';
+import { useAppUsers, displayNameFor } from '@/hooks/useAppUsers';
 
 const PRINT_ELEMENT_ID = 'printable-document';
 
@@ -119,6 +145,16 @@ export default function PrintRoute() {
     },
   });
 
+  /*
+   * Both Inventory 2 documents are the SAME operation read two ways: the GRN
+   * reports what arrived, Picking Operations lists the numbers printed for what
+   * has not. So one receipt query serves both, gated on either type.
+   */
+  const isInv2 = type === 'goods_receipt' || type === 'picking_operations';
+  const inv2Receipt = useInv2Receipt(isInv2 ? documentId : undefined);
+  const inv2Pending = usePendingSerials(type === 'picking_operations' ? documentId : undefined);
+  const { data: appUsers = [] } = useAppUsers();
+
   const payslip = useQuery({
     queryKey: ['print-payslip', documentId, type],
     enabled: type === 'payslip' && !!documentId,
@@ -139,7 +175,8 @@ export default function PrintRoute() {
   const loading =
     order.isLoading || quotation.isLoading || invoice.isLoading ||
     note.isLoading || payment.isLoading || correction.isLoading || movement.isLoading || stockCount.isLoading || writeOff.isLoading || workOrder.isLoading || vendorOrder.isLoading || returnRequest.isLoading ||
-    creditNote.isLoading || refund.isLoading || exchange.isLoading;
+    creditNote.isLoading || refund.isLoading || exchange.isLoading ||
+    inv2Receipt.isLoading || inv2Pending.isLoading;
 
   let body: React.ReactNode = null;
   let docNumber = documentId ?? '';
@@ -211,6 +248,37 @@ export default function PrintRoute() {
       source_invoice_ref: e.source_invoice?.reference ?? null,
     };
     body = <ExchangePrint exchange={enriched} />;
+  } else if (type === 'goods_receipt' && inv2Receipt.data) {
+    const d = inv2Receipt.data;
+    docNumber = d.receipt.number;
+    body = (
+      <GoodsReceiptPrint
+        detail={d}
+        // Resolved here, not in the template: templates have no data layer.
+        operatorName={
+          d.receipt.created_by
+            ? displayNameFor(appUsers.find((u) => u.user_id === d.receipt.created_by))
+              || d.receipt.created_by
+            : null
+        }
+        isDraft={d.receipt.state !== 'done'}
+      />
+    );
+  } else if (type === 'picking_operations' && inv2Receipt.data) {
+    const d = inv2Receipt.data;
+    docNumber = d.receipt.number;
+    /*
+     * Marked draft until the receipt is done, which is the NORMAL state for
+     * this sheet — it is printed before the goods arrive. The watermark is
+     * honest rather than alarming: these labels describe expected units.
+     */
+    body = (
+      <PickingOperationsPrint
+        detail={d}
+        pending={inv2Pending.data ?? []}
+        isDraft={d.receipt.state !== 'done'}
+      />
+    );
   } else if (type === 'payslip' && payslip.data) {
     const p = payslip.data;
     docNumber = p.payslip_number ?? docNumber;
