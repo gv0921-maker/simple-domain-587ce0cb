@@ -358,7 +358,27 @@ because the same block was run through two different connections and disagreed.
 **Run the block through both connections when changing it.** Agreement between two roles is
 what proves a part is measuring the database rather than the observer.
 
-### The values — re-taken 2026-08-18, after route enforcement
+### The values — re-taken 2026-08-22, after serial generation
+
+The 2026-08-18 baseline reproduced exactly before this migration was applied — **third
+consecutive confirmation** that the recorded formula produces the recorded numbers. Re-run
+again after the smoke suite and all five mutation runs: identical, and `inv_pending_serial`
+held 0 rows, so nothing leaked out of a rolled-back transaction.
+
+| Part | md5 | Count | vs 2026-08-18 |
+|---|---|---|---|
+| `constraints` | `dd9e795940186f515fea4112ad132ccb` | 751 | **+16** — the new tables' checks, PK/FK and unique constraints |
+| `functions` | `90a2ae6fb7dac43110d94b2046b7b6b9` | 223 | **+4** — `inv_generate_serials`, `inv_void_pending_serials`, `inv_record_serial_print`, `inv_tg_void_pending_serials_on_close`; digest also carries the replaced `inv_receive_serial` |
+| `policies` | `77b9dfe190eddee26b9c3841a664d5a2` | 555 | **+8** — four each on the two new tables |
+| `schema` | `051c00f530529165a5ea6c46e55e7981` | 162 base tables | **+2** — `inv_serial_sequence`, `inv_pending_serial` |
+| `triggers` | `31a058b6cd08fe3d8df0f42f49181baf` | 191 | **+3** — two `set_updated_at`, one `inv_operation_void_pending_serials` |
+| `views` | `e7c1ab1f36c2a7d274874375c75899e7` | 12 | unchanged |
+
+Superseded 2026-08-18 values, kept only so the diff above can be checked:
+`constraints` `b0edc7f0…`/735, `functions` `63fbe4a7…`/219, `policies` `8c388043…`/547,
+`schema` `f037013e…`/160, `triggers` `aed332b4…`/188.
+
+### The values — superseded 2026-08-18, after route enforcement
 
 The 2026-08-17 baseline reproduced exactly before this migration was applied — second
 consecutive confirmation that the recorded formula produces the recorded numbers.
@@ -852,6 +872,218 @@ a `DELIVERY NOTE` (sourced `DELIVERY ORDER`) until they are staged. Accepted by 
 The 2 divergent ledger rows on `DEL/2627/0001` remain. They are accurate history of an
 unlawful move, `inv_stock_tracking` blocks UPDATE/DELETE/TRUNCATE by trigger, and rule 4
 forbids deletion. Nothing revalidates history.
+
+---
+
+## SERIAL GENERATION — labels before the goods, built 2026-08-22
+
+Migration `20260822090000_serial_generation.sql`, smoke suite
+`supabase/smoke/serial_generation_smoke.sql` (28 assertions).
+
+V's workflow: create the receipt with quantities -> **generate serials** -> print labels ->
+stick them on the goods -> scan them in. Generation is a **prerequisite for printing**, not a
+detail of it, which is why it landed before the print pass.
+
+### A pending serial is a NUMBER, not a UNIT
+
+`inv_stock_item` is the single source of truth for what is in the building. The QC gate, the
+on-hand readers, the variant archive guard and route enforcement all assume a row there is a
+real unit in a real place. So a generated-but-unreceived serial lives in
+**`inv_pending_serial`**, and every one of those readers is untouched — no new
+`inv_stock_status` member, no nullable "not yet received" column, nothing for 66 reader sites
+across 22 files to remember.
+
+QC correctness falls out for free: QC keys on `stock_item_id`, so **a unit that has not
+arrived cannot be inspected**, enforced by the absence of a row rather than by a guard
+somebody has to write.
+
+### THE FORMAT, AND WHY IT IS A DECISION RATHER THAN A DISCOVERY
+
+`{sku}{sep}{fy}{sep}{nnnn}` -> `101205-2627-0001`, from `inv_serial_sequence`, keyed
+**(product_id, fy_label)**.
+
+Be clear about what was inherited: the format was a convention observed in **12 rows, all
+from one receipt** (`RCP/2627/0001`). The other 13 live serials are hand-typed and follow no
+pattern at all. Nothing produced or validated the format before this migration.
+
+| | |
+|---|---|
+| The counter is per (product, FY) and **CONTINUES** | V, 2026-08-22. Receipt A ending at 0012 means the next receipt for that product starts at 0013. Smoke test 10 asserts the second document's lowest serial sits **above** the first document's highest — the direct statement of "it did not restart" |
+| **The FY comes from the document, never the clock** | Parsed back out of the operation's own number using its sequence's separator, with the sequence `fy_label` as fallback. A receipt opened in 2627 and received in 2628 must still mint 2627 serials; `now()` is the obvious wrong thing |
+| `serial_counters` was **not** reused | Legacy, keyed on prefix alone with no FY dimension, and shared with `generate_serials_for_gr_line` — the legacy path could advance our counter |
+| `allocate_serial_numbers` was **not** reused | It mints `{sku}-{yymm}-{n}`. That is a second convention |
+
+### THE NAMESPACE IS DIRTY, AND THE GENERATOR MUST ASSUME IT ALWAYS WILL BE
+
+`1234`, `123596`, `SUPPLIER-ALT-99`, `PASS6-PREVIEW-0001` — 13 of 25 live serials owe nothing
+to any convention. The generator therefore **probes `inv_stock_item` and `inv_pending_serial`
+before issuing**, and burns a clashing number rather than handing out one that
+`inv_receive_serial` is guaranteed to refuse later.
+
+Vendor serials make this **permanent, not a legacy artefact**: outside serials arrive in the
+same namespace forever. Smoke test 11 occupies the next number by hand and proves the skip;
+mutation 1 removes the skip and the test reports the generator minting the very number that
+was already taken.
+
+### GAPS IN THE SEQUENCE ARE CORRECT — DO NOT REPORT ONE AS A BUG
+
+Numbers are consumed on allocation and **never recycled**. A gap appears whenever a number is
+voided, or skipped because something already held it. That is the intended outcome, and the
+reason is physical rather than tidy: **a voided label may already be stuck to a piece of
+furniture**, so reissuing its number would put two objects in the world bearing one serial —
+`inv_stock_item_serial_key`'s failure relocated to the warehouse floor.
+
+`inv_pending_serial.serial` is `UNIQUE` **across the whole table, voided and consumed rows
+included**. A partial index over live rows only would hand a retired number back out.
+
+**Test 21 alone does not prove this, and that matters.** It proves a voided number is not
+*reissued*, but the mechanism there is the monotonic counter, which never revisits a number
+anyway — so test 21 would pass under a weaker constraint. **Test 28** is the one the
+constraint owns: a voided number cannot be **re-occupied** by any other route. It exists only
+because designing mutation 5 exposed that the constraint's real job was untested.
+
+### VENDOR SERIALS ARE NORMAL, NOT EXCEPTIONAL — V, 2026-08-22
+
+Some vendors send their own serials; those units are received under the vendor's number, not
+a generated one. **A scanned serial with no pending row is accepted silently.**
+
+Before this migration "unknown serial" meant exactly one thing: create it. Decision 3 splits
+it in two, and only the pending table can tell them apart:
+
+| Scanned serial | Outcome |
+|---|---|
+| no pending row anywhere | **vendor serial — accepted, no message** |
+| pending row on another document | refused, naming that document and the remedy |
+| pending row on another line of this document | refused with its own sentence |
+| pending row voided | refused, quoting the recorded reason |
+
+**Do not add a "vendor serial detected" notice.** Warning on the normal case is how warnings
+stop being read — the same reasoning that keeps `attention` in the delivery's warned set
+rather than letting the soft status be waved through.
+
+**Why the another-document case earns its own refusal** rather than falling through: without
+it, a label printed for receipt A and scanned onto receipt B would silently create the unit
+and burn the number, and receipt A would later refuse **its own label** through the
+pre-existing B1 branch — blaming the wrong document, for the wrong reason, hours later.
+
+### NO `uses_vendor_serials` FLAG, AND THE REASON IS ALREADY IN THIS FILE
+
+A per-product or per-line flag was considered and **rejected**.
+
+| | |
+|---|---|
+| It would be `products.track_serials` again | Which this file already records as obsolete, never read by any RPC, inconsistently set, and **already worked around** in `components/sales/ReserveStockDialog.tsx:51`. A boolean defaulting to false that nobody maintains is worse than no flag |
+| **It could not gate anything even if maintained** | It cannot refuse generated serials on a "vendor" line — the operator may have printed some anyway. It cannot refuse vendor serials on a "generated" line — the vendor may have labelled some. Its only honest use is deciding whether to *offer* the Generate button, and a UI hint that is wrong is worse than none |
+| If it is ever wanted | Make it **per-vendor** (vendors are few enough to maintain), and it must still never gate the scan path |
+
+### RECONCILIATION IS TWO ACCOUNTS, NOT ONE FRACTION
+
+"12 generated, 7 received" never meant "5 missing", and with vendor serials it visibly does not.
+
+| Account | Fields | Question |
+|---|---|---|
+| Goods | `demand_qty`, `received_qty` | did the stock arrive? |
+| Labels | generated / consumed / outstanding / voided | where did our numbers go? |
+
+**Completeness is `received_qty` vs `demand_qty`, and the label ledger must never define it.**
+If it did, a vendor-serialled line could never complete. Outstanding labels at validation are
+a housekeeping signal: they warn, they do not block, and the completion trigger's wording
+offers the vendor-serial explanation rather than reading as a count of missing goods.
+
+### UNIQUENESS IS PROCEDURAL, NOT CONSTITUTIONAL
+
+**Same class of fact as "the destination of a move is taken on trust", and it belongs beside
+it.**
+
+Postgres **cannot** enforce uniqueness across two tables. There is no cross-table `UNIQUE` and
+no exclusion constraint spanning relations. What makes a serial unique here is **four
+mechanisms, not one constraint**:
+
+1. `inv_pending_serial.serial UNIQUE` — two pending rows cannot share a number;
+2. `inv_stock_item_serial_key` — two units cannot share a number;
+3. the counter is atomic (`UPDATE ... RETURNING`), so concurrent generation cannot collide;
+4. the generator probes `inv_stock_item`, and `inv_receive_serial` probes pending — which is
+   what covers the case the first three miss: a hand-typed or vendor serial taking a number a
+   printed label is holding.
+
+**A direct INSERT bypassing the RPCs would break it.** RLS requires `can_write_inventory()` so
+it is not open to the public, but this is procedural integrity and must never be described as
+constraint-level. The strong alternative — a serial registry table with `inv_stock_item.serial`
+as an FK — was rejected as too large: it rewrites the identity column of a live table and
+touches 66 reader sites.
+
+### THE `inv_receive_serial` EDIT IS ADDITIVE, AND THAT IS THE WHOLE SAFETY ARGUMENT
+
+The four pre-existing branches are **byte-identical, including their messages**:
+
+| | |
+|---|---|
+| B1 | serial exists on another document -> refuse |
+| B2 | same document, already on this move -> clean re-run |
+| B3 | same document, not on this move -> resume the transfer |
+| B4 | unknown serial -> create + transfer |
+
+The new code is **one block** between the idempotency block and the create, plus one UPDATE
+after the transfer. Safe by construction: every path through the idempotency block returns or
+raises, so the new block is reachable only when the serial is new — exactly B4's territory.
+
+**B1's message was deliberately NOT improved** to name the offending document, though it
+easily could be. Rule 3: do not bundle a readability change with a behaviour change on the
+riskiest function in the module. That improvement is still available and still unclaimed.
+
+Smoke tests **1-4 are the point of the suite**; the new behaviour is the easy half. If any of
+those four ever shifts, that is a stop, not a test to adjust.
+
+### THE CONSUMED-ANOMALY BRANCH IS UNREACHABLE, AND FINDING THAT OUT WAS THE TEST WORKING
+
+`inv_receive_serial` refuses a pending row marked consumed whose stock item is missing. That
+state **cannot be constructed**: `inv_pending_serial.stock_item_id` is `ON DELETE RESTRICT`,
+and a genuinely received unit is protected even earlier by `inv_move_line_stock_item_id_fkey`.
+The branch is defence in depth against those constraints being dropped, not a live path.
+
+This surfaced as the **Pass A failure repeating itself**: the first version of smoke test 8
+deleted a received unit and asserted the refusal came from the pending FK. It did not — it came
+from the move-line FK, and a bare-SQLSTATE assertion would have passed while proving nothing.
+It was caught only because the test matched the **constraint name**. Test 8 now uses a stock
+item nothing else references, so the pending FK is the only thing that can refuse, and test 81
+records the earlier protection separately.
+
+### MUTATION RESULTS — all five bite
+
+| Mutation | Effect |
+|---|---|
+| dirty-namespace skip deleted | test 11 fails, showing the generator minting the very number already taken |
+| pending block removed from `inv_receive_serial` | tests 5, 6, 7, 9, 18, 20 fail |
+| completion trigger also voids consumed rows | **refused by `inv_pending_serial_single_outcome`** — the mutation is structurally impossible, not merely detected |
+| B1's message changed | test 1 fails |
+| unique constraint made partial over live rows | test 28 fails |
+
+### KNOWN GAP — the line-removal refusal is correct but ILLEGIBLE
+
+`inv_pending_serial.move_id` is `ON DELETE RESTRICT`, so `inv_remove_operation_line()` now
+**refuses** to remove a line carrying generated labels. That is intended — the labels exist
+physically and must be voided deliberately first.
+
+But the function does a bare `DELETE FROM inv_move`, so the refusal surfaces as:
+
+```
+update or delete on table "inv_move" violates foreign key constraint
+"inv_pending_serial_move_id_fkey" on table "inv_pending_serial"
+```
+
+**A correct refusal nobody can read is half a fix.** Smoke test 26 asserts legibility and is
+**expected to fail** until `inv_remove_operation_line` composes its own sentence, the way it
+already does for "This line has N unit(s) already received". Test 25 proves the refusal fires
+and test 27 is the control. **That standing failure is the marker for the follow-up; it is not
+a defect in this migration**, and the fix is its own approved change to an existing RPC.
+
+### WHAT THE SUITE DOES NOT PROVE
+
+`now()` is transaction-scoped, so inside a rolled-back suite `first_printed_at` and
+`last_printed_at` are equal **by construction, whatever the function does**. Test 23 therefore
+proves the print count rises and `first_printed_at` survives a reprint, and explicitly does
+**not** assert their ordering — asserting it would be a claim decided by the harness rather
+than by the code. In production each print is its own transaction and the two differ.
 
 ---
 
