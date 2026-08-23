@@ -255,6 +255,132 @@ trusted only because the accepted scan through the same wrapper showed the POST 
 
 ---
 
+## PRINTED BARCODES — LOOKING AT ONE PROVES NOTHING. DECODE IT. Built 2026-08-22, closed 2026-08-23
+
+**This is the third member of the family above, and the most expensive to have missed.**
+A barcode that is crisp on screen, crisp in the PDF, and correct to every eye that looks at
+it can still be **unreadable to the scanner at the bay**. The only instrument that answers
+the question is a decoder. Magnification is not evidence. A run-length reading is not
+evidence. "The PDF looks right" is not evidence.
+
+### `html2canvas` RENDERS inline SVG, but does not PRESERVE it well enough to scan
+
+The predicted risk was that html2canvas would fail to draw SVG at all. **That was disproven
+early** — a real JsBarcode SVG went through real html2canvas and the capture decoded back to
+the exact serial. So the SVG path was adopted, with a comment saying not to swap it for a
+canvas "to be safe".
+
+Then the sheet got more complicated, and this is what came back:
+
+| Observation | Verdict |
+|---|---|
+| magnified 6x with smoothing off — sharp edges, no merging, no blur | **looks perfect** |
+| scanline run-length read — 1, 2 and 3-module bars all at the expected widths | **measures correct** |
+| the PDF opened and inspected by eye | **looks correct** |
+| ZXing, three independent captures, every crop framing tried | **0 of 4. Reproducibly.** |
+
+The same barcodes, same DOM, same options, same decoder, rasterised by the **browser**
+instead of by html2canvas: **4 of 4, every time.** Only the rasteriser differed.
+
+Note what that means: the run-length check *agreed with the eye* and both were wrong. Two
+independent-looking instruments confirmed a barcode that no scanner could read. Only the
+decoder disagreed, and only the decoder was right.
+
+### TWO COMPONENTS, ON PURPOSE. DO NOT "SIMPLIFY" THEM INTO ONE
+
+| Component | Use it for | Why |
+|---|---|---|
+| **`BarcodePng`** | **anything printed through `pdfGenerator`** — every `/print/:type/:id` template | Draws JsBarcode to a canvas, exports a PNG, renders an `<img>`. html2canvas copies an `<img>` through **verbatim**, so the bars reaching the PDF are the bars JsBarcode drew |
+| **`BarcodeSvg`** | **screen, and `window.print()`** — e.g. `LabelsPage` | Resolution-independent, and the BROWSER rasterises it natively and perfectly. It was never the broken half |
+
+**Neither is a legacy of the other and neither is redundant.** The obvious tidy-up — "we have
+two barcode components, let's keep the SVG one, it's cleaner" — reintroduces exactly this bug,
+and reintroduces it **invisibly**, because the PDF will still look right. If you touch either
+component, **re-decode**; do not look at the output and judge.
+
+### X-DIMENSION AND QUIET ZONE — the numbers, because estimates were wrong twice
+
+The narrowest bar (the **X-dimension**) must survive printing: roughly **0.19mm** floor for
+CODE128. Both defects below were found by measuring the shipped PDF, and neither was visible.
+
+| Defect | The numbers |
+|---|---|
+| **3-up was an ESTIMATE of 0.44mm and it was wrong.** A 16-character serial gives JsBarcode a natural width of **293px** against a **209px** cell, so `max-w-full` silently scaled it by **x0.71** — X-dimension 0.282mm, over the floor but under comfortable, with **every bar on a fractional pixel** | Now **2-up at 1:1**, X-dimension **0.40mm** |
+| **The quiet zone was 12px against a required 16px.** The requirement is **>=10x the X-dimension**; at 1.6px per module that is 16px. At 12px the cell border sat close enough to read as a bar | Cell padding `p-4`, and **`BarcodePng` carries its own `margin`** so the quiet zone travels WITH the image instead of depending on whatever lays it out |
+
+#### Removing the `max-w-full` CLASS did NOT remove the constraint — 2026-08-23
+
+**Tailwind's PREFLIGHT carries a global `img, video { max-width: 100% }`.** So the 2026-08-22
+fix removed the class, wrote a comment saying the downscale was gone, and left the constraint
+in place on every `<img>` in the app. `getComputedStyle(img).maxWidth` still read `100%`.
+
+Measured in the shipped PDF: the image asks for **317px**, the cell gives it **312px**
+(**x0.9842**), and every bar goes back onto a fractional pixel — the run-length histogram
+shows it outright, 1-module bars landing on **both 3 and 4** image px, 2-module on **both 6
+and 7**. It is the same defect as the x0.71 above, two orders of magnitude smaller.
+
+**It decoded 4/4 either way.** That is the whole point: nothing but a measurement was ever
+going to find it, and a comment asserting it was absent was worse than no comment at all.
+`BarcodePng` now sets **`maxWidth: 'none'`**, which is load-bearing and not styling.
+
+An overlong serial must **overflow visibly rather than silently shrink**. A barcode that is
+too wide is a layout bug somebody fixes; a barcode that is quietly 30% too fine is a scanner
+failure at the bay that nobody sees until the goods are on the floor.
+
+### THE PROOF, AND WHY IT WAS TAKEN FROM THE FILE — 2026-08-23
+
+A screen capture of a print preview is **not** the artefact that gets printed. The verification
+that closed this pass therefore never looked at the screen:
+
+1. **Download PDF** clicked for real — `picking-operations-RCP_2627_0006.pdf`, 177,632 bytes;
+2. the **image XObject extracted out of the PDF bytes** (`jsPDF` embeds one FlateDecode image
+   with a PNG predictor; anchor the parse on the image dict itself — scanning from `N 0 obj`
+   lets a lazy match span earlier objects and pick up **their** `/Length`, silently truncating
+   the stream);
+3. ZXing pointed at that extracted image.
+
+**The instrument was proved before it was believed**, exactly as the network-measurement rule
+above demands:
+
+- **positive control** — 4/4 on the known-good browser-rasterised path;
+- **negative control** — `NotFoundException` on a non-barcode image of the same size;
+- **blind sweep** — 192 tiles slid across the extracted image with **no DOM coordinates at
+  all**, which found exactly the four expected serials and nothing spurious. The voided
+  serial was correctly absent.
+
+Measured off the file: module **3.20 image px -> X-dimension 0.396mm**, quiet zone **32 image
+px each side = 10.0x the X-dimension**.
+
+**Two harness failures happened during this and both would have published a wrong number**,
+which is the same lesson one more time:
+
+| The harness said | What was actually wrong |
+|---|---|
+| blind sweep found **2 of 4** codes | The tile grid stepped 0,120..720 and stopped, so tiles ended at x=1420 while the right-hand barcodes run to x~1454. **They were never fully framed.** The file was fine; the ruler was short |
+| X-dimension **0.2696mm** | "Pick the scanline with the most transitions" selected the **footer text**, not the bars — glyphs have more transitions than a barcode. The run lengths measured were letterforms |
+
+Neither was a defect in the document. Both looked like findings.
+
+### The rule that generalises
+
+**Looking at a barcode proves nothing. Decode it.** Same class as *"before believing a zero,
+prove the instrument can see a one"* — and here the failure is worse, because the barcode
+case has a **confident, plausible, entirely wrong** confirmation available in the form of a
+visual inspection that anyone would accept.
+
+### `print_count` — the ordering the smoke suite says it cannot prove, observed in production
+
+`serial_generation_smoke.sql` test 23 deliberately does **not** assert
+`first_printed_at < last_printed_at`, because `now()` is transaction-scoped and inside a
+rolled-back suite the two are equal by construction whatever the function does.
+
+Printing `RCP/2627/0006` twice through the real screen, in two real transactions, gives
+`print_count = 2` with `first_printed_at` 04:48:27 and `last_printed_at` 04:57:39 — **and 0
+prints on the voided serial**, which is never on the sheet. That is the claim the suite is
+honest about being unable to make, and it now has evidence outside the harness.
+
+---
+
 ## DATABASE FINGERPRINT BASELINE — re-taken 2026-08-15, after the transfer line RPCs
 
 Around any applied migration the expected proof is a **before/after fingerprint**: md5
