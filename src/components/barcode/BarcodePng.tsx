@@ -40,6 +40,22 @@ import JsBarcode from 'jsbarcode';
  * then constrained to the natural CSS width. pdfGenerator captures at scale 2,
  * so rendering at 3x means the PDF downsamples a denser image rather than
  * stretching a sparser one, and bar edges stay on clean boundaries.
+ *
+ * ── maxWidth: 'none' IS LOAD-BEARING ─────────────────────────────────────
+ * Not styling. Tailwind's PREFLIGHT carries a global `img, video { max-width:
+ * 100% }`, so dropping the `max-w-full` CLASS does not remove the constraint —
+ * the base rule still applies to every <img> in the app. Measured in the
+ * shipped PDF it was still shrinking a 317px barcode to the 312px cell (x0.984)
+ * and putting every bar back on a fractional pixel: the run-length histogram
+ * showed 1-module bars landing on 3 AND 4 image px, 2-module on 6 AND 7.
+ *
+ * That is the SAME defect as the 293px->209px (x0.71) downscale this component
+ * was created to fix, just small enough to survive. It decoded either way, which
+ * is exactly why it needed measuring rather than looking at.
+ *
+ * An overlong serial must OVERFLOW VISIBLY rather than silently shrink below
+ * scannable — a barcode that is too wide is a layout bug someone fixes, a
+ * barcode that is quietly 30% too fine is a scanner failure at the bay.
  */
 const OVERSAMPLE = 3;
 
@@ -91,7 +107,8 @@ export function BarcodePng({
       src={png.src}
       alt={`Barcode ${value}`}
       aria-label={`Barcode ${value}`}
-      style={{ width: png.cssWidth }}
+      // maxWidth defeats Tailwind preflight's img{max-width:100%}; see above.
+      style={{ width: png.cssWidth, maxWidth: 'none' }}
       className={className}
     />
   );
